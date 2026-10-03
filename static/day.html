@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>1日の予定 - Jenkins Scheduler</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="page-narrow page-day">
+  <main>
+    <section class="card">
+      <div class="card-head day-head">
+        <h2 id="day-title">1日の予定</h2>
+        <div class="row day-nav">
+          <button class="btn" id="day-prev" title="前の日">◀</button>
+          <input type="date" id="day-date" aria-label="日付を選ぶ">
+          <button class="btn" id="day-next" title="次の日">▶</button>
+          <button class="btn" id="day-today">今日</button>
+        </div>
+      </div>
+      <h3>Jenkins の実行</h3>
+      <div id="day-runs"></div>
+      <h3>予定・メモ</h3>
+      <div id="day-memos"></div>
+    </section>
+  </main>
+  <script src="/static/common.js"></script>
+  <script src="/static/day.js"></script>
+</body>
+</html>

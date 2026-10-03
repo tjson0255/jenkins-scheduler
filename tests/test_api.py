@@ -33,7 +33,7 @@ def create_schedule(c, target_id, **kw):
 def test_default_categories_and_pages(app_client):
     names = [c["name"] for c in app_client.get("/api/categories").json()]
     assert names == ["ビルドセット", "リリース関連", "その他"]
-    for path in ("/", "/targets", "/audit", "/help"):
+    for path in ("/", "/day", "/targets", "/audit", "/help"):
         assert app_client.get(path).status_code == 200
 
 
@@ -222,3 +222,29 @@ def test_holding_is_counted_everywhere(app_client):
 def test_json_responses_declare_utf8(app_client):
     # PowerShell 5.1 などが日本語を正しく読めるように charset を明示する
     assert app_client.get("/api/categories").headers["content-type"] == "application/json; charset=utf-8"
+
+
+def test_agenda_lists_runs_planned_and_memos(app_client):
+    c = app_client
+    t = create_target(c)
+    s = create_schedule(c, t["id"], end_date=None)
+    memo_item = c.post("/api/targets", json={"kind": "memo", "display_name": "リリース計画"}).json()
+    day = local_today() + timedelta(days=3)
+    m = c.post("/api/schedules", json={"target_id": memo_item["id"], "label": "凍結", "note": "マージ禁止",
+                                       "start_date": day.isoformat(), "end_date": (day + timedelta(days=1)).isoformat()})
+    assert m.status_code == 201, m.text
+
+    # run が作られている日（ドラフトでも run は作られる）
+    a = c.get(f"/api/agenda?date={day.isoformat()}").json()
+    assert [(r["schedule_id"], r["schedule_status"]) for r in a["runs"]] == [(s["id"], "draft")]
+    assert a["planned"] == []
+    assert [(x["label"], x["note"]) for x in a["memos"]] == [("凍結", "マージ禁止")]
+
+    # run を作る範囲（14日）より先の日は、スケジュールから時刻を計算して返す
+    far = local_today() + timedelta(days=40)
+    a = c.get(f"/api/agenda?date={far.isoformat()}").json()
+    assert a["runs"] == [] and a["memos"] == []
+    assert [(p["schedule_id"], p["schedule_status"], p["schedule_title"]) for p in a["planned"]] == [(s["id"], "draft", "v1.0.0")]
+    assert a["planned"][0]["scheduled_at"].startswith((far - timedelta(days=1)).isoformat() + "T18:00")  # 03:00 JST
+
+    assert c.get("/api/agenda?date=not-a-date").status_code == 422

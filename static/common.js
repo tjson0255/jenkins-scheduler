@@ -375,6 +375,7 @@ function readonlyNote(text) {
 function renderHeader(active) {
   const nav = [
     ["/", "タイムライン"],
+    ["/day", "1日の予定"],
     ["/targets", "アイテム"],
     ["/audit", "ログ"],
     ["/help", "ヘルプ"],

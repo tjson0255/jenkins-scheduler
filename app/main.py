@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app import db as dbmod
 from app import demo
+from app.api import agenda
 from app.api import auth as auth_api
 from app.api import backup as backup_api
 from app.api import categories, runs, schedules, system, targets
@@ -217,7 +218,7 @@ def create_app(
     async def value_error_handler(_request: Request, exc: ValueError):
         return JSONResponse(status_code=400, content={"detail": str(exc)})
 
-    for r in (auth_api.router, categories.router, targets.router, schedules.router, runs.router, system.router, backup_api.router):
+    for r in (agenda.router, auth_api.router, categories.router, targets.router, schedules.router, runs.router, system.router, backup_api.router):
         app.include_router(r)
 
     app.mount("/static", NoCacheStaticFiles(directory=STATIC_DIR), name="static")
@@ -231,6 +232,7 @@ def create_app(
     app.get("/", include_in_schema=False)(page("index.html"))
     app.get("/targets", include_in_schema=False)(page("targets.html"))
     app.get("/audit", include_in_schema=False)(page("audit.html"))
+    app.get("/day", include_in_schema=False)(page("day.html"))
     app.get("/help", include_in_schema=False)(page("help.html"))
 
     @app.get("/login", include_in_schema=False)

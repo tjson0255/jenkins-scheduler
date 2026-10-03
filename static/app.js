@@ -41,7 +41,9 @@ function init() {
     state.hiddenRunGroups = new Set(JSON.parse(localStorage.getItem("hiddenRunGroups") || "[]"));
   } catch (_) {}
 
-  const today = startOfDay(new Date());
+  // ?date=YYYY-MM-DD で開くと、その日を中心に表示する（1日の予定からのリンク）
+  const asked = new URLSearchParams(location.search).get("date");
+  const today = /^\d{4}-\d{2}-\d{2}$/.test(asked || "") ? parseYmd(asked) : startOfDay(new Date());
   state.v.start = addDays(today, -7);
   const options = {
     locale: "ja",

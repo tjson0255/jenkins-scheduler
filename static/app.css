@@ -474,3 +474,22 @@ input:disabled, select:disabled, textarea:disabled { background: #f4f5f7; color:
 .faq dt { font-weight: 700; margin-top: 12px; }
 .faq dd { margin: 4px 0 0 0; color: #3a4150; }
 section.help { scroll-margin-top: 12px; }
+
+/* 1日の予定 */
+.day-head { flex-wrap: wrap; gap: 8px; }
+.day-head h2 { display: flex; align-items: center; gap: 8px; }
+.day-nav { gap: 6px; align-items: center; }
+.day-nav input[type="date"] { font-size: 14px; padding: 5px 8px; }
+.page-day h3 { margin-top: 18px; }
+.day-table td:first-child { width: 4.5em; font-variant-numeric: tabular-nums; }
+.day-table .swatch { display: inline-block; margin-right: 6px; vertical-align: -1px; }
+.day-table .legend-dot { vertical-align: -1px; }
+.day-table tr.planned.off td { color: #8a94a6; }
+.day-table tr.now-line td { padding: 2px 8px; border-top: 2px solid var(--danger); color: var(--danger); font-size: 12px; font-weight: 700; background: none; }
+.today-tag { font-size: 12px; font-weight: 700; color: #fff; background: var(--danger); border-radius: 4px; padding: 1px 6px; }
+.day-memos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.day-memos li { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.day-memo-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.day-memo-head .swatch { display: inline-block; }
+.day-period { margin-left: auto; }
+.day-memo-note { margin-top: 4px; white-space: pre-wrap; color: #3a4150; font-size: 13px; }
