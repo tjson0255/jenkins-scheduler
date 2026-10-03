@@ -9,6 +9,9 @@ $Svc = Join-Path $App "deploy\winsw\scheduler-service.exe"
 $EnvFile = Join-Path $App ".env"
 $ServiceName = "jenkins-scheduler"
 $env:PYTHONUTF8 = "1"
+# Python が出す UTF-8 をそのまま受け取り、ログが文字化けしないようにする
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$OutputEncoding = [Text.Encoding]::UTF8
 $LogDir = Join-Path $env:ProgramData "jenkins-scheduler\logs"
 New-Item -ItemType Directory -Force $LogDir | Out-Null
 Start-Transcript -Path (Join-Path $LogDir "install.log") -Append | Out-Null
