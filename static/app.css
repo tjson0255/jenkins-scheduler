@@ -540,4 +540,3 @@ body.embed .panel { position: static; width: auto; border: none; box-shadow: non
 .modal.modal-wide .modal-header { display: none; } /* 見出しと × は中のパネルのものを使う */
 .modal.modal-wide { overflow: hidden; }
 .schedule-frame { display: block; width: 100%; height: calc(100vh - 120px); border: 0; }
-.card-note { margin: 2px 0 0; }
