@@ -31,7 +31,7 @@ const groups = new vis.DataSet();
 const items = new vis.DataSet();
 let timeline;
 
-// ?embed=1: 他の画面のモーダルの中に、スケジューラの詳細パネルだけを出す（レーン画面から使う）
+// ?embed=1: 他の画面のモーダルの中に、スケジューラの詳細パネルだけを出す（アイテム画面から使う）
 const EMBED = new URLSearchParams(location.search).get("embed") === "1";
 if (EMBED) document.body.classList.add("embed");
 

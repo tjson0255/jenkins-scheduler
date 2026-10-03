@@ -210,7 +210,7 @@ function renderVertical() {
         </thead>
         <tbody>${rows.join("")}</tbody>
       </table>`
-    : '<p class="muted" style="padding:16px">表示するレーンがありません。レーン画面で登録してください。</p>';
+    : '<p class="muted" style="padding:16px">表示するレーンがありません。アイテム画面で登録してください。</p>';
 
   if (vState.scrollToToday) {
     vState.scrollToToday = false;

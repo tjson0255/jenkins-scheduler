@@ -518,7 +518,7 @@ section.help { scroll-margin-top: 12px; }
 .cal-day.selected.has-memo::after { background: #fff; }
 @media (max-width: 600px) { .day-cal { width: 100%; } }
 
-/* レーン画面: スケジューラ一覧 */
+/* アイテム画面: スケジューラ一覧 */
 .schedule-table .swatch.inline { display: inline-block; margin-right: 6px; vertical-align: -1px; }
 .schedule-table td { white-space: nowrap; }
 .schedule-table .warn-list { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; }
@@ -529,7 +529,7 @@ body.embed .topbar { display: none; }
 body.embed main { position: absolute; left: -10000px; top: 0; width: 1200px; visibility: hidden; } /* タイムラインは裏で動かすが見せない */
 body.embed .panel { position: static; width: auto; border: none; box-shadow: none; padding: 12px 18px 24px; }
 
-/* レーン画面: スケジューラの詳細を出すモーダル */
+/* アイテム画面: スケジューラの詳細を出すモーダル */
 .modal.modal-wide { width: min(860px, 100%); }
 .modal.modal-wide .modal-body { padding: 0; max-height: none; overflow: hidden; }
 .modal.modal-wide .modal-header { display: none; } /* 見出しと × は中のパネルのものを使う */
@@ -540,7 +540,7 @@ body.embed .panel { position: static; width: auto; border: none; box-shadow: non
 .link-btn:hover { text-decoration: underline; }
 .link-btn.small { font-size: 12px; }
 
-/* レーン画面の上部: カテゴリ › レーン › スケジューラ の構成 */
+/* アイテム画面の上部: カテゴリ › レーン › スケジューラ の構成 */
 .tree-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; font-size: 13px; }
 .tree-steps a { font-weight: 600; text-decoration: none; }
 .tree-steps a:hover { text-decoration: underline; }
