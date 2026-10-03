@@ -19,7 +19,6 @@ async function load() {
   renderTargets();
   renderScheduleList();
   renderCategories();
-  renderRegisterForm();
 }
 
 async function patchTarget(t, body, quiet) {
@@ -43,12 +42,29 @@ function schemaStatus(t) {
   return el("span", {}, parts);
 }
 
+let itemFilter = ""; // 絞り込むカテゴリの id（空ならすべて）
+
+function renderItemTools() {
+  if (itemFilter && !categories.some((c) => String(c.id) === itemFilter)) itemFilter = "";
+  const filter = el("select", { "aria-label": "カテゴリで絞り込む" },
+    el("option", { value: "" }, "すべてのカテゴリ"),
+    categories.map((c) => el("option", { value: c.id, selected: String(c.id) === itemFilter }, c.name)));
+  filter.addEventListener("change", () => {
+    itemFilter = filter.value;
+    renderTargets();
+  });
+  const add = can.memo() ? el("button", { class: "btn primary", onclick: openRegisterDialog }, "＋ 追加") : null;
+  document.getElementById("item-tools").replaceChildren(filter, add || "");
+}
+
 function renderTargets() {
+  renderItemTools();
   const box = document.getElementById("target-list");
   const last = targets.map((t) => t.last_synced_at).filter(Boolean).sort().pop();
   document.getElementById("sync-info").textContent = last ? `最終取得 ${fmtDateTime(last, true)}（5分おきに自動取得）` : "";
   const tbody = el("tbody");
   for (const c of categories) {
+    if (itemFilter && String(c.id) !== itemFilter) continue;
     const list = targets.filter((t) => t.category_id === c.id).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
     tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 7 }, c.name)));
     list.forEach((t, i) => tbody.append(targetRow(t, list, i)));
@@ -309,24 +325,17 @@ function openAddSchedule(ordered) {
 }
 
 let registerState = { results: [], open: false };
-function renderRegisterForm() {
-  const box = document.getElementById("register-form");
-  if (box.dataset.ready) {
-    // カテゴリの選択肢だけ更新する
-    const sel = box.querySelector("select[name=category]");
-    const cur = sel.value;
-    sel.replaceChildren(...categories.map((c) => el("option", { value: c.id, selected: String(c.id) === cur }, c.name)));
-    renderResults();
-    return;
-  }
-  box.dataset.ready = "1";
+/** アイテムの追加ダイアログ（テキスト / Jenkins ジョブ） */
+function openRegisterDialog() {
+  registerState = { results: [], open: false };
+  const box = el("div", { class: "form", id: "register-form" });
   const kindMemo = el("input", { type: "radio", name: "kind", value: "memo", checked: true });
   const kindJenkins = el("input", { type: "radio", name: "kind", value: "jenkins", disabled: !can.admin() });
   const isMemo = () => kindMemo.checked;
   const q = el("input", { type: "text", placeholder: "ジョブ名で検索（例: release）", name: "q" });
   const jobPath = el("input", { type: "text", placeholder: "release/core-pipeline", name: "job_path", class: "mono" });
   const displayName = el("input", { type: "text", placeholder: "未入力ならジョブ名", name: "display_name" });
-  const cat = el("select", { name: "category" }, categories.map((c) => el("option", { value: c.id }, c.name)));
+  const cat = el("select", { name: "category" }, categories.map((c) => el("option", { value: c.id, selected: String(c.id) === itemFilter }, c.name)));
   const color = colorPicker("#4e79a7");
   const overlap = el("select", { name: "overlap" }, el("option", { value: "skip" }, "前回ビルド実行中はスキップ"), el("option", { value: "queue" }, "キューに積む"));
   const results = el("div", { class: "job-results", id: "job-results", hidden: true });
@@ -365,9 +374,8 @@ function renderRegisterForm() {
       if (!isMemo() && !body.job_path) return toast("ジョブのパスを入力してください", "error");
       try {
         await api("POST", "/api/targets", body);
+        closeModal();
         toast("登録しました");
-        jobPath.value = "";
-        displayName.value = "";
         await load();
       } catch (e) {
         toast(e.message, "error");
@@ -404,12 +412,12 @@ function renderRegisterForm() {
     searchField,
     results,
     el("div", { class: "row wrap" }, jobField, el("label", { class: "field" }, nameLabel, displayName), field("カテゴリ", cat), field("色", color)),
-    overlapRow,
-    el("div", { class: "actions end" }, submit)
+    overlapRow
   );
   renderKind();
   box._jobPath = jobPath;
   box._displayName = displayName;
+  openModal("アイテムの追加", box, [el("button", { class: "btn", onclick: closeModal }, "やめる"), submit]);
 }
 
 function renderResults() {
@@ -521,7 +529,7 @@ ready.then(() => {
     if (can.memo()) {
       document.getElementById("target-list").before(readonlyNote("テキストのアイテムとカテゴリは編集できます。Jenkins アイテムの設定は閲覧と並び替えのみです"));
     } else {
-      for (const id of ["register-form", "category-list"]) document.getElementById(id).closest("section").hidden = true;
+      document.getElementById("category-list").closest("section").hidden = true;
       document.getElementById("target-list").before(readonlyNote("アイテムの設定は閲覧のみです"));
     }
   }
