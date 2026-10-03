@@ -44,7 +44,8 @@ if ((Invoke-WebRequest "$Base/" -UseBasicParsing).StatusCode -ne 200) { throw "�
 Step "ログインなしの権限と管理者ログイン"
 $me = Invoke-RestMethod "$Base/api/auth/me"
 if ($me.auth_mode -ne "shared_admin" -or $me.can.admin) { throw "ログインなしの権限が想定と違います" }
-try { Invoke-RestMethod "$Base/api/categories" -Method Post -Headers $Headers -ContentType "application/json" -Body '{"name":"x"}'; throw "ログインなしで変更できてしまいました" } catch { if ($_.Exception.Response.StatusCode.value__ -ne 403) { throw } }
+# ログインなしでも自由記入・カテゴリは編集できる。管理者だけの操作（バックアップ）は断られること
+try { Invoke-RestMethod "$Base/api/backups" -Method Post -Headers $Headers; throw "ログインなしで管理者の操作ができてしまいました" } catch { if ($_.Exception.Response.StatusCode.value__ -ne 403) { throw } }
 $s = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 Invoke-RestMethod "$Base/api/auth/login" -Method Post -WebSession $s -Headers $Headers -ContentType "application/json" -Body (@{ username = "admin"; password = $Password } | ConvertTo-Json) | Out-Null
 if (-not (Invoke-RestMethod "$Base/api/auth/me" -WebSession $s).can.admin) { throw "管理者でログインできません" }
