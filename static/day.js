@@ -50,12 +50,21 @@ function detailHref(hash) {
   return `/?date=${currentDay()}#${hash}`;
 }
 
+function categoryCell(targetId) {
+  return el("td", { class: "muted" }, targets.get(targetId)?.category_name || "");
+}
+
 function itemCell(targetId, name, hash) {
   const t = targets.get(targetId);
   return el("td", {},
     el("span", { class: "swatch", style: `background:${t?.color || "#8a94a6"}` }),
-    el("a", { href: detailHref(hash), title: "スケジュールの詳細を開く" }, name || t?.display_name || `#${targetId}`),
-    t?.category_name ? el("span", { class: "muted small" }, ` ${t.category_name}`) : null);
+    el("a", { href: detailHref(hash), title: "実行履歴を開く" }, name || t?.display_name || `#${targetId}`));
+}
+
+/** スケジュールの欄。押すとタイムラインでそのスケジュールの詳細（基本情報）を開く */
+function scheduleCell(scheduleId, title) {
+  if (!scheduleId) return el("td", {}, title);
+  return el("td", {}, el("a", { href: detailHref(`schedule=${scheduleId}&tab=basic`), title: "スケジュールの詳細を開く" }, title));
 }
 
 function timeOf(iso) {
@@ -76,9 +85,10 @@ function runRow(r) {
   }
   return el("tr", { class: `rs-row-${r.status}` },
     timeCell(r.scheduled_at),
+    categoryCell(r.target_id),
     // スケジュールの run はその実行履歴の行へ、即時実行など（スケジュールなし）はアイテムの予定一覧へ
     itemCell(r.target_id, r.target_name, r.schedule_id ? `schedule=${r.schedule_id}&run=${r.id}` : `item=${r.target_id}`),
-    el("td", {}, r.schedule_title || (r.retry_of_id ? "再実行" : "即時実行")),
+    scheduleCell(r.schedule_id, r.schedule_title || (r.retry_of_id ? "再実行" : "即時実行")),
     el("td", {}, el("span", { class: `legend-dot rs-${r.status}` }), " ", RUN_STATUS_LABEL[r.status] || r.status),
     el("td", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener" }, `#${r.build_number}`) : r.build_number ? `#${r.build_number}` : ""),
     el("td", { class: "small muted" }, r.reason || ""));
@@ -88,8 +98,9 @@ function plannedRow(p) {
   const off = p.schedule_status !== "active";
   return el("tr", { class: off ? "planned off" : "planned" },
     timeCell(p.scheduled_at),
+    categoryCell(p.target_id),
     itemCell(p.target_id, p.target_name, p.id ? `schedule=${p.schedule_id}&run=${p.id}` : `schedule=${p.schedule_id}&tab=basic`),
-    el("td", {}, p.schedule_title),
+    scheduleCell(p.schedule_id, p.schedule_title),
     el("td", {}, el("span", { class: "legend-dot rs-scheduled" }), " ", PLANNED_LABEL[p.schedule_status] || p.schedule_status),
     el("td", {}, ""),
     el("td", { class: "small muted" }, ""));
@@ -111,14 +122,14 @@ function renderRuns(data, isCurrent) {
   let nowShown = !isCurrent;
   for (const row of rows) {
     if (!nowShown && row.at > nowIso) {
-      body.push(el("tr", { class: "now-line" }, el("td", { colspan: 6 }, `現在 ${timeOf(nowIso)}`)));
+      body.push(el("tr", { class: "now-line" }, el("td", { colspan: 7 }, `現在 ${timeOf(nowIso)}`)));
       nowShown = true;
     }
     body.push(row.node());
   }
-  if (!nowShown) body.push(el("tr", { class: "now-line" }, el("td", { colspan: 6 }, `現在 ${timeOf(nowIso)}`)));
+  if (!nowShown) body.push(el("tr", { class: "now-line" }, el("td", { colspan: 7 }, `現在 ${timeOf(nowIso)}`)));
   box.replaceChildren(el("table", { class: "table day-table" },
-    el("thead", {}, el("tr", {}, ["時刻", "アイテム", "スケジュール", "状態", "ビルド", "詳細"].map((h) => el("th", {}, h)))),
+    el("thead", {}, el("tr", {}, ["時刻", "カテゴリ", "アイテム", "スケジュール", "状態", "ビルド", "詳細"].map((h) => el("th", {}, h)))),
     el("tbody", {}, body)));
 }
 
