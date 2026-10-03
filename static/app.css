@@ -583,3 +583,8 @@ body.embed .panel { position: static; width: auto; border: none; box-shadow: non
 .hist-mark.rs-scheduled { background: #fff; box-shadow: inset 0 0 0 2px var(--rs-scheduled); color: var(--rs-scheduled); }
 .hist-sum { white-space: nowrap; padding: 0 10px !important; color: var(--muted); font-variant-numeric: tabular-nums; }
 .hist-sum.has-fail { color: var(--danger); font-weight: 700; }
+td.v-cell.locked { cursor: not-allowed; }
+
+/* タイムライン: 日付へ移動（ボタンの下にブラウザ標準の日付選択を開く） */
+.date-jump { position: relative; display: inline-block; }
+.date-jump input[type="date"] { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }

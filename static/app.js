@@ -98,6 +98,18 @@ function init() {
   // ツールバーは横表示・縦表示で共通。縦表示のときは vertical.js 側の表示範囲を動かす
   const vertical = () => state.layout === "vertical";
   document.getElementById("btn-today").onclick = () => (vertical() ? vGoToday() : timeline.moveTo(new Date()));
+  // カレンダーで日付を選んで、その日に移動する（ブラウザ標準の日付選択を使う）
+  const jump = document.getElementById("jump-date");
+  document.getElementById("btn-jump").onclick = () => {
+    jump.value = ymd(vertical() ? addDays(state.v.start, 7) : timeline.getWindow().start);
+    try {
+      jump.showPicker();
+    } catch (_) {
+      jump.focus();
+      jump.click();
+    }
+  };
+  jump.onchange = () => jump.value && goToDate(jump.value);
   document.getElementById("btn-prev").onclick = () => (vertical() ? vShift(-0.5) : shiftWindow(-0.5));
   document.getElementById("btn-next").onclick = () => (vertical() ? vShift(0.5) : shiftWindow(0.5));
   document.getElementById("btn-zoom-in").onclick = () => (vertical() ? vSetDays(Math.round(state.v.days / 2)) : timeline.zoomIn(0.4));
@@ -149,6 +161,22 @@ function init() {
 }
 
 /* ------------------------------------------------------------------ 時刻ヘルパ */
+/** 指定した日に移動する。縦表示ではその日を選んだ状態にし（見出しを出す）、横表示では表示幅を保ったままその日を中央にする */
+function goToDate(dayStr) {
+  const day = parseYmd(dayStr);
+  if (state.layout === "vertical") {
+    vState.focusDay = dayStr === ymd(new Date()) ? null : dayStr;
+    state.v.start = addDays(day, -7);
+    vState.scrollToToday = true; // 選んだ日の行までスクロールする
+    loadData();
+  } else {
+    const w = timeline.getWindow();
+    const half = (w.end - w.start) / 2;
+    const center = day.getTime() + 12 * 3600 * 1000;
+    timeline.setWindow(new Date(center - half), new Date(center + half));
+  }
+}
+
 function startOfDay(d) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
@@ -556,6 +584,7 @@ function setupDragCreate() {
       if (e.button !== 0 || e.shiftKey || e.ctrlKey || e.metaKey) return;
       const props = timeline.getEventProperties(e);
       if (props.what !== "background" || !props.group || !String(props.group).startsWith("t") || props.item) return;
+      // 追加できないレーンでは、ドラッグは表示範囲の移動になる
       if (!can.editItem(state.targets.find((x) => "t" + x.id === String(props.group)))) return;
       e.stopPropagation();
       e.preventDefault();
