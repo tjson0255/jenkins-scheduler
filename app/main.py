@@ -184,6 +184,14 @@ def create_app(
         request.state.user = user
         return await call_next(request)
 
+    @app.middleware("http")
+    async def json_charset(request: Request, call_next):
+        # Windows PowerShell 5.1 の Invoke-RestMethod は charset が無いと UTF-8 で読まない（日本語が文字化けする）
+        response = await call_next(request)
+        if response.headers.get("content-type") == "application/json":
+            response.headers["content-type"] = "application/json; charset=utf-8"
+        return response
+
     @app.exception_handler(ValueError)
     async def value_error_handler(_request: Request, exc: ValueError):
         return JSONResponse(status_code=400, content={"detail": str(exc)})

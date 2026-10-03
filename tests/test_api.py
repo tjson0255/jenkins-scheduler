@@ -217,3 +217,8 @@ def test_holding_is_counted_everywhere(app_client):
     assert item["holding_count"] == 1
     app_client.post(f"/api/runs/{r['id']}/skip")
     assert app_client.get("/api/runs/holding-count").json() == {"holding": 0}
+
+
+def test_json_responses_declare_utf8(app_client):
+    # PowerShell 5.1 などが日本語を正しく読めるように charset を明示する
+    assert app_client.get("/api/categories").headers["content-type"] == "application/json; charset=utf-8"
