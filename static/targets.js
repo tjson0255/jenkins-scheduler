@@ -56,8 +56,7 @@ function renderTargets() {
 function targetRow(t, siblings, index) {
   const name = el("input", { type: "text", value: t.display_name });
   name.addEventListener("change", () => name.value.trim() && patchTarget(t, { display_name: name.value.trim() }));
-  const color = el("input", { type: "color", value: t.color || "#8a94a6" });
-  color.addEventListener("change", () => patchTarget(t, { color: color.value }, true));
+  const color = colorPicker(t.color, (c) => patchTarget(t, { color: c }, true));
   const cat = el("select", {}, categories.map((c) => el("option", { value: c.id, selected: c.id === t.category_id }, c.name)));
   cat.addEventListener("change", () => patchTarget(t, { category_id: Number(cat.value) }));
   const enabled = el("input", { type: "checkbox", checked: t.enabled });
@@ -153,7 +152,7 @@ function renderRegisterForm() {
   const jobPath = el("input", { type: "text", placeholder: "release/core-pipeline", name: "job_path", class: "mono" });
   const displayName = el("input", { type: "text", placeholder: "未入力ならジョブ名", name: "display_name" });
   const cat = el("select", { name: "category" }, categories.map((c) => el("option", { value: c.id }, c.name)));
-  const color = el("input", { type: "color", value: "#4e79a7", name: "color" });
+  const color = colorPicker("#4e79a7");
   const overlap = el("select", { name: "overlap" }, el("option", { value: "skip" }, "前回ビルド実行中はスキップ"), el("option", { value: "queue" }, "キューに積む"));
   const results = el("div", { class: "job-results", id: "job-results", hidden: true });
   // 候補をクリックしても検索欄のフォーカスが外れない（＝一覧が閉じない）ようにする

@@ -282,7 +282,81 @@ async function loadMe() {
 
 /** 編集できない人向けに、フォームの入力欄をまとめて無効にする */
 function lockForm(root) {
-  root.querySelectorAll("input, select, textarea").forEach((e) => (e.disabled = true));
+  root.querySelectorAll("input, select, textarea, .color-btn").forEach((e) => (e.disabled = true));
+  return root;
+}
+
+/* ---- 色の選択（代表的な色のプリセット＋その他の色） ---- */
+// タイムラインで見分けやすい配色（Tableau 10）
+const COLOR_PRESETS = [
+  ["#4e79a7", "青"], ["#f28e2b", "オレンジ"], ["#e15759", "赤"], ["#76b7b2", "青緑"], ["#59a14f", "緑"],
+  ["#edc948", "黄"], ["#b07aa1", "紫"], ["#ff9da7", "ピンク"], ["#9c755f", "茶"], ["#8a94a6", "グレー"],
+];
+
+/**
+ * 色を選ぶ部品。押すとプリセットの見本が出て、「その他の色…」で RGB も指定できる。
+ * 戻り値の要素の .value で今の色を読める。onChange は色が変わったときに呼ばれる。
+ */
+function colorPicker(value, onChange) {
+  let current = (value || "#8a94a6").toLowerCase();
+  const native = el("input", { type: "color", value: current, class: "color-native" });
+  const swatch = el("span", { class: "color-swatch" });
+  const btn = el("button", { type: "button", class: "color-btn", title: "色を選ぶ" }, swatch);
+  const pop = el("div", { class: "color-pop", hidden: true, role: "dialog", "aria-label": "色を選ぶ" });
+  const root = el("span", { class: "color-picker" }, btn, pop);
+
+  const close = () => {
+    pop.hidden = true;
+    document.removeEventListener("mousedown", outside, true);
+    document.removeEventListener("keydown", onKey, true);
+    window.removeEventListener("scroll", close, true);
+    window.removeEventListener("resize", close);
+  };
+  const outside = (e) => !root.contains(e.target) && close();
+  const onKey = (e) => e.key === "Escape" && close();
+  const render = () =>
+    pop.replaceChildren(
+      el("div", { class: "color-chips" }, COLOR_PRESETS.map(([c, name]) =>
+        el("button", {
+          type: "button",
+          class: "color-chip" + (c === current ? " selected" : ""),
+          style: { background: c },
+          title: name,
+          "aria-label": name,
+          onclick: () => {
+            set(c, true);
+            close();
+          },
+        }))),
+      el("label", { class: "color-other" }, native, "その他の色…"));
+  const set = (c, fire) => {
+    current = c.toLowerCase();
+    swatch.style.background = current;
+    native.value = current;
+    btn.title = (COLOR_PRESETS.find(([p]) => p === current) || [, current])[1] + "（押すと変更）";
+    render();
+    if (fire && onChange) onChange(current);
+  };
+  native.addEventListener("change", () => {
+    set(native.value, true);
+    close();
+  });
+  btn.addEventListener("click", () => {
+    if (btn.disabled) return;
+    if (!pop.hidden) return close();
+    // 表のスクロール枠で切れないよう、画面に対して位置を決める
+    const r = btn.getBoundingClientRect();
+    pop.style.left = `${Math.min(r.left, window.innerWidth - 230)}px`;
+    pop.style.top = `${r.bottom + 4}px`;
+    pop.hidden = false;
+    document.addEventListener("mousedown", outside, true);
+    document.addEventListener("keydown", onKey, true);
+    // 画面に固定して出しているので、スクロールしたら閉じる（ボタンから離れて残らないように）
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+  });
+  set(current, false);
+  Object.defineProperty(root, "value", { get: () => current });
   return root;
 }
 
