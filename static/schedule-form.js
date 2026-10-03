@@ -183,7 +183,7 @@ function memoForm(s, opts) {
   if (opts.targets) {
     f.target = el("select", {}, opts.targets.map((t) => el("option", { value: t.id, selected: t.id === s.target_id }, t.display_name)));
   }
-  f.label = el("input", { type: "text", value: s.label || "", placeholder: "例: v2.4 コードフリーズ、QA 期間" });
+  f.label = el("input", { type: "text", value: s.label || "" });
   f.start = el("input", { type: "date", value: s.start_date || ymd(new Date()), required: true });
   f.end = el("input", { type: "date", value: s.end_date || "" });
   f.infinite = el("input", { type: "checkbox", checked: !s.end_date && !!s.id });
@@ -198,7 +198,7 @@ function memoForm(s, opts) {
     f.target ? field("アイテム", f.target) : null,
     field("タイトル", f.label),
     el("div", { class: "row wrap" }, field("開始日", f.start), field("終了日", f.end), el("label", { class: "check" }, f.infinite, " 無期限")),
-    field("内容", f.note));
+    field("詳細", f.note));
   return {
     root,
     value() {
