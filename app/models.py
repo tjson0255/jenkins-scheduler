@@ -178,6 +178,9 @@ class Run(Base):
     build_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     build_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     retry_of_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # その回だけの変更（置き換え）: 置き換え先の run が、元の run の id と、その回だけのパラメータを持つ
+    replaces_run_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    override_params: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     triggered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

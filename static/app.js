@@ -900,6 +900,55 @@ async function renderParamsTab(body, s) {
   if (!can.admin()) lockForm(body);
 }
 
+/** この回だけ、日時やパラメータを変えるダイアログ。元の回はスキップし、変えた内容の回を同じスケジューラに作る */
+async function openReplaceDialog(r, refresh) {
+  let p;
+  try {
+    p = await api("GET", `/api/runs/${r.id}/params`);
+  } catch (e) {
+    return toast(e.message, "error");
+  }
+  const at = el("input", { type: "datetime-local", value: toLocalInput(r.scheduled_at), required: true });
+  const inputs = {};
+  const fields = p.fields.map((f) => {
+    let input;
+    if (f.kind === "choice") {
+      input = el("select", {}, (f.choices || []).map((c) => el("option", { value: c, selected: c === f.value }, c === "" ? "（空）" : c)));
+    } else if (f.kind === "boolean") {
+      input = el("select", {}, ["true", "false"].map((v) => el("option", { value: v, selected: v === String(f.value).toLowerCase() }, v)));
+    } else {
+      input = el("input", { type: "text", value: f.value ?? "" });
+    }
+    inputs[f.name] = input;
+    return el("label", { class: "field" }, el("span", {}, f.name, f.overridden ? el("span", { class: "replace-tag inline" }, "この回だけ変更中") : null), input);
+  });
+  const isReplacement = !!r.replaces_run_id;
+  const note = el("p", { class: "muted small" }, isReplacement
+    ? "この回だけ変更した回の日時・パラメータを変えます。スケジューラの設定は変わりません。"
+    : `スケジューラの設定は変わりません。元の回（${fmtDateTime(r.scheduled_at, true)}）はスキップされ、下の内容の回が同じスケジューラに作られます。あとから「変更を取り消す」で元に戻せます。`);
+  const save = async () => {
+    if (!at.value) return toast("日時を入力してください", "error");
+    const params = Object.fromEntries(Object.entries(inputs).map(([k, i]) => [k, i.value]));
+    try {
+      await api("POST", `/api/runs/${r.id}/replace`, { scheduled_at: at.value, params });
+      closeModal();
+      toast(isReplacement ? "この回の内容を変えました" : "この回だけ変更しました（元の回はスキップしました）");
+      await loadData();
+      refresh();
+    } catch (e) {
+      toast(e.message, "error");
+    }
+  };
+  openModal("この回だけ変更", el("div", { class: "form" },
+    note,
+    el("label", { class: "field" }, el("span", {}, "日時"), at),
+    fields.length ? el("h3", {}, "パラメータ（この回に送る値）") : null,
+    ...fields), [
+    el("button", { class: "btn", onclick: closeModal }, "やめる"),
+    el("button", { class: "btn primary", onclick: save }, "この内容で保存"),
+  ]);
+}
+
 async function renderRunsTab(body, s, focusRunId) {
   let runs;
   try {
@@ -949,12 +998,32 @@ function runRow(r, refresh) {
     ops.append(el("button", { class: "btn small", onclick: () => showRunModal(r) }, "詳細"));
   } else if (r.status === "holding") ops.append(btn("保留解除", `/api/runs/${r.id}/release-hold`, "primary"));
   if (can.admin()) {
+    // この回だけ日時・パラメータを変える（スケジューラの設定は変えない）
+    if (r.schedule_id && ["scheduled", "holding"].includes(r.status)) {
+      ops.append(el("button", { class: "btn small", onclick: () => openReplaceDialog(r, refresh) }, "この回だけ変更"));
+    }
+    if (r.replaces_run_id && r.status === "scheduled") {
+      ops.append(el("button", {
+        class: "btn small",
+        onclick: async () => {
+          if (!(await confirmDialog("変更を取り消す", "この回だけの変更を取り消し、元の回を「予定」に戻します（元の時刻を過ぎている場合は、元の回はスキップのままです）。", "取り消す"))) return;
+          try {
+            const res = await api("POST", `/api/runs/${r.id}/unreplace`);
+            toast(res.restored ? "変更を取り消し、元の回を予定に戻しました" : "変更を取り消しました（元の時刻を過ぎているため、元の回はスキップのままです）");
+            await loadData();
+            refresh();
+          } catch (e) {
+            toast(e.message, "error");
+          }
+        },
+      }, "変更を取り消す"));
+    }
     if (["scheduled", "holding"].includes(r.status)) ops.append(btn("スキップ", `/api/runs/${r.id}/skip`));
     if (["failure", "unstable", "aborted", "success"].includes(r.status) && r.params) ops.append(btn("再実行", `/api/runs/${r.id}/retry`));
     ops.append(el("button", { class: "btn small", onclick: () => showRunModal(r) }, "詳細"));
   }
-  return el("tr", { "data-run": r.id },
-    el("td", {}, fmtDateTime(r.scheduled_at, true)),
+  return el("tr", { "data-run": r.id, class: r.replaces_run_id ? "replaced-run" : "" },
+    el("td", {}, fmtDateTime(r.scheduled_at, true), r.replaces_run_id ? el("div", { class: "replace-tag" }, "この回だけ変更") : null),
     el("td", {}, runChip(r.status)),
     el("td", { class: "small" },
       r.reason ? el("div", {}, r.reason) : null,

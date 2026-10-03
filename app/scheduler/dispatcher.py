@@ -43,7 +43,7 @@ from app.models import (
 from app.scheduler import planner, runstate
 from app.schema import diff
 from app.schema.service import SchemaState, evaluate_schedule, fetch_schema
-from app.schema.validate import validate_explicit
+from app.schema.validate import apply_run_overrides, validate_explicit
 from app.timeutil import iso_z, local_today, utcnow
 
 log = logging.getLogger(__name__)
@@ -226,6 +226,9 @@ class Dispatcher:
         state = fetch_schema(db, self.client, run.target)
         if run.schedule is not None:
             params, _detail, issues = evaluate_schedule(db, run.schedule, state, run.scheduled_at)
+            if run.override_params:
+                params, override_issues = apply_run_overrides(state.defs, params, run.override_params)
+                issues = issues + override_issues
         else:
             issues = diff.job_status_issues(state.info, state.error)
             params, v = validate_explicit(state.defs, run.params_json or {})

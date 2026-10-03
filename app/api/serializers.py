@@ -90,6 +90,8 @@ def run_out(r: Run) -> dict[str, Any]:
         "build_number": r.build_number,
         "build_url": r.build_url,
         "retry_of_id": r.retry_of_id,
+        "replaces_run_id": r.replaces_run_id,
+        "override_params": r.override_params,
         "created_at": iso_z(r.created_at),
         "triggered_at": iso_z(r.triggered_at),
         "finished_at": iso_z(r.finished_at),

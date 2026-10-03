@@ -545,3 +545,7 @@ body.embed .panel { position: static; width: auto; border: none; box-shadow: non
 .tree-steps a { font-weight: 600; text-decoration: none; }
 .tree-steps a:hover { text-decoration: underline; }
 .tree-sep { color: var(--muted); }
+
+/* この回だけ変更した回 */
+.replace-tag { display: inline-block; margin-top: 2px; font-size: 10.5px; font-weight: 700; color: #8a5a00; background: #fff4cd; border-radius: 3px; padding: 0 5px; }
+.replace-tag.inline { margin: 0 0 0 6px; }

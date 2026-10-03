@@ -135,3 +135,23 @@ def validate_explicit(defs: list[dict[str, Any]], requested: dict[str, str]) -> 
             value = default_as_str(d.get("default"))
         params[name] = value
     return params, issues
+
+
+def apply_run_overrides(
+    defs: list[dict[str, Any]], params: dict[str, str], overrides: dict[str, Any]
+) -> tuple[dict[str, str], list[dict[str, Any]]]:
+    """その回だけの変更（置き換え）で指定した値を、スケジューラから展開した値に上書きする。
+
+    値は Jenkins の最新のパラメータ定義で確かめる（選択肢に無い値などはエラーにして、キックせず保留にする）。
+    """
+    issues: list[dict[str, Any]] = []
+    by_name = {d["name"]: d for d in defs}
+    out = dict(params)
+    for name, value in overrides.items():
+        d = by_name.get(name)
+        if d is None:
+            issues.append(issue(WARNING, "param_removed", f"この回だけ変更したパラメータ {name} は Jenkins に存在しないため送信しません", name))
+            continue
+        out[name] = str(value)
+        issues.extend(check_value(d, out[name]))
+    return out, issues

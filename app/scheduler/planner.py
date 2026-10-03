@@ -78,7 +78,8 @@ def regenerate_runs(db: Session, s: Schedule, now: datetime | None = None, horiz
     """未実行（scheduled / holding）の run だけを削除して作り直す。実行済みは変更しない。"""
     now = now or utcnow()
     # キック処理中（確保済み）や、キックに失敗して送ったか分からない run は残す
-    for r in db.scalars(select(Run).where(Run.schedule_id == s.id, UNCLAIMED_PENDING)):
+    # 「この回だけ変更」で作った置き換えの run は、利用者が明示的に作ったものなので残す
+    for r in db.scalars(select(Run).where(Run.schedule_id == s.id, UNCLAIMED_PENDING, Run.replaces_run_id.is_(None))):
         db.delete(r)
     # 同じ (schedule_id, scheduled_at) を作り直すので、追加より先に削除を確定させる
     db.flush()
