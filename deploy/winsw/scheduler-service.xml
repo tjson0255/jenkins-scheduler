@@ -1,0 +1,48 @@
+<!--
+  WinSW 2.x 用のサービス定義。
+  scripts/install.ps1 が WinSW-x64.exe を scheduler-service.exe としてこのフォルダにコピーし、
+  `scheduler-service.exe install` で登録する（exe と xml のベース名を揃える必要がある）。
+
+  %BASE% はこの xml があるフォルダ（deploy\winsw）。
+-->
+<service>
+  <id>jenkins-scheduler</id>
+  <name>Jenkins Scheduler</name>
+  <description>Jenkins ジョブを決まった時刻にパラメータ付きでキックする（定期ビルドの起点。停止すると定期ビルドが止まる）</description>
+
+  <!-- 必ず単一プロセスで起動する（app/__main__.py が Uvicorn を workers=1 で起動） -->
+  <executable>%BASE%\..\..\.venv\Scripts\python.exe</executable>
+  <arguments>-m app</arguments>
+  <workingdirectory>%BASE%\..\..</workingdirectory>
+
+  <!-- 自動（遅延開始） -->
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+
+  <!-- 異常終了時: 10秒後に再起動（3回まで）、その後は60秒間隔 -->
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="60 sec"/>
+  <resetfailure>1 hour</resetfailure>
+
+  <!-- 停止時は Ctrl+C を送り、Uvicorn のシャットダウン（dispatcher の tick 完了待ち・最大20秒）を待つ -->
+  <stopparentprocessfirst>true</stopparentprocessfirst>
+  <stoptimeout>25 sec</stoptimeout>
+
+  <!-- Windows の既定 (cp932) ではなく UTF-8 で入出力する -->
+  <env name="PYTHONUTF8" value="1"/>
+  <env name="PYTHONIOENCODING" value="utf-8"/>
+
+  <!-- サービスラッパー自身の標準出力ログ。アプリのログは <データ>\logs\scheduler.log（JSON Lines） -->
+  <logpath>%ProgramData%\jenkins-scheduler\logs\service</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+
+  <!--
+    実行アカウントは LocalSystem ではなく専用アカウントにする。
+    パスワードを xml に書かないため、install.ps1 が登録後に sc.exe config で設定する。
+  -->
+</service>

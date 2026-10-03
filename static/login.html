@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ログイン - Jenkins Scheduler</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="page-login">
+  <main class="login-wrap">
+    <form class="login-card" id="login-form" autocomplete="on">
+      <h1 id="login-title">Jenkins Scheduler</h1>
+      <p class="muted small" id="login-hint">社内アカウント（Active Directory）でログインしてください。</p>
+      <label class="field"><span>ユーザー名</span>
+        <input type="text" id="username" name="username" autocomplete="username" required autofocus placeholder="例: yamada または yamada@corp.local">
+      </label>
+      <label class="field"><span>パスワード</span>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+      </label>
+      <div class="error-text" id="login-error" role="alert"></div>
+      <button class="btn primary" type="submit" id="login-btn">ログイン</button>
+      <a class="small muted" id="login-back" href="/" hidden>ログインせずに戻る</a>
+    </form>
+  </main>
+  <script src="/static/common.js"></script>
+  <script>
+    "use strict";
+    const form = document.getElementById("login-form");
+    const next = new URLSearchParams(location.search).get("next") || "/";
+    const safeNext = next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/login") ? next : "/";
+    // 共有の管理者アカウントの場合は文言を変える
+    api("GET", "/api/auth/me").then((me) => {
+      if (me.auth_mode !== "shared_admin") return;
+      if (me.can.admin) location.href = safeNext;
+      document.getElementById("login-title").textContent = "管理者ログイン";
+      document.getElementById("login-hint").textContent = "Jenkins のスケジュールやアイテムを操作する管理者用です。閲覧と自由記入の編集はログインしなくてもできます。";
+      document.getElementById("username").placeholder = "管理者のユーザー名";
+      const back = document.getElementById("login-back");
+      back.href = safeNext;
+      back.hidden = false;
+    }).catch(() => {});
+    const err = document.getElementById("login-error");
+    const btn = document.getElementById("login-btn");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      err.textContent = "";
+      btn.disabled = true;
+      btn.textContent = "確認しています…";
+      try {
+        await api("POST", "/api/auth/login", {
+          username: document.getElementById("username").value,
+          password: document.getElementById("password").value,
+        });
+        // 戻り先は同じサイト内のパスだけ許可する（外部サイトへ飛ばされないように）
+        location.href = safeNext;
+      } catch (ex) {
+        err.textContent = ex.message;
+        document.getElementById("password").value = "";
+        btn.disabled = false;
+        btn.textContent = "ログイン";
+      }
+    });
+  </script>
+</body>
+</html>

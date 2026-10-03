@@ -1,0 +1,509 @@
+{
+  "_comment": "JENKINS_MOCK=true のときのジョブ定義。書き換えるとスキーマ差分を試せる（次回ポーリングまたはパラメータ画面を開いたときに反映）",
+  "jobs": {
+    "buildset/core-pipeline": {
+      "buildable": true,
+      "parameters": [
+        {
+          "name": "BRANCH",
+          "type": "StringParameterDefinition",
+          "description": "ビルド対象のブランチ",
+          "defaultParameterValue": {
+            "value": "main"
+          }
+        },
+        {
+          "name": "BUILD_TYPE",
+          "type": "ChoiceParameterDefinition",
+          "description": "ビルド種別",
+          "defaultParameterValue": {
+            "value": "debug"
+          },
+          "choices": [
+            "debug",
+            "release",
+            "profile"
+          ]
+        },
+        {
+          "name": "RUN_TESTS",
+          "type": "BooleanParameterDefinition",
+          "description": "テストを実行する",
+          "defaultParameterValue": {
+            "value": true
+          }
+        },
+        {
+          "name": "VERSION",
+          "type": "StringParameterDefinition",
+          "description": "バージョン番号（空なら自動）",
+          "defaultParameterValue": {
+            "value": ""
+          }
+        },
+        {
+          "name": "MOCK_RESULT",
+          "type": "ChoiceParameterDefinition",
+          "description": "モック専用: 結果を固定する（空ならランダム）",
+          "defaultParameterValue": {
+            "value": ""
+          },
+          "choices": [
+            "",
+            "SUCCESS",
+            "UNSTABLE",
+            "FAILURE"
+          ]
+        }
+      ]
+    },
+    "buildset/android-pipeline": {
+      "buildable": true,
+      "parameters": [
+        {
+          "name": "BRANCH",
+          "type": "StringParameterDefinition",
+          "description": "ビルド対象のブランチ",
+          "defaultParameterValue": {
+            "value": "main"
+          }
+        },
+        {
+          "name": "BUILD_TYPE",
+          "type": "ChoiceParameterDefinition",
+          "description": "ビルド種別",
+          "defaultParameterValue": {
+            "value": "debug"
+          },
+          "choices": [
+            "debug",
+            "release",
+            "profile"
+          ]
+        },
+        {
+          "name": "RUN_TESTS",
+          "type": "BooleanParameterDefinition",
+          "description": "テストを実行する",
+          "defaultParameterValue": {
+            "value": true
+          }
+        },
+        {
+          "name": "VERSION",
+          "type": "StringParameterDefinition",
+          "description": "バージョン番号（空なら自動）",
+          "defaultParameterValue": {
+            "value": ""
+          }
+        },
+        {
+          "name": "MOCK_RESULT",
+          "type": "ChoiceParameterDefinition",
+          "description": "モック専用: 結果を固定する（空ならランダム）",
+          "defaultParameterValue": {
+            "value": ""
+          },
+          "choices": [
+            "",
+            "SUCCESS",
+            "UNSTABLE",
+            "FAILURE"
+          ]
+        }
+      ]
+    },
+    "buildset/ios-pipeline": {
+      "buildable": true,
+      "parameters": [
+        {
+          "name": "BRANCH",
+          "type": "StringParameterDefinition",
+          "description": "ビルド対象のブランチ",
+          "defaultParameterValue": {
+            "value": "main"
+          }
+        },
+        {
+          "name": "BUILD_TYPE",
+          "type": "ChoiceParameterDefinition",
+          "description": "ビルド種別",
+          "defaultParameterValue": {
+            "value": "debug"
+          },
+          "choices": [
+            "debug",
+            "release",
+            "profile"
+          ]
+        },
+        {
+          "name": "RUN_TESTS2",
+          "type": "BooleanParameterDefinition",
+          "description": "テストを実行する",
+          "defaultParameterValue": {
+            "value": false
+          }
+        },
+        {
+          "name": "VERSION",
+          "type": "StringParameterDefinition",
+          "description": "バージョン番号（空なら自動）",
+          "defaultParameterValue": {
+            "value": ""
+          }
+        },
+        {
+          "name": "MOCK_RESULT",
+          "type": "ChoiceParameterDefinition",
+          "description": "モック専用: 結果を固定する（空ならランダム）",
+          "defaultParameterValue": {
+            "value": ""
+          },
+          "choices": [
+            "",
+            "SUCCESS",
+            "UNSTABLE",
+            "FAILURE"
+          ]
+        }
+      ]
+    },
+    "buildset/windows-pipeline": {
+      "buildable": true,
+      "parameters": [
+        {
+          "name": "BRANCH",
+          "type": "StringParameterDefinition",
+          "description": "ビルド対象のブランチ",
+          "defaultParameterValue": {
+            "value": "main"
+          }
+        },
+        {
+          "name": "BUILD_TYPE",
+          "type": "ChoiceParameterDefinition",
+          "description": "ビルド種別",
+          "defaultParameterValue": {
+            "value": "debug"
+          },
+          "choices": [
+            "debug",
+            "release",
+            "profile"
+          ]
+        },
+        {
+          "name": "RUN_TESTS",
+          "type": "BooleanParameterDefinition",
+          "description": "テストを実行する",
+          "defaultParameterValue": {
+            "value": true
+          }
+        },
+        {
+          "name": "VERSION",
+          "type": "StringParameterDefinition",
+          "description": "バージョン番号（空なら自動）",
+          "defaultParameterValue": {
+            "value": ""
+          }
+        },
+        {
+          "name": "MOCK_RESULT",
+          "type": "ChoiceParameterDefinition",
+          "description": "モック専用: 結果を固定する（空ならランダム）",
+          "defaultParameterValue": {
+            "value": ""
+          },
+          "choices": [
+            "",
+            "SUCCESS",
+            "UNSTABLE",
+            "FAILURE"
+          ]
+        }
+      ]
+    },
+    "buildset/web-pipeline": {
+      "buildable": true,
+      "parameters": [
+        {
+          "name": "BRANCH",
+          "type": "StringParameterDefinition",
+          "description": "ビルド対象のブランチ",
+          "defaultParameterValue": {
+            "value": "main"
+          }
+        },
+        {
+          "name": "BUILD_TYPE",
+          "type": "ChoiceParameterDefinition",
+          "description": "ビルド種別",
+          "defaultParameterValue": {
+            "value": "debug"
+          },
+          "choices": [
+            "debug",
+            "release",
+            "profile"
+          ]
+        },
+        {
+          "name": "RUN_TESTS",
+          "type": "BooleanParameterDefinition",
+          "description": "テストを実行する",
+          "defaultParameterValue": {
+            "value": true
+          }
+        },
+        {
+          "name": "VERSION",
+          "type": "StringParameterDefinition",
+          "description": "バージョン番号（空なら自動）",
+          "defaultParameterValue": {
+            "value": ""
+          }
+        },
+        {
+          "name": "MOCK_RESULT",
+          "type": "ChoiceParameterDefinition",
+          "description": "モック専用: 結果を固定する（空ならランダム）",
+          "defaultParameterValue": {
+            "value": ""
+          },
+          "choices": [
+            "",
+            "SUCCESS",
+            "UNSTABLE",
+            "FAILURE"
+          ]
+        }
+      ]
+    },
+    "buildset/server-pipeline": {
+      "buildable": true,
+      "parameters": [
+        {
+          "name": "BRANCH",
+          "type": "StringParameterDefinition",
+          "description": "ビルド対象のブランチ",
+          "defaultParameterValue": {
+            "value": "main"
+          }
+        },
+        {
+          "name": "BUILD_TYPE",
+          "type": "ChoiceParameterDefinition",
+          "description": "ビルド種別",
+          "defaultParameterValue": {
+            "value": "debug"
+          },
+          "choices": [
+            "debug",
+            "release",
+            "profile"
+          ]
+        },
+        {
+          "name": "RUN_TESTS",
+          "type": "BooleanParameterDefinition",
+          "description": "テストを実行する",
+          "defaultParameterValue": {
+            "value": true
+          }
+        },
+        {
+          "name": "VERSION",
+          "type": "StringParameterDefinition",
+          "description": "バージョン番号（空なら自動）",
+          "defaultParameterValue": {
+            "value": ""
+          }
+        },
+        {
+          "name": "MOCK_RESULT",
+          "type": "ChoiceParameterDefinition",
+          "description": "モック専用: 結果を固定する（空ならランダム）",
+          "defaultParameterValue": {
+            "value": ""
+          },
+          "choices": [
+            "",
+            "SUCCESS",
+            "UNSTABLE",
+            "FAILURE"
+          ]
+        }
+      ]
+    },
+    "buildset/tools-pipeline": {
+      "buildable": true,
+      "parameters": [
+        {
+          "name": "BRANCH",
+          "type": "StringParameterDefinition",
+          "description": "ビルド対象のブランチ",
+          "defaultParameterValue": {
+            "value": "main"
+          }
+        },
+        {
+          "name": "BUILD_TYPE",
+          "type": "ChoiceParameterDefinition",
+          "description": "ビルド種別",
+          "defaultParameterValue": {
+            "value": "debug"
+          },
+          "choices": [
+            "debug",
+            "release",
+            "profile"
+          ]
+        },
+        {
+          "name": "RUN_TESTS",
+          "type": "BooleanParameterDefinition",
+          "description": "テストを実行する",
+          "defaultParameterValue": {
+            "value": true
+          }
+        },
+        {
+          "name": "VERSION",
+          "type": "StringParameterDefinition",
+          "description": "バージョン番号（空なら自動）",
+          "defaultParameterValue": {
+            "value": ""
+          }
+        },
+        {
+          "name": "MOCK_RESULT",
+          "type": "ChoiceParameterDefinition",
+          "description": "モック専用: 結果を固定する（空ならランダム）",
+          "defaultParameterValue": {
+            "value": ""
+          },
+          "choices": [
+            "",
+            "SUCCESS",
+            "UNSTABLE",
+            "FAILURE"
+          ]
+        }
+      ],
+      "timer_trigger": true
+    },
+    "release/release-candidate": {
+      "buildable": true,
+      "parameters": [
+        {
+          "name": "VERSION",
+          "type": "StringParameterDefinition",
+          "description": "リリースバージョン",
+          "defaultParameterValue": {
+            "value": ""
+          }
+        },
+        {
+          "name": "CHANNEL",
+          "type": "ChoiceParameterDefinition",
+          "description": "配信チャンネル",
+          "defaultParameterValue": {
+            "value": "beta"
+          },
+          "choices": [
+            "beta",
+            "rc",
+            "stable"
+          ]
+        },
+        {
+          "name": "RELEASE_NOTE",
+          "type": "TextParameterDefinition",
+          "description": "リリースノート",
+          "defaultParameterValue": {
+            "value": ""
+          }
+        },
+        {
+          "name": "DRY_RUN",
+          "type": "BooleanParameterDefinition",
+          "description": "成果物をアップロードしない",
+          "defaultParameterValue": {
+            "value": false
+          }
+        },
+        {
+          "name": "MOCK_RESULT",
+          "type": "ChoiceParameterDefinition",
+          "description": "モック専用",
+          "defaultParameterValue": {
+            "value": ""
+          },
+          "choices": [
+            "",
+            "SUCCESS",
+            "UNSTABLE",
+            "FAILURE"
+          ]
+        }
+      ]
+    },
+    "release/store-submit": {
+      "buildable": true,
+      "parameters": [
+        {
+          "name": "VERSION",
+          "type": "StringParameterDefinition",
+          "description": "",
+          "defaultParameterValue": {
+            "value": ""
+          }
+        },
+        {
+          "name": "STORE",
+          "type": "ChoiceParameterDefinition",
+          "description": "",
+          "defaultParameterValue": {
+            "value": "appstore"
+          },
+          "choices": [
+            "appstore",
+            "googleplay",
+            "both"
+          ]
+        }
+      ]
+    },
+    "misc/cleanup-workspace": {
+      "buildable": true,
+      "parameters": []
+    },
+    "misc/nightly-report": {
+      "buildable": true,
+      "parameters": [
+        {
+          "name": "REPORT_DATE",
+          "type": "StringParameterDefinition",
+          "description": "対象日",
+          "defaultParameterValue": {
+            "value": ""
+          }
+        },
+        {
+          "name": "MAIL_TO",
+          "type": "StringParameterDefinition",
+          "description": "",
+          "defaultParameterValue": {
+            "value": "team@example.com"
+          }
+        }
+      ]
+    },
+    "misc/legacy-job": {
+      "buildable": false,
+      "parameters": []
+    }
+  }
+}

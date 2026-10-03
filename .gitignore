@@ -1,0 +1,16 @@
+.env
+.venv/
+venv/
+var/
+wheels/
+__pycache__/
+*.pyc
+.pytest_cache/
+seed.yaml
+deploy/winsw/*.exe
+deploy/winsw/*.log
+
+# OS・エディタ・手元の開発設定
+.DS_Store
+.claude/
+*.tmp

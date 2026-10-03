@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ログ - Jenkins Scheduler</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="page-narrow">
+  <main>
+    <section class="card">
+      <div class="card-head">
+        <h2>ログ</h2>
+        <div class="row wrap">
+          <label class="field"><span>種別</span>
+            <select id="f-type">
+              <option value="">すべて</option>
+              <option value="schedule">スケジュール</option>
+              <option value="run">run</option>
+              <option value="target">アイテム</option>
+              <option value="category">カテゴリ</option>
+              <option value="system">システム</option>
+            </select>
+          </label>
+          <label class="field"><span>対象 ID</span><input type="number" id="f-target" style="width:7em"></label>
+          <label class="field"><span>操作（前方一致）</span><input type="text" id="f-action" placeholder="schedule." style="width:10em"></label>
+          <label class="field"><span>期間</span><span class="row"><input type="date" id="f-from"> 〜 <input type="date" id="f-to"></span></label>
+        </div>
+      </div>
+      <div id="audit-list"></div>
+    </section>
+  </main>
+  <script src="/static/common.js"></script>
+  <script src="/static/audit.js"></script>
+</body>
+</html>
