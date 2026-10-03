@@ -22,7 +22,7 @@ const state = {
   panelScheduleId: null,
   panelTab: "basic",
   layout: "horizontal", // horizontal: 横軸=日付 / vertical: 行=日付・列=アイテム（vertical.js）
-  runsOn: true, // 実行状況（丸）を表示するか
+  runsOn: true, // 実行状況（run の丸）を表示するか
   hiddenRunGroups: new Set(), // 凡例で非表示にした状態
   v: { start: null, days: 28 }, // 縦表示の表示範囲
 };
@@ -105,6 +105,22 @@ function init() {
   });
   document.getElementById("btn-collapse-all").onclick = () => setAllCollapsed(true);
   document.getElementById("btn-expand-all").onclick = () => setAllCollapsed(false);
+  // 凡例の表示・非表示
+  const legendToggle = document.getElementById("legend-toggle");
+  let legendOn = true;
+  try {
+    legendOn = localStorage.getItem("legendOn") !== "0";
+  } catch (_) {}
+  const applyLegend = () => (document.getElementById("legend").hidden = !legendOn);
+  legendToggle.checked = legendOn;
+  legendToggle.onchange = () => {
+    legendOn = legendToggle.checked;
+    try {
+      localStorage.setItem("legendOn", legendOn ? "1" : "0");
+    } catch (_) {}
+    applyLegend();
+  };
+  applyLegend();
   const runsToggle = document.getElementById("runs-toggle");
   runsToggle.checked = state.runsOn;
   runsToggle.onchange = () => {
@@ -431,7 +447,7 @@ function runVisible(r) {
 }
 
 function runNote(withinRange) {
-  if (!state.runsOn) return "実行状況（丸）を非表示にしています。";
+  if (!state.runsOn) return "実行状況を非表示にしています。";
   if (!withinRange) return `表示範囲が ${RUN_POINT_MAX_DAYS} 日を超えているため、run は件数サマリーのみ表示しています。`;
   if (state.hiddenRunGroups.size) {
     const names = RUN_GROUPS.filter(([k]) => state.hiddenRunGroups.has(k)).map(([, label]) => label);
@@ -456,7 +472,7 @@ function renderLegend() {
         class: `legend-item legend-toggle${off ? " off" : ""}`,
         "aria-pressed": String(!off),
         disabled: !state.runsOn,
-        title: state.runsOn ? `${label}の丸を${off ? "表示する" : "隠す"}` : "実行状況（丸）がオフです",
+        title: state.runsOn ? `${label}の丸を${off ? "表示する" : "隠す"}` : "実行状況がオフです",
         onclick: () => {
           off ? state.hiddenRunGroups.delete(key) : state.hiddenRunGroups.add(key);
           saveRunPrefs();
@@ -466,8 +482,8 @@ function renderLegend() {
       }, el("span", { class: `legend-dot rs-${key}` }), label);
     }),
     el("span", { class: "legend-item" }, el("span", { class: "legend-bar draft" }), "ドラフト"),
-    el("span", { class: "legend-item" }, el("span", { class: "legend-bar hatch-warning" }), "警告（要確認）"),
-    el("span", { class: "legend-item" }, el("span", { class: "legend-bar hatch-error" }), "エラー（キックされない）")
+    el("span", { class: "legend-item", title: "要確認（パラメータ定義の変更、Jenkins 側の cron の残存など）" }, el("span", { class: "legend-bar hatch-warning" }), "警告"),
+    el("span", { class: "legend-item", title: "キックされない（パラメータ定義のエラー、ジョブが無い、保留中の run がある）" }, el("span", { class: "legend-bar hatch-error" }), "エラー")
   );
 }
 
