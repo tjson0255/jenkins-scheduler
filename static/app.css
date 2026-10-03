@@ -523,8 +523,6 @@ section.help { scroll-margin-top: 12px; }
 .cal-day.selected.has-memo::after { background: #fff; }
 @media (max-width: 600px) { .day-cal { width: 100%; } }
 
-/* アイテム画面: アイテムごとのスケジュール一覧 */
-.targets-table tr.sched-row > td { background: #f7f9fc; padding: 8px 12px 12px 40px; }
-.sched-box { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-.sched-list { width: auto; min-width: 60%; background: #fff; }
-.btn.small.active { background: var(--accent-weak); border-color: var(--accent); }
+/* アイテム画面: スケジュール一覧 */
+.schedule-table .swatch.inline { display: inline-block; margin-right: 6px; vertical-align: -1px; }
+.schedule-table td { white-space: nowrap; }

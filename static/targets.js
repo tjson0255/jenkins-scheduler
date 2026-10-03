@@ -7,7 +7,6 @@ const ready = renderHeader("/targets");
 let categories = [];
 let targets = [];
 let schedulesByTarget = new Map(); // アイテムごとのスケジュール・予定（キャンセル済みは除く）
-const openSchedules = new Set(); // スケジュール一覧を開いているアイテム
 
 async function load() {
   let schedules;
@@ -18,6 +17,7 @@ async function load() {
     schedulesByTarget.get(s.target_id).push(s);
   }
   renderTargets();
+  renderScheduleList();
   renderCategories();
   renderRegisterForm();
 }
@@ -51,10 +51,7 @@ function renderTargets() {
   for (const c of categories) {
     const list = targets.filter((t) => t.category_id === c.id).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
     tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 9 }, c.name)));
-    list.forEach((t, i) => {
-      tbody.append(targetRow(t, list, i));
-      if (openSchedules.has(t.id)) tbody.append(scheduleListRow(t));
-    });
+    list.forEach((t, i) => tbody.append(targetRow(t, list, i)));
   }
   box.replaceChildren(
     el("div", { class: "table-wrap" }, el("table", { class: "table targets-table" },
@@ -108,7 +105,6 @@ function targetRow(t, siblings, index) {
     el("td", { class: "small" }, memo ? na() : schemaStatus(t)),
     el("td", {}, warn),
     el("td", { class: "row" },
-      schedulesButton(t),
       el("button", { class: "btn small", title: "上へ", disabled: index === 0, onclick: () => move(-1) }, "↑"),
       el("button", { class: "btn small", title: "下へ", disabled: index === siblings.length - 1, onclick: () => move(1) }, "↓"),
       memo || !can.admin() ? null : el("button", { class: "btn small", onclick: () => runNow(t) }, "今すぐ実行"),
@@ -129,103 +125,118 @@ function targetRow(t, siblings, index) {
     // Jenkins アイテムの設定は管理者だけ。並び替え（↑↓）は残す
     const ops = row.lastElementChild;
     lockForm(row);
-    ops.querySelectorAll("button").forEach((b) => (b.disabled = b.dataset.keep ? false : b.textContent === "↑" ? index === 0 : b.textContent === "↓" ? index === siblings.length - 1 : b.disabled));
-    if (!can.memo()) ops.replaceChildren(schedulesButton(t)); // 閲覧のみの人もスケジュール一覧は見られる
+    ops.querySelectorAll("button").forEach((b) => (b.disabled = b.textContent === "↑" ? index === 0 : b.textContent === "↓" ? index === siblings.length - 1 : b.disabled));
+    if (!can.memo()) ops.replaceChildren();
   }
   return row;
 }
 
-/* ---- アイテムごとのスケジュール一覧と追加 ---- */
-function schedulesButton(t) {
-  const n = (schedulesByTarget.get(t.id) || []).length;
-  const label = t.kind === "memo" ? "予定" : "スケジュール";
-  return el("button", {
-    class: "btn small" + (openSchedules.has(t.id) ? " active" : ""),
-    "data-keep": "1",
-    title: `${label}の一覧を${openSchedules.has(t.id) ? "閉じる" : "開く"}`,
-    onclick: () => {
-      openSchedules.has(t.id) ? openSchedules.delete(t.id) : openSchedules.add(t.id);
-      renderTargets();
-    },
-  }, `${label} (${n}) ${openSchedules.has(t.id) ? "▲" : "▼"}`);
-}
+/* ---- スケジュール一覧（すべてのアイテムのスケジュール・予定）と追加 ---- */
+let scheduleFilter = ""; // 絞り込むアイテムの id（空ならすべて）
 
 function scheduleRule(s) {
-  if (s.mode === "memo") return "—";
+  if (s.mode === "memo") return "予定";
   if (s.mode === "once") return s.once_at ? `1回 ${fmtDateTime(s.once_at)}` : "1回";
   return s.cron_summary || s.cron_expr || "";
 }
 
-function scheduleListRow(t) {
-  const memo = t.kind === "memo";
-  const list = (schedulesByTarget.get(t.id) || []).slice().sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id - b.id);
-  const open = (s) => `/?date=${s.start_date}#schedule=${s.id}&tab=basic`;
-  const table = list.length
-    ? el("table", { class: "table small sched-list" },
-        el("thead", {}, el("tr", {}, ["タイトル", memo ? null : "実行規則", "期間", memo ? null : "状態"].filter(Boolean).map((h) => el("th", {}, h)))),
-        el("tbody", {}, list.map((s) => el("tr", {},
-          el("td", {}, el("a", { href: open(s), title: "タイムラインで開く" }, scheduleTitleOf(s))),
-          memo ? null : el("td", {}, scheduleRule(s)),
-          el("td", {}, `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`),
-          memo ? null : el("td", {}, statusChip(s.status))))))
-    : el("p", { class: "muted small" }, memo ? "予定はありません。" : "スケジュールはありません。");
-  const add = can.editItem(t)
-    ? el("button", { class: "btn small primary", onclick: () => (memo ? addMemo(t) : addSchedule(t)) }, memo ? "＋ 予定を追加" : "＋ スケジュールを追加")
-    : null;
-  return el("tr", { class: "sched-row" }, el("td", { colspan: 9 }, el("div", { class: "sched-box" }, table, add)));
-}
-
 function scheduleTitleOf(s) {
   if (s.label) return s.label;
-  if (s.mode === "memo") return firstLineOf(s.note) || "（タイトルなし）";
+  if (s.mode === "memo") return (s.note || "").split("\n")[0].trim() || "（タイトルなし）";
   return scheduleRule(s);
 }
 
-function firstLineOf(text) {
-  return (text || "").split("\n")[0].trim();
+/** カテゴリ順・アイテム順に並べたアイテム */
+function orderedTargets() {
+  const out = [];
+  for (const c of categories) {
+    out.push(...targets.filter((t) => t.category_id === c.id).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id));
+  }
+  return out;
 }
 
-function addSchedule(t) {
-  const today = new Date();
-  const form = scheduleForm({ target_id: t.id, start_date: ymd(today), end_date: ymd(addDays(today, 6)), mode: "cron", cron_expr: "0 3 * * *" });
-  const submit = async (activate) => {
+function renderScheduleList() {
+  const box = document.getElementById("schedule-list");
+  const ordered = orderedTargets();
+  if (scheduleFilter && !ordered.some((t) => String(t.id) === scheduleFilter)) scheduleFilter = "";
+
+  const filter = el("select", { "aria-label": "アイテムで絞り込む" },
+    el("option", { value: "" }, "すべてのアイテム"),
+    categories.map((c) => {
+      const items = ordered.filter((t) => t.category_id === c.id);
+      return items.length ? el("optgroup", { label: c.name }, items.map((t) => el("option", { value: t.id, selected: String(t.id) === scheduleFilter }, t.display_name))) : null;
+    }));
+  filter.addEventListener("change", () => {
+    scheduleFilter = filter.value;
+    renderScheduleList();
+  });
+  const editable = ordered.filter((t) => can.editItem(t));
+  const addBtn = editable.length ? el("button", { class: "btn primary", onclick: () => openAddSchedule(editable) }, "＋ 追加") : null;
+  const tools = document.getElementById("schedule-tools");
+  tools.replaceChildren(filter, addBtn || "");
+
+  const rows = [];
+  for (const t of ordered) {
+    if (scheduleFilter && String(t.id) !== scheduleFilter) continue;
+    const list = (schedulesByTarget.get(t.id) || []).slice().sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id - b.id);
+    const cat = categories.find((c) => c.id === t.category_id);
+    for (const s of list) {
+      rows.push(el("tr", {},
+        el("td", { class: "muted" }, cat ? cat.name : ""),
+        el("td", {}, el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }), t.display_name),
+        el("td", {}, el("a", { href: `/?date=${s.start_date}#schedule=${s.id}&tab=basic`, title: "タイムラインで開く" }, scheduleTitleOf(s))),
+        el("td", {}, scheduleRule(s)),
+        el("td", { class: "nowrap" }, `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`),
+        el("td", {}, s.mode === "memo" ? "" : statusChip(s.status))));
+    }
+  }
+  box.replaceChildren(rows.length
+    ? el("div", { class: "table-wrap" }, el("table", { class: "table schedule-table" },
+        el("thead", {}, el("tr", {}, ["カテゴリ", "アイテム", "タイトル", "実行規則", "期間", "状態"].map((h) => el("th", {}, h)))),
+        el("tbody", {}, rows)))
+    : el("p", { class: "muted" }, "スケジュールはありません。"));
+}
+
+/** 追加ダイアログ。アイテムを選ぶと、Jenkins ならスケジュール、予定のアイテムなら予定の入力欄にする */
+function openAddSchedule(editable) {
+  const pick = el("select", {}, categories.map((c) => {
+    const items = editable.filter((t) => t.category_id === c.id);
+    return items.length ? el("optgroup", { label: c.name }, items.map((t) => el("option", { value: t.id, selected: String(t.id) === scheduleFilter }, t.display_name))) : null;
+  }));
+  const area = el("div");
+  const buttons = el("div", { class: "row" });
+  let form = null;
+  const save = async (extra, message) => {
+    const t = editable.find((x) => String(x.id) === pick.value);
     try {
-      await api("POST", "/api/schedules", { ...form.value(), target_id: t.id, activate });
+      await api("POST", "/api/schedules", { ...form.value(), target_id: t.id, ...extra });
       closeModal();
-      toast(activate ? "スケジュールを作成して有効化しました" : "ドラフトとして保存しました");
-      openSchedules.add(t.id);
+      toast(message);
       load();
     } catch (e) {
       toast(e.message, "error");
     }
   };
-  openModal(`スケジュールの作成（${t.display_name}）`, form.root, [
-    el("button", { class: "btn", onclick: closeModal }, "やめる"),
-    el("button", { class: "btn", onclick: () => submit(false) }, "ドラフトで保存"),
-    el("button", { class: "btn primary", onclick: () => submit(true) }, "保存して有効化"),
-  ]);
-}
-
-function addMemo(t) {
-  const today = ymd(new Date());
-  const form = memoForm({ target_id: t.id, start_date: today, end_date: today });
-  openModal(`予定の追加（${t.display_name}）`, form.root, [
-    el("button", { class: "btn", onclick: closeModal }, "やめる"),
-    el("button", {
-      class: "btn primary",
-      onclick: async () => {
-        try {
-          await api("POST", "/api/schedules", { ...form.value(), target_id: t.id });
-          closeModal();
-          toast("予定を追加しました");
-          openSchedules.add(t.id);
-          load();
-        } catch (e) {
-          toast(e.message, "error");
-        }
-      },
-    }, "保存"),
-  ]);
+  const build = () => {
+    const t = editable.find((x) => String(x.id) === pick.value);
+    const today = new Date();
+    if (t.kind === "memo") {
+      form = memoForm({ target_id: t.id, start_date: ymd(today), end_date: ymd(today) });
+      buttons.replaceChildren(
+        el("button", { class: "btn", onclick: closeModal }, "やめる"),
+        el("button", { class: "btn primary", onclick: () => save({}, "予定を追加しました") }, "保存"));
+    } else {
+      form = scheduleForm({ target_id: t.id, start_date: ymd(today), end_date: ymd(addDays(today, 6)), mode: "cron", cron_expr: "0 3 * * *" });
+      buttons.replaceChildren(
+        el("button", { class: "btn", onclick: closeModal }, "やめる"),
+        el("button", { class: "btn", onclick: () => save({ activate: false }, "ドラフトとして保存しました") }, "ドラフトで保存"),
+        el("button", { class: "btn primary", onclick: () => save({ activate: true }, "スケジュールを作成して有効化しました") }, "保存して有効化"));
+    }
+    area.replaceChildren(form.root);
+  };
+  pick.addEventListener("change", build);
+  build();
+  openModal("スケジュール・予定の追加", el("div", { class: "form" }, el("label", { class: "field" }, el("span", {}, "アイテム"), pick), area), [buttons]);
 }
 
 async function runNow(t) {
