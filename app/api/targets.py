@@ -152,8 +152,8 @@ def update_target(tid: int, body: TargetPatch, db: Session = Depends(get_db), ac
     if not t:
         raise not_found("アイテム")
     if not user.is_admin and not t.is_memo:
-        # Jenkins アイテムは、並び替え（表示順）だけ管理者以外も変えられる
-        if body.model_dump(exclude_unset=True).keys() - {"sort_order", "revision"}:
+        # Jenkins アイテムは、並び替え（表示順）とメモだけ管理者以外も変えられる（キックの動作には関係しない）
+        if body.model_dump(exclude_unset=True).keys() - {"sort_order", "note", "revision"}:
             raise HTTPException(403, "Jenkins アイテムの設定の変更には管理者ログインが必要です")
     bump_revision(db, Target, t.id, body.revision)
     changes = body.model_dump(exclude_unset=True, exclude={"revision"})
