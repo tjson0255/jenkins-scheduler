@@ -89,3 +89,24 @@ def test_files_read_by_configparser_are_ascii():
     from app.config import PROJECT_ROOT
 
     (PROJECT_ROOT / "alembic.ini").read_bytes().decode("ascii")
+
+
+def test_third_party_notices_cover_bundled_software():
+    """配布物に同梱するサードパーティの表示が、requirements.txt・WinSW の版・ビルドの内容と食い違っていないこと。"""
+    import re
+
+    from app.config import PROJECT_ROOT
+
+    notices = (PROJECT_ROOT / "THIRD-PARTY-NOTICES.txt").read_text(encoding="utf-8")
+    norm = lambda n: re.sub(r"[-_.]+", "-", n).lower()
+    listed = {norm(n) for n in re.findall(r"^  (\S+)\s{2,}", notices, re.M)}
+    for line in (PROJECT_ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines():
+        name = re.split(r"[<>=!~;\[ ]", line.strip(), maxsplit=1)[0]
+        if name and not name.startswith("#"):
+            assert norm(name) in listed, f"{name} が THIRD-PARTY-NOTICES.txt にありません"
+
+    build = (PROJECT_ROOT / "packaging" / "windows" / "build.ps1").read_text(encoding="utf-8")
+    winsw = re.search(r'\$WinswVersion = "(v[\d.]+)"', build).group(1)
+    assert f"WinSW {winsw}" in notices
+    assert '"THIRD-PARTY-NOTICES.txt"' in build and '"licenses"' in build
+    assert (PROJECT_ROOT / "licenses" / "WinSW-LICENSE.txt").read_text(encoding="utf-8").startswith("MIT License")

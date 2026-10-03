@@ -591,6 +591,10 @@ py -3.11 -m venv .venv
 
 | ソフトウェア | 場所 | ライセンス |
 |---|---|---|
-| vis-timeline 8.5.4 | `static/vendor/vis-timeline/` | Apache-2.0 または MIT（[LICENSE.md](static/vendor/vis-timeline/LICENSE.md)） |
+| vis-timeline 8.5.4（moment.js・Hammer.JS を含む） | `static/vendor/vis-timeline/` | Apache-2.0 または MIT（[LICENSE.md](static/vendor/vis-timeline/LICENSE.md)） |
 
-Python の依存ライブラリ（`requirements.txt`）は同梱せず、インストール時に取得します。AD 認証用の `ldap3`（LGPL-3.0）は任意で、標準の構成には含めていません。
+リポジトリには Python の依存ライブラリ（`requirements.txt`）を入れておらず、インストール時に取得します。
+
+Windows 用の配布物（Setup.exe・zip 版）には、Python 本体（埋め込み版）、依存ライブラリ、WinSW を同梱しています。同梱物とライセンスの一覧は [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)、WinSW のライセンスの全文は [licenses/WinSW-LICENSE.txt](licenses/WinSW-LICENSE.txt) にあり、どちらも配布物に入れています。
+
+AD 認証用の `ldap3`（LGPL-3.0）は任意で、配布物には含めていません。

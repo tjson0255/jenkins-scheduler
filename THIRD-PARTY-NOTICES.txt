@@ -1,0 +1,105 @@
+Jenkins Scheduler - サードパーティ ソフトウェアの表示 / Third-Party Notices
+==========================================================================
+
+Jenkins Scheduler 本体は MIT License です（LICENSE を参照）。
+配布物（ソースコード、Setup.exe、zip 版）には、次のサードパーティのソフトウェアが含まれます。
+各ソフトウェアは、それぞれのライセンスに従います。ライセンスの全文は、右に示した場所にあります。
+
+This software (Jenkins Scheduler) is licensed under the MIT License (see LICENSE).
+The distribution includes the third-party software listed below, each under its own license.
+The full license texts are located at the paths shown.
+
+
+1. ソースコードとすべての配布物に含まれるもの / Included in the source and all distributions
+-------------------------------------------------------------------------------------------
+
+vis-timeline 8.5.4
+  https://visjs.github.io/vis-timeline/
+  ライセンス / License: Apache-2.0 OR MIT（利用者が選択 / at your option）
+  Copyright (c) 2014-2017 Almende B.V. and contributors
+  Copyright (c) 2017-2019 vis.js contributors
+  全文 / Full text: static/vendor/vis-timeline/LICENSE.md,
+                    static/vendor/vis-timeline/LICENSE.Apache-2.0.txt,
+                    static/vendor/vis-timeline/LICENSE.MIT.txt
+  vis-timeline-graph2d.min.js には、次のライブラリも含まれています（いずれも MIT）。
+  The bundle vis-timeline-graph2d.min.js also contains the following libraries (both MIT):
+    - moment.js（日付の処理 / date handling）  https://momentjs.com/   Copyright (c) JS Foundation and other contributors
+    - Hammer.JS v2.0.17-rc（タッチ操作 / touch gestures, Naver egjs fork）  https://github.com/naver/hammer.js   Copyright (c) hammerjs
+
+
+2. Windows 用の配布物（Setup.exe、zip 版）だけに含まれるもの / Included only in the Windows distributions
+--------------------------------------------------------------------------------------------------------
+
+Python（埋め込み版 / embeddable package）
+  https://www.python.org/
+  ライセンス / License: PSF License Version 2 ほか（同梱の各コンポーネントのライセンスを含む）
+  Copyright (c) 2001 Python Software Foundation; All Rights Reserved
+  全文 / Full text: python\LICENSE.txt
+
+WinSW v2.12.0（Windows サービスのラッパー。deploy\winsw\scheduler-service.exe として同梱 / bundled as deploy\winsw\scheduler-service.exe）
+  https://github.com/winsw/winsw
+  ライセンス / License: MIT
+  Copyright (c) 2008-2020 Kohsuke Kawaguchi, Sun Microsystems, Inc., CloudBees, Inc., Oleg Nenashev and other contributors
+  全文 / Full text: licenses\WinSW-LICENSE.txt
+
+Python ライブラリ / Python libraries（lib フォルダ / in the lib folder）
+  requirements.txt のライブラリと、それらが依存するライブラリを、改変せずに同梱しています。
+  各ライブラリのライセンスの全文は lib\<ライブラリ名>-<版>.dist-info\ の中にあります。
+  The libraries listed in requirements.txt and their dependencies are bundled unmodified.
+  The full license text of each library is in lib\<name>-<version>.dist-info\.
+
+  ライブラリ / Library    ライセンス / License        URL
+  ----------------------  --------------------------  ------------------------------------------------
+  FastAPI                 MIT                         https://github.com/fastapi/fastapi
+  Starlette               BSD-3-Clause                https://github.com/Kludex/starlette
+  Uvicorn                 BSD-3-Clause                https://github.com/encode/uvicorn
+  SQLAlchemy              MIT                         https://www.sqlalchemy.org/
+  Alembic                 MIT                         https://alembic.sqlalchemy.org/
+  Mako                    MIT                         https://www.makotemplates.org/
+  APScheduler             MIT                         https://github.com/agronholm/apscheduler
+  tzlocal                 MIT                         https://github.com/regebro/tzlocal
+  croniter                MIT                         https://github.com/pallets-eco/croniter
+  python-dateutil         Apache-2.0 OR BSD-3-Clause  https://github.com/dateutil/dateutil
+  six                     MIT                         https://github.com/benjaminp/six
+  HTTPX                   BSD-3-Clause                https://github.com/encode/httpx
+  httpcore                BSD-3-Clause                https://github.com/encode/httpcore
+  h11                     MIT                         https://github.com/python-hyper/h11
+  AnyIO                   MIT                         https://github.com/agronholm/anyio
+  idna                    BSD-3-Clause                https://github.com/kjd/idna
+  certifi                 MPL-2.0                     https://github.com/certifi/python-certifi
+  Jinja2                  BSD-3-Clause                https://github.com/pallets/jinja
+  MarkupSafe              BSD-3-Clause                https://github.com/pallets/markupsafe
+  click                   BSD-3-Clause                https://github.com/pallets/click
+  prometheus-client       Apache-2.0 AND BSD-2-Clause https://github.com/prometheus/client_python
+  Pydantic                MIT                         https://github.com/pydantic/pydantic
+  pydantic-core           MIT                         https://github.com/pydantic/pydantic-core
+  pydantic-settings       MIT                         https://github.com/pydantic/pydantic-settings
+  python-dotenv           BSD-3-Clause                https://github.com/theskumar/python-dotenv
+  annotated-types         MIT                         https://github.com/annotated-types/annotated-types
+  annotated-doc           MIT                         https://github.com/fastapi/annotated-doc
+  typing-extensions       PSF-2.0                     https://github.com/python/typing_extensions
+  typing-inspection       MIT                         https://github.com/pydantic/typing-inspection
+  opentelemetry-api       Apache-2.0                  https://github.com/open-telemetry/opentelemetry-python
+  PyYAML                  MIT                         https://github.com/yaml/pyyaml
+  tzdata                  Apache-2.0                  https://github.com/python/tzdata
+  truststore              MIT                         https://github.com/sethmlarson/truststore
+  portalocker             BSD-3-Clause                https://github.com/wolph/portalocker
+  keyring                 MIT                         https://github.com/jaraco/keyring
+  jaraco.classes          MIT                         https://github.com/jaraco/jaraco.classes
+  jaraco.context          MIT                         https://github.com/jaraco/jaraco.context
+  jaraco.functools        MIT                         https://github.com/jaraco/jaraco.functools
+  more-itertools          MIT                         https://github.com/more-itertools/more-itertools
+  pywin32-ctypes          BSD-3-Clause                https://github.com/enthought/pywin32-ctypes
+
+  certifi（MPL-2.0）は改変せずに同梱しています。ソースコードは上記の URL と https://pypi.org/project/certifi/ から入手できます。
+  certifi (MPL-2.0) is included unmodified. Its source code is available at the URL above and at https://pypi.org/project/certifi/.
+
+  同梱するライブラリと版は、インストーラを作った時点の requirements.txt から決まります。正確な一覧は lib フォルダの *.dist-info で確認できます。
+  The exact set and versions are determined by requirements.txt at build time; see the *.dist-info folders in lib.
+
+
+3. 配布物に含まれないもの（任意） / Not included (optional)
+-----------------------------------------------------------
+
+ldap3（LGPL-3.0）と pyasn1（BSD-2-Clause）は、AD 認証を使う場合に利用者が requirements-ldap.txt で別途インストールするもので、配布物には含まれません。
+ldap3 (LGPL-3.0) and pyasn1 (BSD-2-Clause) are installed separately by the user via requirements-ldap.txt only when AD authentication is used, and are not included in the distributions.

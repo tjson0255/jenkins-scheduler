@@ -28,7 +28,7 @@ $appVersion = (python -c "import sys; sys.path.insert(0, r'$Root'); import app; 
 Write-Host "アプリ $appVersion / 同梱する Python $pyVersion"
 
 # ---- 1. アプリのファイル ----
-foreach ($item in "app", "static", "alembic", "deploy", "alembic.ini", "README.md", "LICENSE", ".env.example", "seed.yaml.example", "requirements.txt") {
+foreach ($item in "app", "static", "alembic", "deploy", "alembic.ini", "README.md", "LICENSE", "THIRD-PARTY-NOTICES.txt", "licenses", ".env.example", "seed.yaml.example", "requirements.txt") {
     Copy-Item -Recurse -Force (Join-Path $Root $item) $App
 }
 # モックモード（JENKINS_MOCK=true）で使うジョブ定義
