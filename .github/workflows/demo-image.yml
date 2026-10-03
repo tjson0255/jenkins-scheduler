@@ -1,0 +1,33 @@
+name: デモ用 Docker イメージ
+
+# 公開デモ（Render）と同じ Docker イメージを作り、コンテナを起動して応答を確かめる
+on:
+  push:
+    branches: [main]
+    paths: ["Dockerfile", "requirements.txt", "app/**", "static/**", "alembic/**", "render.yaml", ".github/workflows/demo-image.yml"]
+  workflow_dispatch:
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: イメージを作る
+        run: docker build -t jenkins-scheduler-demo .
+      - name: Render と同じ設定で起動して確かめる
+        run: |
+          docker run -d --name demo -p 8080:10000 -e PORT=10000 \
+            -e DEMO_MODE=true -e JENKINS_MOCK=true -e AUTH_MODE=shared_admin \
+            -e ADMIN_USERNAME=admin -e ADMIN_PASSWORD=demo-admin-2026 -e COOKIE_SECURE=true -e APP_TZ=Asia/Tokyo \
+            jenkins-scheduler-demo
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/api/health && break; sleep 2; done
+          echo
+          curl -fsS http://127.0.0.1:8080/api/health | python3 -c "import sys,json; h=json.load(sys.stdin); assert h['db']=='ok' and h['dispatcher']=='ok' and h['jenkins_mock'], h"
+          curl -fsS http://127.0.0.1:8080/api/auth/me | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['demo'] and not d['can']['admin'], d"
+          curl -fsS http://127.0.0.1:8080/api/targets | python3 -c "import sys,json; assert len(json.load(sys.stdin)) >= 10"
+          curl -fsS -o /dev/null http://127.0.0.1:8080/
+          echo "OK"
+      - name: ログ
+        if: always()
+        run: docker logs demo | tail -50

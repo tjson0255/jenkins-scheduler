@@ -421,3 +421,7 @@ input:disabled, select:disabled, textarea:disabled { background: #f4f5f7; color:
 .userbox .login-link { color: #fff; border: 1px solid rgba(255,255,255,.35); border-radius: 6px; padding: 2px 10px; text-decoration: none; white-space: nowrap; }
 .userbox .login-link:hover { background: rgba(255,255,255,.12); }
 #login-back { text-align: center; }
+
+/* 公開デモの案内 */
+.demo-banner { background: #fff4cd; color: #5e4500; font-size: 12.5px; padding: 6px 16px; border-bottom: 1px solid #ecd28a; }
+.demo-banner code { background: rgba(255,255,255,.7); padding: 0 4px; border-radius: 3px; }

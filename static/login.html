@@ -35,6 +35,10 @@
       document.getElementById("login-title").textContent = "管理者ログイン";
       document.getElementById("login-hint").textContent = "Jenkins のスケジュールやアイテムを操作する管理者用です。閲覧と自由記入の編集はログインしなくてもできます。";
       document.getElementById("username").placeholder = "管理者のユーザー名";
+      if (me.demo && me.demo.admin_password) {
+        document.getElementById("login-hint").textContent += `（デモ版: ユーザー ${me.demo.admin_username} ／ パスワード ${me.demo.admin_password}）`;
+        document.getElementById("username").value = me.demo.admin_username;
+      }
       const back = document.getElementById("login-back");
       back.href = safeNext;
       back.hidden = false;

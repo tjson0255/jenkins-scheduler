@@ -32,18 +32,18 @@ class TargetIn(BaseModel):
     color: str | None = None
     overlap_policy: Literal["skip", "queue"] | None = None
     enabled: bool = True
-    note: str | None = None
+    note: str | None = Field(default=None, max_length=4000)
 
 
 class TargetPatch(BaseModel):
-    display_name: str | None = None
+    display_name: str | None = Field(default=None, max_length=200)
     category_id: int | None = None
     pinned: bool | None = None
     sort_order: int | None = None
     color: str | None = None
     overlap_policy: Literal["skip", "queue"] | None = None
     enabled: bool | None = None
-    note: str | None = None
+    note: str | None = Field(default=None, max_length=4000)
     revision: int | None = None  # 読み込んだ時点の更新番号（同時編集の検出）
 
 

@@ -318,6 +318,13 @@ function renderHeader(active) {
   setInterval(refreshHealth, 30000);
   setInterval(refreshHolding, 15000);
   return loadMe().then((me) => {
+    if (me && me.demo) {
+      // 公開デモの案内
+      const d = me.demo;
+      header.after(el("div", { class: "demo-banner" },
+        el("b", {}, "デモ版"), "です。Jenkins は架空のジョブ（モック）で、データは", `${d.reset_hours}時間ごとに初期化されます。`,
+        d.admin_password ? el("span", {}, " 管理者で試す: ユーザー ", el("code", {}, d.admin_username), " ／ パスワード ", el("code", {}, d.admin_password)) : null));
+    }
     if (me && me.auth_mode === "shared_admin") {
       // ログインなし（自由記入の編集まで）⇄ 共有の管理者アカウント（すべて）を切り替える
       header.append(me.can.admin

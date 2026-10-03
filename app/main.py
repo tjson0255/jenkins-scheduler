@@ -18,6 +18,7 @@ from starlette.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
 
 from app import db as dbmod
+from app import demo
 from app.api import auth as auth_api
 from app.api import backup as backup_api
 from app.api import categories, runs, schedules, system, targets
@@ -59,6 +60,9 @@ def create_app(
     client=None,
 ) -> FastAPI:
     settings = settings or get_settings()
+    if settings.demo_mode:
+        # 公開デモでは、設定を間違えても本物の Jenkins には絶対につながないようにする
+        settings.jenkins_mock = True
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -82,6 +86,11 @@ def create_app(
                     load_seed(db, settings.seed_file, settings.default_overlap_policy)
 
             app.state.client = client or make_client(settings)
+            if settings.demo_mode:
+                if not app.state.client.is_mock:
+                    raise RuntimeError("DEMO_MODE はモックの Jenkins でのみ使えます")
+                with dbmod.SessionLocal() as db:
+                    demo.reset(db, settings, app.state.client)
             app.state.jenkins_health = JenkinsHealth(app.state.client, interval_seconds=30)
             dispatcher = Dispatcher(dbmod.SessionLocal, app.state.client, settings)
             app.state.dispatcher = dispatcher
@@ -108,7 +117,12 @@ def create_app(
                     _daily_fill, CronTrigger(hour=0, minute=5, timezone=local_tz()), args=[dispatcher],
                     id="daily_fill", max_instances=1, coalesce=True,
                 )
-                if settings.backup_enabled:
+                if settings.demo_mode:
+                    scheduler.add_job(
+                        _demo_reset, "interval", hours=settings.demo_reset_hours, args=[dispatcher, settings, app.state.client],
+                        id="demo_reset", max_instances=1, coalesce=True,
+                    )
+                if settings.backup_enabled and not settings.demo_mode:
                     hour, minute = settings.backup_hour_minute
                     scheduler.add_job(
                         scheduled_backup, CronTrigger(hour=hour, minute=minute, timezone=local_tz()),
@@ -232,6 +246,11 @@ def utcnow_aware(seconds: int = 0):
     from datetime import timedelta, timezone
 
     return (utcnow() + timedelta(seconds=seconds)).replace(tzinfo=timezone.utc)
+
+
+def _demo_reset(dispatcher: Dispatcher, settings: Settings, client) -> None:
+    with dispatcher.lock, dbmod.SessionLocal() as db:
+        demo.reset(db, settings, client)
 
 
 def _daily_fill(dispatcher: Dispatcher) -> None:

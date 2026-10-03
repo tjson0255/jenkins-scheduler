@@ -22,8 +22,13 @@ class LoginIn(BaseModel):
     password: str = Field(max_length=1024)
 
 
-def user_out(user: User, mode: str) -> dict:
+def user_out(user: User, mode: str, settings=None) -> dict:
+    demo = None
+    if settings is not None and settings.demo_mode:
+        # 公開デモでは、試したい人が管理者でログインできるよう、ユーザー名とパスワードを画面に出す
+        demo = {"reset_hours": settings.demo_reset_hours, "admin_username": settings.admin_username, "admin_password": settings.admin_password or None}
     return {
+        "demo": demo,
         "username": user.username,
         "display_name": user.display_name,
         "role": user.role,
@@ -35,7 +40,7 @@ def user_out(user: User, mode: str) -> dict:
 
 @router.get("/me")
 def me(request: Request, user: User = Depends(get_user)):
-    return user_out(user, request.app.state.settings.effective_auth_mode)
+    return user_out(user, request.app.state.settings.effective_auth_mode, request.app.state.settings)
 
 
 @router.post("/login")
@@ -60,7 +65,7 @@ async def login(request: Request, body: LoginIn):
     throttle.succeeded(body.username, client)
     user = User(username=du.username, display_name=du.display_name, role=du.role)
     token = await run_in_threadpool(_login, user, settings.session_hours, client)
-    resp = JSONResponse(user_out(user, settings.effective_auth_mode))
+    resp = JSONResponse(user_out(user, settings.effective_auth_mode, settings))
     resp.set_cookie(
         COOKIE_NAME, token, max_age=settings.session_hours * 3600, httponly=True,
         secure=settings.secure_cookie, samesite="strict", path="/",

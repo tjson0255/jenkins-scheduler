@@ -101,6 +101,11 @@ class Settings(BaseSettings):
     backup_keep: int = 14  # 残す世代数（.db / .json それぞれ）
     backup_dir: Path | None = None  # 未指定なら <データ>/backups
 
+    # --- 公開デモ（DEMO_MODE=true） ---
+    # Jenkins は必ずモックにし、起動時にデモ用データを入れ、DEMO_RESET_HOURS ごとに初期化する
+    demo_mode: bool = False
+    demo_reset_hours: float = 6
+
     # --- 既定値 ---
     default_overlap_policy: str = "skip"
     default_missed_policy: str = "run_late"

@@ -1,0 +1,26 @@
+# Render の Blueprint（公開デモ）。Render の画面で New → Blueprint → このリポジトリを選ぶ。
+services:
+  - type: web
+    name: jenkins-scheduler-demo
+    runtime: docker
+    plan: free
+    region: singapore
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: DEMO_MODE            # モックの Jenkins、デモ用データ、定期的な初期化
+        value: "true"
+      - key: DEMO_RESET_HOURS
+        value: "6"
+      - key: JENKINS_MOCK
+        value: "true"
+      - key: AUTH_MODE            # ログインなし: 閲覧と自由記入の編集 ／ 管理者: すべて
+        value: shared_admin
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD       # デモ用に公開しているパスワード（README と画面に表示する）
+        value: demo-admin-2026
+      - key: COOKIE_SECURE        # Render は HTTPS で公開される
+        value: "true"
+      - key: APP_TZ
+        value: Asia/Tokyo

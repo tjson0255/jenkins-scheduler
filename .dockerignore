@@ -1,0 +1,14 @@
+.git
+.venv
+venv
+var
+wheels
+build
+dist
+.env
+.claude
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.DS_Store
+seed.yaml

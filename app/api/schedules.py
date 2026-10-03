@@ -56,7 +56,7 @@ class ScheduleIn(BaseModel):
     missed_policy: MissedPolicy | None = None
     grace_minutes: int | None = Field(default=None, ge=0, le=1440)
     params_pinned: bool = False
-    note: str | None = None
+    note: str | None = Field(default=None, max_length=4000)
     activate: bool = False
 
 
@@ -70,7 +70,7 @@ class SchedulePatch(BaseModel):
     missed_policy: MissedPolicy | None = None
     grace_minutes: int | None = Field(default=None, ge=0, le=1440)
     params_pinned: bool | None = None
-    note: str | None = None
+    note: str | None = Field(default=None, max_length=4000)
     revision: int | None = None  # 読み込んだ時点の更新番号（同時編集の検出）
 
 
