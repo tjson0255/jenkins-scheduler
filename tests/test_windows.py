@@ -82,3 +82,10 @@ def test_main_exits_when_locked(tmp_path, monkeypatch):
         assert entry.main([]) == 2
     finally:
         holder.release()
+
+
+def test_files_read_by_configparser_are_ascii():
+    """alembic.ini は configparser が OS の既定の文字コード（Windows では cp1252 / cp932）で読むので、ASCII だけにする。"""
+    from app.config import PROJECT_ROOT
+
+    (PROJECT_ROOT / "alembic.ini").read_bytes().decode("ascii")
