@@ -23,6 +23,8 @@ from app.models import (
     ENDED,
     PAUSED,
     R_CANCELLED,
+    R_QUEUED,
+    R_RUNNING,
     R_SCHEDULED,
     ParamOverride,
     Run,
@@ -318,14 +320,34 @@ def update_schedule(
 
 
 @router.delete("/api/schedules/{sid}", status_code=204)
-def delete_schedule(sid: int, db: Session = Depends(get_db), actor: str = Depends(get_actor), user: User = Depends(get_user)):
-    s = _get(db, sid)
-    _require_editable(user, memo=s.is_memo)
-    if s.status != DRAFT and not s.is_memo:
-        raise HTTPException(409, "削除できるのはドラフトのみです（有効化済みはキャンセルしてください）")
-    audit.record(db, actor, "schedule.delete", "schedule", s.id, _snapshot(s))
-    db.delete(s)
-    db.commit()
+def delete_schedule(
+    sid: int,
+    db: Session = Depends(get_db),
+    actor: str = Depends(get_actor),
+    user: User = Depends(get_user),
+    dispatcher: Dispatcher = Depends(get_dispatcher),
+):
+    """スケジュールを削除する（実行履歴も消える。ログには削除した内容を残す）。
+
+    キック中・キュー中・実行中のビルドがある間は削除しない（Jenkins 側で動いているものを追えなくなるため）。
+    dispatcher のキック処理と同時に進まないよう、dispatcher のロックの中で確認して削除する。
+    """
+    with dispatcher.lock:
+        s = _get(db, sid)
+        _require_editable(user, memo=s.is_memo)
+        if not s.is_memo:
+            in_flight = db.scalar(
+                select(func.count()).select_from(Run).where(
+                    Run.schedule_id == s.id,
+                    (Run.status.in_((R_QUEUED, R_RUNNING))) | ((Run.status == R_SCHEDULED) & Run.triggered_at.is_not(None)),
+                )
+            )
+            if in_flight:
+                raise HTTPException(409, "キュー中・実行中のビルドがあるため削除できません。ビルドが終わってから削除してください")
+        runs = db.scalar(select(func.count()).select_from(Run).where(Run.schedule_id == s.id)) or 0
+        audit.record(db, actor, "schedule.delete", "schedule", s.id, {**_snapshot(s), "deleted_runs": runs})
+        db.delete(s)
+        db.commit()
 
 
 # ---------------------------------------------------------------------- 状態遷移

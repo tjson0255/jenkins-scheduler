@@ -136,6 +136,7 @@ def test_render_variables_only():
 
     c = ctx()
     assert render("plain text", c) == "plain text"
+    assert render("{{ schedule.title }}", c) == render("{{ schedule.label }}", c) == c["schedule"]["label"]
     assert render("{{schedule.label}}/{{ run.date }}", c) == f"{c['schedule']['label']}/{c['run']['date']}"
     for bad in ("{{ run }}", "{{ run.date | upper }}", "{% if 1 %}x{% endif %}", "{{ run.nope }}", "{{ 1 + 1 }}", "{{"):
         with pytest.raises(TemplateError):

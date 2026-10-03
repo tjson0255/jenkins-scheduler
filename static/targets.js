@@ -6,9 +6,17 @@ const ready = renderHeader("/targets");
 
 let categories = [];
 let targets = [];
+let schedulesByTarget = new Map(); // アイテムごとのスケジュール・予定（キャンセル済みは除く）
+const openSchedules = new Set(); // スケジュール一覧を開いているアイテム
 
 async function load() {
-  [categories, targets] = await Promise.all([api("GET", "/api/categories"), api("GET", "/api/targets")]);
+  let schedules;
+  [categories, targets, schedules] = await Promise.all([api("GET", "/api/categories"), api("GET", "/api/targets"), api("GET", "/api/schedules")]);
+  schedulesByTarget = new Map();
+  for (const s of schedules) {
+    if (!schedulesByTarget.has(s.target_id)) schedulesByTarget.set(s.target_id, []);
+    schedulesByTarget.get(s.target_id).push(s);
+  }
   renderTargets();
   renderCategories();
   renderRegisterForm();
@@ -43,7 +51,10 @@ function renderTargets() {
   for (const c of categories) {
     const list = targets.filter((t) => t.category_id === c.id).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
     tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 9 }, c.name)));
-    list.forEach((t, i) => tbody.append(targetRow(t, list, i)));
+    list.forEach((t, i) => {
+      tbody.append(targetRow(t, list, i));
+      if (openSchedules.has(t.id)) tbody.append(scheduleListRow(t));
+    });
   }
   box.replaceChildren(
     el("div", { class: "table-wrap" }, el("table", { class: "table targets-table" },
@@ -97,6 +108,7 @@ function targetRow(t, siblings, index) {
     el("td", { class: "small" }, memo ? na() : schemaStatus(t)),
     el("td", {}, warn),
     el("td", { class: "row" },
+      schedulesButton(t),
       el("button", { class: "btn small", title: "上へ", disabled: index === 0, onclick: () => move(-1) }, "↑"),
       el("button", { class: "btn small", title: "下へ", disabled: index === siblings.length - 1, onclick: () => move(1) }, "↓"),
       memo || !can.admin() ? null : el("button", { class: "btn small", onclick: () => runNow(t) }, "今すぐ実行"),
@@ -117,10 +129,103 @@ function targetRow(t, siblings, index) {
     // Jenkins アイテムの設定は管理者だけ。並び替え（↑↓）は残す
     const ops = row.lastElementChild;
     lockForm(row);
-    ops.querySelectorAll("button").forEach((b) => (b.disabled = b.textContent === "↑" ? index === 0 : b.textContent === "↓" ? index === siblings.length - 1 : b.disabled));
-    if (!can.memo()) ops.replaceChildren();
+    ops.querySelectorAll("button").forEach((b) => (b.disabled = b.dataset.keep ? false : b.textContent === "↑" ? index === 0 : b.textContent === "↓" ? index === siblings.length - 1 : b.disabled));
+    if (!can.memo()) ops.replaceChildren(schedulesButton(t)); // 閲覧のみの人もスケジュール一覧は見られる
   }
   return row;
+}
+
+/* ---- アイテムごとのスケジュール一覧と追加 ---- */
+function schedulesButton(t) {
+  const n = (schedulesByTarget.get(t.id) || []).length;
+  const label = t.kind === "memo" ? "予定" : "スケジュール";
+  return el("button", {
+    class: "btn small" + (openSchedules.has(t.id) ? " active" : ""),
+    "data-keep": "1",
+    title: `${label}の一覧を${openSchedules.has(t.id) ? "閉じる" : "開く"}`,
+    onclick: () => {
+      openSchedules.has(t.id) ? openSchedules.delete(t.id) : openSchedules.add(t.id);
+      renderTargets();
+    },
+  }, `${label} (${n}) ${openSchedules.has(t.id) ? "▲" : "▼"}`);
+}
+
+function scheduleRule(s) {
+  if (s.mode === "memo") return "—";
+  if (s.mode === "once") return s.once_at ? `1回 ${fmtDateTime(s.once_at)}` : "1回";
+  return s.cron_summary || s.cron_expr || "";
+}
+
+function scheduleListRow(t) {
+  const memo = t.kind === "memo";
+  const list = (schedulesByTarget.get(t.id) || []).slice().sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id - b.id);
+  const open = (s) => `/?date=${s.start_date}#schedule=${s.id}&tab=basic`;
+  const table = list.length
+    ? el("table", { class: "table small sched-list" },
+        el("thead", {}, el("tr", {}, ["タイトル", memo ? null : "実行規則", "期間", memo ? null : "状態"].filter(Boolean).map((h) => el("th", {}, h)))),
+        el("tbody", {}, list.map((s) => el("tr", {},
+          el("td", {}, el("a", { href: open(s), title: "タイムラインで開く" }, scheduleTitleOf(s))),
+          memo ? null : el("td", {}, scheduleRule(s)),
+          el("td", {}, `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`),
+          memo ? null : el("td", {}, statusChip(s.status))))))
+    : el("p", { class: "muted small" }, memo ? "予定はありません。" : "スケジュールはありません。");
+  const add = can.editItem(t)
+    ? el("button", { class: "btn small primary", onclick: () => (memo ? addMemo(t) : addSchedule(t)) }, memo ? "＋ 予定を追加" : "＋ スケジュールを追加")
+    : null;
+  return el("tr", { class: "sched-row" }, el("td", { colspan: 9 }, el("div", { class: "sched-box" }, table, add)));
+}
+
+function scheduleTitleOf(s) {
+  if (s.label) return s.label;
+  if (s.mode === "memo") return firstLineOf(s.note) || "（タイトルなし）";
+  return scheduleRule(s);
+}
+
+function firstLineOf(text) {
+  return (text || "").split("\n")[0].trim();
+}
+
+function addSchedule(t) {
+  const today = new Date();
+  const form = scheduleForm({ target_id: t.id, start_date: ymd(today), end_date: ymd(addDays(today, 6)), mode: "cron", cron_expr: "0 3 * * *" });
+  const submit = async (activate) => {
+    try {
+      await api("POST", "/api/schedules", { ...form.value(), target_id: t.id, activate });
+      closeModal();
+      toast(activate ? "スケジュールを作成して有効化しました" : "ドラフトとして保存しました");
+      openSchedules.add(t.id);
+      load();
+    } catch (e) {
+      toast(e.message, "error");
+    }
+  };
+  openModal(`スケジュールの作成（${t.display_name}）`, form.root, [
+    el("button", { class: "btn", onclick: closeModal }, "やめる"),
+    el("button", { class: "btn", onclick: () => submit(false) }, "ドラフトで保存"),
+    el("button", { class: "btn primary", onclick: () => submit(true) }, "保存して有効化"),
+  ]);
+}
+
+function addMemo(t) {
+  const today = ymd(new Date());
+  const form = memoForm({ target_id: t.id, start_date: today, end_date: today });
+  openModal(`予定の追加（${t.display_name}）`, form.root, [
+    el("button", { class: "btn", onclick: closeModal }, "やめる"),
+    el("button", {
+      class: "btn primary",
+      onclick: async () => {
+        try {
+          await api("POST", "/api/schedules", { ...form.value(), target_id: t.id });
+          closeModal();
+          toast("予定を追加しました");
+          openSchedules.add(t.id);
+          load();
+        } catch (e) {
+          toast(e.message, "error");
+        }
+      },
+    }, "保存"),
+  ]);
 }
 
 async function runNow(t) {

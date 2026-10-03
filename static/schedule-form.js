@@ -141,7 +141,7 @@ function scheduleForm(s, opts) {
     "div",
     { class: "form" },
     f.target ? field("アイテム", f.target) : null,
-    field("ラベル（バージョンなど）", f.label),
+    field("タイトル", f.label),
     el("div", { class: "row wrap" }, field("開始日", f.start), field("終了日", f.end), el("label", { class: "check" }, f.infinite, " 無期限")),
     field("モード", f.mode),
     cronSection,

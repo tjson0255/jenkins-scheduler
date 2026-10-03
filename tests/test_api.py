@@ -64,7 +64,6 @@ def test_schedule_lifecycle_and_runs(app_client):
     assert app_client.post(f"/api/schedules/{s['id']}/activate").json()["status"] == "active"
     assert app_client.post(f"/api/schedules/{s['id']}/pause").json()["status"] == "paused"
     assert app_client.post(f"/api/schedules/{s['id']}/resume").json()["status"] == "active"
-    assert app_client.delete(f"/api/schedules/{s['id']}").status_code == 409  # draft 以外は削除不可
     assert app_client.post(f"/api/schedules/{s['id']}/cancel").json()["status"] == "cancelled"
     statuses = {r["status"] for r in app_client.get(f"/api/runs?schedule_id={s['id']}").json()}
     assert statuses == {"cancelled"}
@@ -276,3 +275,33 @@ def test_agenda_start_time_window(app_client):
 
     assert c.get(f"/api/agenda?date={d1.isoformat()}&start=25:00").status_code == 422
     assert c.get(f"/api/agenda?date={d1.isoformat()}&start=abc").status_code == 422
+
+
+def test_delete_jenkins_schedule_any_status_but_not_while_building(app_client):
+    from app import db as dbmod
+    from app.models import Run
+    from app.timeutil import utcnow
+
+    c = app_client
+    t = create_target(c)
+    s = create_schedule(c, t["id"], activate=True)
+    assert s["status"] == "active"
+    runs = c.get(f"/api/runs?schedule_id={s['id']}").json()
+    assert runs
+
+    # キュー中のビルドがある間は削除できない
+    with dbmod.SessionLocal() as db:
+        r = db.get(Run, runs[0]["id"])
+        r.status, r.triggered_at = "queued", utcnow()
+        db.commit()
+    assert c.delete(f"/api/schedules/{s['id']}").status_code == 409
+
+    # ビルドが終われば、有効なスケジュールでも削除でき、実行履歴も消える。ログには残る
+    with dbmod.SessionLocal() as db:
+        db.get(Run, runs[0]["id"]).status = "success"
+        db.commit()
+    assert c.delete(f"/api/schedules/{s['id']}").status_code == 204
+    assert c.get(f"/api/schedules/{s['id']}").status_code == 404
+    assert c.get(f"/api/runs?schedule_id={s['id']}").json() == []
+    log = [a for a in c.get(f"/api/audit?type=schedule&target={s['id']}").json() if a["action"] == "schedule.delete"]
+    assert log and log[0]["detail"]["deleted_runs"] == len(runs)

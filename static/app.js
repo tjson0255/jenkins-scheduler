@@ -428,7 +428,7 @@ function scheduleTooltip(s) {
     return esc(memo.filter(Boolean).join("\n")).replace(/\n/g, "<br>");
   }
   const lines = [
-    `${s.label || "(ラベルなし)"} [${SCHEDULE_STATUS_LABEL[s.status]}]`,
+    `${s.label || "(タイトルなし)"} [${SCHEDULE_STATUS_LABEL[s.status]}]`,
     `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`,
     s.mode === "cron" ? `${s.cron_summary}（${s.cron_expr}）` : `1回: ${fmtDateTime(s.once_at, true)}`,
     s.next_run_at ? `次回: ${fmtDateTime(s.next_run_at, true)}` : "",
@@ -736,7 +736,13 @@ function actionBar(s, t) {
   if (["draft", "active", "paused"].includes(s.status)) {
     bar.append(act("キャンセル", `/api/schedules/${s.id}/cancel`, { cls: "danger", confirm: "スケジュールをキャンセルします。未実行の run はすべてキャンセルされます（元に戻せません）。" }));
   }
-  if (s.status === "draft") bar.append(act("削除", `/api/schedules/${s.id}`, { cls: "danger", method: "DELETE", confirm: "ドラフトを削除します。" }));
+  bar.append(act("削除", `/api/schedules/${s.id}`, {
+    cls: "danger",
+    method: "DELETE",
+    confirm: s.status === "draft"
+      ? "ドラフトを削除します。"
+      : "スケジュールを削除します。これまでの実行履歴も一緒に削除されます（元に戻せません。削除したことはログに残ります）。\n\n実行履歴を残したい場合は「キャンセル」を使ってください。",
+  }));
   return bar;
 }
 
@@ -839,7 +845,7 @@ async function renderParamsTab(body, s) {
     el("summary", {}, "使える変数"),
     el("table", { class: "table small" },
       el("tbody", {}, [
-        ["{{schedule.label}}", ctx.schedule.label],
+        ["{{schedule.title}}", ctx.schedule.title ?? ctx.schedule.label],
         ["{{schedule.start_date}}", ctx.schedule.start_date],
         ["{{schedule.end_date}}", ctx.schedule.end_date],
         ["{{run.scheduled_at}}", ctx.run.scheduled_at],
