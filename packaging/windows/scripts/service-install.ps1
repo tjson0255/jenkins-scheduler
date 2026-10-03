@@ -20,10 +20,15 @@ try {
     icacls $EnvFile /inheritance:r /grant:r "*S-1-5-32-544:(F)" "*S-1-5-18:(F)" | Out-Null
 
     if (-not (Get-Service $ServiceName -ErrorAction SilentlyContinue)) {
+        Write-Host "サービスを登録します"
         & $Svc install
         if ($LASTEXITCODE) { throw "サービスの登録に失敗しました" }
     }
-    Restart-Service $ServiceName
+    # 起動を待ち続けて固まらないよう、sc.exe で起動要求だけ出して状態は自分で確かめる
+    Write-Host "サービスを起動します"
+    & sc.exe stop $ServiceName | Out-Null
+    for ($i = 0; $i -lt 30 -and (Get-Service $ServiceName).Status -ne "Stopped"; $i++) { Start-Sleep 1 }
+    & sc.exe start $ServiceName | Write-Host
 
     $port = 8080
     $m = Select-String -Path $EnvFile -Pattern '^\s*APP_PORT\s*=\s*(\d+)' | Select-Object -First 1

@@ -35,6 +35,7 @@ jobs:
 
       - name: インストールして動作を確かめる
         shell: pwsh
+        timeout-minutes: 15
         run: ./packaging/windows/smoke-test.ps1
 
       - uses: actions/upload-artifact@v5
