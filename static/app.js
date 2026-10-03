@@ -373,7 +373,7 @@ function groupTemplate(g) {
   if (g.kind === "category") return `<span class="grp-cat-name">${esc(g.name)}</span>`;
   const t = g.target;
   if (t.kind === "memo") {
-    return `<div class="grp-target-inner" title="${esc(["自由記入（メモ・計画）", t.note || ""].filter(Boolean).join("\n\n"))}">
+    return `<div class="grp-target-inner" title="${esc(["自由記入", t.note || ""].filter(Boolean).join("\n\n"))}">
       <span class="swatch" style="background:${esc(t.color || "#8a94a6")}"></span>
       <span class="grp-name">${esc(t.display_name)}</span><span class="memo-icon">📝</span>
     </div>`;
@@ -1085,7 +1085,7 @@ async function openItemPanel(targetId) {
   panel.replaceChildren(
     el("div", { class: "panel-header" },
       el("div", {},
-        el("div", { class: "muted small mono" }, memo ? "自由記入（メモ・計画）" : t.job_path),
+        el("div", { class: "muted small mono" }, memo ? "自由記入" : t.job_path),
         el("h2", {}, el("span", { class: "swatch", style: { background: t.color || "#8a94a6", display: "inline-block", marginRight: "6px" } }), t.display_name)),
       el("button", { class: "icon-btn", title: "閉じる", onclick: closePanel }, "×")),
     el("div", { class: "actions" },
@@ -1231,7 +1231,6 @@ function itemNoteBox(t) {
   });
   if (!can.memo()) area.disabled = true; // 読み取り専用の人は見るだけ
   return el("div", { class: "item-note" },
-    el("h3", {}, "メモ"),
     area,
     can.memo() ? el("div", { class: "row", style: { justifyContent: "flex-end", marginTop: "4px" } }, status, save) : null);
 }

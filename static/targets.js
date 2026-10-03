@@ -145,8 +145,8 @@ function renderRegisterForm() {
     return;
   }
   box.dataset.ready = "1";
-  const kindJenkins = el("input", { type: "radio", name: "kind", value: "jenkins", checked: can.admin(), disabled: !can.admin() });
-  const kindMemo = el("input", { type: "radio", name: "kind", value: "memo", checked: !can.admin() });
+  const kindMemo = el("input", { type: "radio", name: "kind", value: "memo", checked: true });
+  const kindJenkins = el("input", { type: "radio", name: "kind", value: "jenkins", disabled: !can.admin() });
   const isMemo = () => kindMemo.checked;
   const q = el("input", { type: "text", placeholder: "ジョブ名で検索（例: release）", name: "q" });
   const jobPath = el("input", { type: "text", placeholder: "release/core-pipeline", name: "job_path", class: "mono" });
@@ -212,10 +212,10 @@ function renderRegisterForm() {
     for (const e of [searchField, results, jobField, overlapRow]) e.hidden = memo;
     if (!memo) results.hidden = !registerState.open || !registerState.results.length;
     nameLabel.textContent = memo ? "名前（必須）" : "表示名";
-    displayName.placeholder = memo ? "例: リリース計画、QA 期間" : "未入力ならジョブ名";
+    displayName.placeholder = memo ? "" : "未入力ならジョブ名";
     submit.textContent = memo ? "登録" : "登録（Jenkins で存在とパラメータを確認）";
     kindHint.textContent = memo
-      ? "Jenkins には接続しません。タイムラインにメモや計画（タイトル・期間・本文）を書き込むための行です。"
+      ? "Jenkins には接続しません。タイムラインにメモや計画を書き込むための行です。"
       : "Jenkins のジョブを定時にキックする行です。登録時に Jenkins でジョブの存在とパラメータを確認します。";
   };
   kindJenkins.addEventListener("change", renderKind);
@@ -223,8 +223,8 @@ function renderRegisterForm() {
   box.append(
     el("div", { class: "row wrap" },
       el("span", { class: "muted small" }, "種類"),
-      el("label", { class: "check", title: can.admin() ? "" : "Jenkins アイテムの登録には管理者ログインが必要です" }, kindJenkins, " Jenkins ジョブ", can.admin() ? "" : "（管理者のみ）"),
-      el("label", { class: "check" }, kindMemo, " 自由記入（メモ・計画）")),
+      el("label", { class: "check" }, kindMemo, " 自由記入"),
+      el("label", { class: "check", title: can.admin() ? "" : "Jenkins アイテムの登録には管理者ログインが必要です" }, kindJenkins, " Jenkins ジョブ")),
     kindHint,
     searchField,
     results,

@@ -461,4 +461,4 @@ input:disabled, select:disabled, textarea:disabled { background: #f4f5f7; color:
 .legend-sep { width: 1px; height: 14px; background: var(--line); margin: 0 4px; }
 
 .item-note textarea { font-size: 13px; }
-.item-note h3 { margin-top: 12px; }
+.item-note { margin-top: 12px; }
