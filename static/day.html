@@ -9,19 +9,19 @@
 <body class="page-narrow page-day">
   <main>
     <section class="card">
-      <div class="card-head day-head">
-        <div>
+      <div class="day-top">
+        <div class="day-cal" id="day-cal" aria-label="日付を選ぶカレンダー"></div>
+        <div class="day-side">
           <h2 id="day-title">1日の予定</h2>
           <div class="muted small" id="day-range"></div>
-        </div>
-        <div class="row day-nav">
-          <button class="btn" id="day-prev" title="前の日">◀</button>
-          <input type="date" id="day-date" aria-label="日付を選ぶ">
-          <button class="btn" id="day-next" title="次の日">▶</button>
-          <button class="btn" id="day-today">今日</button>
-          <label class="day-start" title="1日の始まりの時刻。17:00 なら、選んだ日の 17:00 から翌日の 17:00 まで">開始
-            <input type="time" id="day-start" value="17:00">
-          </label>
+          <div class="row day-nav">
+            <button class="btn" id="day-prev" title="前の日">◀</button>
+            <button class="btn" id="day-next" title="次の日">▶</button>
+            <button class="btn" id="day-today">今日</button>
+            <label class="day-start" title="1日の始まりの時刻。17:00 なら、選んだ日の 17:00 から翌日の 17:00 まで">開始
+              <input type="time" id="day-start" value="17:00">
+            </label>
+          </div>
         </div>
       </div>
       <h3>予定</h3>

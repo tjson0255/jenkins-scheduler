@@ -2,14 +2,15 @@
 "use strict";
 
 const ready = renderHeader("/day");
-const input = document.getElementById("day-date");
+let selectedDay = null; // 選んでいる日付（YYYY-MM-DD）
+let calMonth = null; // カレンダーに出している月（1日の Date）
 const startInput = document.getElementById("day-start");
 const PLANNED_LABEL = { draft: "ドラフト（キックされない）", active: "予定", paused: "一時停止中（キックされない）" };
 const DEFAULT_START = "17:00";
 let targets = new Map();
 
 function currentDay() {
-  return input.value || currentWindowDay();
+  return selectedDay || currentWindowDay();
 }
 
 function currentStart() {
@@ -40,7 +41,8 @@ function updateUrl() {
 }
 
 function setDay(s) {
-  input.value = s;
+  selectedDay = s;
+  calMonth = startOfMonth(parseYmd(s));
   updateUrl();
   load();
 }
@@ -155,8 +157,67 @@ function fmtMd(d) {
   return `${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）`;
 }
 
+/* ---- 常に表示するカレンダー ---- */
+function startOfMonth(d) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+let memoDaysCache = { key: "", days: new Set() };
+
+/** その月で予定（予定のアイテムに書いたもの）がある日 */
+async function memoDays(first, last) {
+  const key = `${ymd(first)}|${ymd(last)}`;
+  if (memoDaysCache.key === key) return memoDaysCache.days;
+  const days = new Set();
+  try {
+    const ss = await api("GET", `/api/schedules?from=${ymd(first)}&to=${ymd(last)}`);
+    for (const s of ss.filter((x) => x.mode === "memo")) {
+      for (let d = parseYmd(s.start_date > ymd(first) ? s.start_date : ymd(first)); ; d = addDays(d, 1)) {
+        const k = ymd(d);
+        if (k > ymd(last) || (s.end_date && k > s.end_date)) break;
+        days.add(k);
+      }
+    }
+  } catch (_) {
+    return days; // 印が出ないだけなので、エラーは出さない
+  }
+  memoDaysCache = { key, days };
+  return days;
+}
+
+async function renderCalendar() {
+  const box = document.getElementById("day-cal");
+  const first = calMonth;
+  const gridStart = addDays(first, -first.getDay()); // 日曜はじまり
+  const gridEnd = addDays(gridStart, 41);
+  const marks = await memoDays(gridStart, gridEnd);
+  const today = ymd(new Date());
+  const cells = [];
+  for (let i = 0; i < 42; i++) {
+    const d = addDays(gridStart, i);
+    const k = ymd(d);
+    const cls = ["cal-day", d.getMonth() !== first.getMonth() ? "other" : "", d.getDay() === 0 ? "sun" : d.getDay() === 6 ? "sat" : "",
+      k === today ? "today" : "", k === currentDay() ? "selected" : "", marks.has(k) ? "has-memo" : ""].filter(Boolean).join(" ");
+    cells.push(el("button", { type: "button", class: cls, title: marks.has(k) ? "予定あり" : "", onclick: () => setDay(k) }, String(d.getDate())));
+  }
+  const move = (n) => {
+    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + n, 1);
+    renderCalendar();
+  };
+  box.replaceChildren(
+    el("div", { class: "cal-head" },
+      el("button", { type: "button", class: "cal-nav", title: "前の月", onclick: () => move(-1) }, "‹"),
+      el("span", { class: "cal-title" }, `${first.getFullYear()}年${first.getMonth() + 1}月`),
+      el("button", { type: "button", class: "cal-nav", title: "次の月", onclick: () => move(1) }, "›")),
+    el("div", { class: "cal-grid" },
+      WD.map((w, i) => el("span", { class: `cal-wd${i === 0 ? " sun" : i === 6 ? " sat" : ""}` }, w)),
+      cells));
+}
+
 async function load() {
   const day = currentDay();
+  memoDaysCache.key = ""; // 他の人が足した予定の印も出るよう、読み込みのたびに取り直す
+  renderCalendar();
   const start = currentStart();
   const from = windowStart(day, start);
   const to = addDays(from, 1);
@@ -191,9 +252,9 @@ try {
 const askedStart = params.get("start");
 startInput.value = [askedStart, savedStart].find((v) => /^\d{2}:\d{2}$/.test(v || "")) || DEFAULT_START;
 const askedDay = params.get("date");
-input.value = /^\d{4}-\d{2}-\d{2}$/.test(askedDay || "") ? askedDay : currentWindowDay();
+selectedDay = /^\d{4}-\d{2}-\d{2}$/.test(askedDay || "") ? askedDay : currentWindowDay();
+calMonth = startOfMonth(parseYmd(selectedDay));
 
-input.onchange = () => input.value && setDay(input.value);
 startInput.onchange = () => {
   if (!startInput.value) startInput.value = DEFAULT_START;
   try {

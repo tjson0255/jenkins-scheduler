@@ -21,7 +21,7 @@ const state = {
   dragging: false,
   panelScheduleId: null,
   panelTab: "basic",
-  layout: "horizontal", // horizontal: 横軸=日付 / vertical: 行=日付・列=アイテム（vertical.js）
+  layout: "vertical", // vertical: 行=日付・列=アイテム（vertical.js。既定） / horizontal: 横軸=日付
   runsOn: true, // ビルド状況（run の丸）を表示するか
   hiddenRunGroups: new Set(), // 凡例で非表示にした状態
   v: { start: null, days: 28 }, // 縦表示の表示範囲
@@ -36,7 +36,8 @@ renderHeader("/").then(init);
 
 function init() {
   try {
-    state.layout = localStorage.getItem("layout") === "vertical" ? "vertical" : "horizontal";
+    // 既定は縦表示。横表示を選んだ人はブラウザに記憶する
+    state.layout = localStorage.getItem("layout") === "horizontal" ? "horizontal" : "vertical";
     state.runsOn = localStorage.getItem("runsOn") !== "0";
     state.hiddenRunGroups = new Set(JSON.parse(localStorage.getItem("hiddenRunGroups") || "[]"));
   } catch (_) {}
