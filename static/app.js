@@ -21,7 +21,7 @@ const state = {
   dragging: false,
   panelScheduleId: null,
   panelTab: "basic",
-  layout: "vertical", // vertical: 行=日付・列=アイテム（vertical.js。既定） / horizontal: 横軸=日付
+  layout: "vertical", // vertical: 行=日付・列=レーン（vertical.js。既定） / horizontal: 横軸=日付
   runsOn: true, // ビルド状況（run の丸）を表示するか
   hiddenRunGroups: new Set(), // 凡例で非表示にした状態
   v: { start: null, days: 28 }, // 縦表示の表示範囲
@@ -31,7 +31,7 @@ const groups = new vis.DataSet();
 const items = new vis.DataSet();
 let timeline;
 
-// ?embed=1: 他の画面のモーダルの中に、スケジューラの詳細パネルだけを出す（アイテム画面から使う）
+// ?embed=1: 他の画面のモーダルの中に、スケジューラの詳細パネルだけを出す（レーン画面から使う）
 const EMBED = new URLSearchParams(location.search).get("embed") === "1";
 if (EMBED) document.body.classList.add("embed");
 
@@ -142,7 +142,7 @@ function init() {
   toggle.onchange = () => setLayout(toggle.checked ? "vertical" : "horizontal");
   applyLayout();
   renderLegend();
-  // アイテムの一覧を読み込んでから開く（パネルにアイテム名を出すため）
+  // レーンの一覧を読み込んでから開く（パネルにレーン名を出すため）
   loadData().finally(openFromHash);
   window.addEventListener("hashchange", openFromHash);
   setInterval(() => !state.dragging && loadData(true), 15000);
@@ -265,7 +265,7 @@ async function loadData(quiet) {
 }
 
 /* ------------------------------------------------------------------ 描画 */
-/** 表示するアイテム（すべてのアイテムをいつも表示する） */
+/** 表示するレーン（すべてのレーンをいつも表示する） */
 function visibleTargets() {
   return state.targets;
 }
@@ -499,7 +499,7 @@ function renderLegend() {
 function onTimelineClick(props) {
   if (props.what === "group-label" && props.group) {
     const gid = String(props.group);
-    // アイテム行は予定一覧を開く
+    // レーン行は予定一覧を開く
     if (gid.startsWith("t")) openItemPanel(Number(gid.slice(1)));
     return;
   }
@@ -596,7 +596,7 @@ function setupDragCreate() {
 
 function openCreateDialog(targetId, startDate, endDate) {
   const target = state.targets.find((t) => t.id === targetId);
-  if (!can.editItem(target)) return toast("このアイテムに予定を追加する権限がありません", "error");
+  if (!can.editItem(target)) return toast("このレーンに予定を追加する権限がありません", "error");
   if (target && target.kind === "memo") return openMemoDialog(targetId, startDate, endDate);
   const form = scheduleForm(
     { target_id: targetId, start_date: startDate, end_date: endDate, mode: "cron", cron_expr: "0 3 * * *" },
@@ -669,7 +669,7 @@ async function openPanel(id, tab, focusRunId) {
   panel.replaceChildren(
     el("div", { class: "panel-header" },
       el("div", {},
-        el("a", { class: "small back-link", href: "#", title: "このアイテムの予定一覧", onclick: (e) => { e.preventDefault(); openItemPanel(s.target_id); } }, `← ${t.display_name || ""}（${t.job_path || ""}）の予定一覧`),
+        el("a", { class: "small back-link", href: "#", title: "このレーンの予定一覧", onclick: (e) => { e.preventDefault(); openItemPanel(s.target_id); } }, `← ${t.display_name || ""}（${t.job_path || ""}）の予定一覧`),
         el("h2", {}, s.label || (s.mode === "cron" ? s.cron_summary : "スケジューラ #" + s.id), " ", statusChip(s.status))),
       el("button", { class: "icon-btn", title: "閉じる", onclick: closePanel }, "×")),
     can.admin() ? actionBar(s, t) : readonlyNote("このスケジューラは閲覧のみです"),
@@ -1003,7 +1003,7 @@ async function doDryRun(s) {
   }
 }
 
-/* ------------------------------------------------------------------ アイテムの予定一覧 */
+/* ------------------------------------------------------------------ レーンの予定一覧 */
 function firstLine(text) {
   return (text || "").split("\n").map((x) => x.trim()).find(Boolean) || "";
 }
@@ -1094,7 +1094,7 @@ async function openItemPanel(targetId) {
   const warn = [];
   if (t.schema_error) warn.push({ level: "error", message: t.schema_error });
   if (t.timer_trigger_detected) warn.push({ level: "warning", message: "Jenkins 側の cron が残っています（二重実行の恐れ）" });
-  if (!t.enabled) warn.push({ level: "warning", message: "このアイテムは無効です（run はスキップされます）" });
+  if (!t.enabled) warn.push({ level: "warning", message: "このレーンは無効です（run はスキップされます）" });
 
   panel.replaceChildren(
     el("div", { class: "panel-header" },
@@ -1210,7 +1210,7 @@ function renderMemoPanel(s, t) {
  *   #schedule=ID          そのスケジューラの実行履歴
  *   #schedule=ID&run=ID   実行履歴の、その run の行
  *   #schedule=ID&tab=basic など  そのタブ
- *   #item=ID              そのアイテムの予定一覧 */
+ *   #item=ID              そのレーンの予定一覧 */
 function openFromHash() {
   const h = new URLSearchParams(location.hash.slice(1));
   const sid = Number(h.get("schedule"));

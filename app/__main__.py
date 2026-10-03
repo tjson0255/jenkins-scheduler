@@ -126,7 +126,7 @@ def _restore(settings, path: str) -> int:
     try:
         probe.acquire()
     except AlreadyRunning:
-        print("エラー: サービスが動いています。止めてから実行するか、画面（アイテム → バックアップ）から戻してください", file=sys.stderr)
+        print("エラー: サービスが動いています。止めてから実行するか、画面（レーン → バックアップ）から戻してください", file=sys.stderr)
         return 2
     try:
         dbmod.init_engine(settings.db_url)

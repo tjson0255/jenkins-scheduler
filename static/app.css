@@ -273,7 +273,7 @@ details.json pre { margin: 4px 0 0; font-size: 12px; background: #f6f7f9; paddin
 .audit-table td:nth-child(-n+4) { white-space: nowrap; }
 .audit-table details.json summary { word-break: break-all; }
 
-/* アイテムの予定一覧 */
+/* レーンの予定一覧 */
 .vis-label.grp-target { cursor: pointer; }
 .vis-labelset .vis-label.vis-nested-group.grp-target:hover { background: var(--accent-weak); }
 .back-link { color: var(--muted); text-decoration: none; }
@@ -301,7 +301,7 @@ tr.clickable:hover td { background: #f7f9fc; }
 .switch input:checked + .switch-track .switch-thumb { transform: translateX(14px); }
 .switch input:focus-visible + .switch-track { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* ---- 縦表示（行=日付・列=アイテム） ---- */
+/* ---- 縦表示（行=日付・列=レーン） ---- */
 #vgrid { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: auto; user-select: none; }
 .v-table { border-collapse: separate; border-spacing: 0; min-width: 100%; font-size: 12px; }
 .v-table thead th { position: sticky; background: #f3f5f9; z-index: 3; border-bottom: 1px solid var(--line); font-weight: 600; white-space: nowrap; }
@@ -361,7 +361,7 @@ td.v-collapsed-cell:hover { background: var(--accent-weak); }
 .v-run:hover { outline: 1px solid var(--c); }
 .v-more { font-size: 11px; color: var(--accent); cursor: pointer; padding: 0 3px; }
 
-/* テキストのアイテム */
+/* テキストのレーン */
 .kind-tag { display: inline-block; font-family: inherit; font-size: 11px; padding: 0 6px; border-radius: 4px; background: #eef0f4; color: var(--muted); }
 .kind-tag.memo { background: #f3eefb; color: #6b4fa0; }
 .kind-tag.jenkins { background: #e8f0fb; color: #2f5d94; white-space: nowrap; }
@@ -373,7 +373,7 @@ td.v-collapsed-cell:hover { background: var(--accent-weak); }
 .v-label.memo { background: color-mix(in srgb, var(--c, #8a94a6) 10%, #fffdf3); font-weight: 500; }
 .v-stripe.memo { width: 5px; opacity: .7; }
 
-/* 警告・エラーのあるアイテムの行（横表示の行見出しと行全体、縦表示の列見出し、アイテム一覧の行） */
+/* 警告・エラーのあるレーンの行（横表示の行見出しと行全体、縦表示の列見出し、レーン一覧の行） */
 .vis-label.grp-target.alert-warning, .v-item-head.alert-warning, .targets-table tr.alert-warning td, .schedule-table tr.alert-warning > td {
   background: repeating-linear-gradient(-45deg, #fff4cd 0 6px, #ffeaa8 6px 12px) !important;
 }
@@ -518,7 +518,7 @@ section.help { scroll-margin-top: 12px; }
 .cal-day.selected.has-memo::after { background: #fff; }
 @media (max-width: 600px) { .day-cal { width: 100%; } }
 
-/* アイテム画面: スケジューラ一覧 */
+/* レーン画面: スケジューラ一覧 */
 .schedule-table .swatch.inline { display: inline-block; margin-right: 6px; vertical-align: -1px; }
 .schedule-table td { white-space: nowrap; }
 .schedule-table .warn-list { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; }
@@ -529,7 +529,7 @@ body.embed .topbar { display: none; }
 body.embed main { position: absolute; left: -10000px; top: 0; width: 1200px; visibility: hidden; } /* タイムラインは裏で動かすが見せない */
 body.embed .panel { position: static; width: auto; border: none; box-shadow: none; padding: 12px 18px 24px; }
 
-/* アイテム画面: スケジューラの詳細を出すモーダル */
+/* レーン画面: スケジューラの詳細を出すモーダル */
 .modal.modal-wide { width: min(860px, 100%); }
 .modal.modal-wide .modal-body { padding: 0; max-height: none; overflow: hidden; }
 .modal.modal-wide .modal-header { display: none; } /* 見出しと × は中のパネルのものを使う */
@@ -540,7 +540,7 @@ body.embed .panel { position: static; width: auto; border: none; box-shadow: non
 .link-btn:hover { text-decoration: underline; }
 .link-btn.small { font-size: 12px; }
 
-/* アイテム画面の上部: カテゴリ › アイテム › スケジューラ の構成 */
+/* レーン画面の上部: カテゴリ › レーン › スケジューラ の構成 */
 .tree-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; font-size: 13px; }
 .tree-steps a { font-weight: 600; text-decoration: none; }
 .tree-steps a:hover { text-decoration: underline; }

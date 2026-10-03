@@ -96,13 +96,13 @@ def _get(db: Session, sid: int) -> Schedule:
 
 
 def _require_editable(user: User, *, memo: bool) -> None:
-    """2. 予定のみ編集の人は、テキストのアイテムに書いた予定だけ変更できる（3. 読み取り専用はミドルウェアで拒否済み）。"""
+    """2. 予定のみ編集の人は、テキストのレーンに書いた予定だけ変更できる（3. 読み取り専用はミドルウェアで拒否済み）。"""
     if not user.is_admin and not (memo and user.can_edit_memo):
         raise HTTPException(403, "予定以外の変更には管理者ログインが必要です")
 
 
 def _require_jenkins(s: Schedule) -> Schedule:
-    """実行に関わる操作（有効化・パラメータ・ドライランなど）は Jenkins アイテムの予定だけ。"""
+    """実行に関わる操作（有効化・パラメータ・ドライランなど）は Jenkins レーンの予定だけ。"""
     if s.is_memo:
         raise HTTPException(400, "予定には実行に関する操作はありません")
     return s
@@ -231,7 +231,7 @@ def create_schedule(
 ):
     t = db.get(Target, body.target_id)
     if not t:
-        raise HTTPException(400, "アイテムが見つかりません")
+        raise HTTPException(400, "レーンが見つかりません")
     _require_editable(user, memo=t.is_memo)
     st = dispatcher.settings
     if t.is_memo:

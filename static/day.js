@@ -47,7 +47,7 @@ function setDay(s) {
   load();
 }
 
-/** タイムラインを開いて、スケジューラ（またはアイテム）の詳細を出すリンク先 */
+/** タイムラインを開いて、スケジューラ（またはレーン）の詳細を出すリンク先 */
 function detailHref(hash) {
   return `/?date=${currentDay()}#${hash}`;
 }
@@ -88,7 +88,7 @@ function runRow(r) {
   return el("tr", { class: `rs-row-${r.status}` },
     timeCell(r.scheduled_at),
     categoryCell(r.target_id),
-    // スケジューラの run はその実行履歴の行へ、即時実行など（スケジューラなし）はアイテムの予定一覧へ
+    // スケジューラの run はその実行履歴の行へ、即時実行など（スケジューラなし）はレーンの予定一覧へ
     itemCell(r.target_id, r.target_name, r.schedule_id ? `schedule=${r.schedule_id}&run=${r.id}` : `item=${r.target_id}`),
     scheduleCell(r.schedule_id, r.schedule_title || (r.retry_of_id ? "再実行" : "即時実行")),
     el("td", {}, el("span", { class: `legend-dot rs-${r.status}` }), " ", RUN_STATUS_LABEL[r.status] || r.status),
@@ -131,7 +131,7 @@ function renderRuns(data, isCurrent) {
   }
   if (!nowShown) body.push(el("tr", { class: "now-line" }, el("td", { colspan: 7 }, `現在 ${timeOf(nowIso)}`)));
   box.replaceChildren(el("table", { class: "table day-table" },
-    el("thead", {}, el("tr", {}, ["時刻", "カテゴリ", "アイテム", "スケジューラ", "状態", "ビルド", "詳細"].map((h) => el("th", {}, h)))),
+    el("thead", {}, el("tr", {}, ["時刻", "カテゴリ", "レーン", "スケジューラ", "状態", "ビルド", "詳細"].map((h) => el("th", {}, h)))),
     el("tbody", {}, body)));
 }
 
@@ -164,7 +164,7 @@ function startOfMonth(d) {
 
 let memoDaysCache = { key: "", days: new Set() };
 
-/** その月で予定（テキストのアイテムに書いたもの）がある日 */
+/** その月で予定（テキストのレーンに書いたもの）がある日 */
 async function memoDays(first, last) {
   const key = `${ymd(first)}|${ymd(last)}`;
   if (memoDaysCache.key === key) return memoDaysCache.days;

@@ -38,7 +38,7 @@ function buildCron(v) {
 
 /**
  * @param {object} s 初期値（schedule の API 形式。新規作成時は一部のみ）
- * @param {object} opts {targets: [...]} を渡すとアイテム選択欄を出す
+ * @param {object} opts {targets: [...]} を渡すとレーン選択欄を出す
  */
 function scheduleForm(s, opts) {
   opts = opts || {};
@@ -140,7 +140,7 @@ function scheduleForm(s, opts) {
   const root = el(
     "div",
     { class: "form" },
-    f.target ? field("アイテム", f.target) : null,
+    f.target ? field("レーン", f.target) : null,
     field("件名", f.label),
     el("div", { class: "row wrap" }, field("開始日", f.start), field("終了日", f.end), el("label", { class: "check" }, f.infinite, " 無期限")),
     field("モード", f.mode),
@@ -175,7 +175,7 @@ function scheduleForm(s, opts) {
   };
 }
 
-/** テキストのアイテムに書く予定のフォーム（件名・期間・詳細だけ） */
+/** テキストのレーンに書く予定のフォーム（件名・期間・詳細だけ） */
 function memoForm(s, opts) {
   opts = opts || {};
   const field = (label, input) => el("label", { class: "field" }, el("span", {}, label), input);
@@ -195,7 +195,7 @@ function memoForm(s, opts) {
   f.infinite.addEventListener("change", renderEnd);
   renderEnd();
   const root = el("div", { class: "form" },
-    f.target ? field("アイテム", f.target) : null,
+    f.target ? field("レーン", f.target) : null,
     field("件名", f.label),
     el("div", { class: "row wrap" }, field("開始日", f.start), field("終了日", f.end), el("label", { class: "check" }, f.infinite, " 無期限")),
     field("詳細", f.note));

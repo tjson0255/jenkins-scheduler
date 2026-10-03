@@ -66,7 +66,7 @@ def delete_category(cid: int, db: Session = Depends(get_db), actor: str = Depend
     if not c:
         raise not_found("カテゴリ")
     if c.targets:
-        raise HTTPException(409, "所属するアイテムがあるため削除できません")
+        raise HTTPException(409, "所属するレーンがあるため削除できません")
     audit.record(db, actor, "category.delete", "category", c.id, {"name": c.name})
     db.delete(c)
     db.commit()

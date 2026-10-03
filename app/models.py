@@ -25,7 +25,7 @@ class Base(DeclarativeBase):
     pass
 
 
-# target.kind（アイテムの種類）
+# target.kind（レーンの種類）
 ITEM_JENKINS = "jenkins"  # Jenkins ジョブをキックする
 ITEM_MEMO = "memo"  # 予定。Jenkins には接続せず、予定を書くだけ
 ITEM_KINDS = (ITEM_JENKINS, ITEM_MEMO)
@@ -107,7 +107,7 @@ class Schedule(Base):
     label: Mapped[str | None] = mapped_column(String(200), nullable=True)
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    mode: Mapped[str] = mapped_column(String(10))  # cron | once | memo（テキストのアイテムに書いた予定）
+    mode: Mapped[str] = mapped_column(String(10))  # cron | once | memo（テキストのレーンに書いた予定）
     cron_expr: Mapped[str | None] = mapped_column(String(100), nullable=True)
     once_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(10), default=DRAFT)

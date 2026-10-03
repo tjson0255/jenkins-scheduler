@@ -1,4 +1,4 @@
-"""保留（holding）の run の件数。画面で目立たせるために、アイテム・スケジューラごとに数える。"""
+"""保留（holding）の run の件数。画面で目立たせるために、レーン・スケジューラごとに数える。"""
 
 from __future__ import annotations
 

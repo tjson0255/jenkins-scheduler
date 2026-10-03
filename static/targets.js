@@ -1,4 +1,4 @@
-/* アイテム管理画面（仕様書 11.3） */
+/* レーン管理画面（仕様書 11.3） */
 "use strict";
 
 // ログイン中の利用者（権限）を読み込んでから画面を作る
@@ -6,7 +6,7 @@ const ready = renderHeader("/targets");
 
 let categories = [];
 let targets = [];
-let schedulesByTarget = new Map(); // アイテムごとのスケジューラ・予定（キャンセル済みは除く）
+let schedulesByTarget = new Map(); // レーンごとのスケジューラ・予定（キャンセル済みは除く）
 
 async function load() {
   let schedules;
@@ -82,7 +82,7 @@ function targetRow(t, siblings, index) {
   const color = colorPicker(t.color, (c) => patchTarget(t, { color: c }, true));
   const cat = el("select", {}, categories.map((c) => el("option", { value: c.id, selected: c.id === t.category_id }, c.name)));
   cat.addEventListener("change", () => patchTarget(t, { category_id: Number(cat.value) }));
-  const enabled = el("input", { type: "checkbox", checked: t.enabled, title: "オフにすると、このアイテムの run はスキップされます" });
+  const enabled = el("input", { type: "checkbox", checked: t.enabled, title: "オフにすると、このレーンの run はスキップされます" });
   enabled.addEventListener("change", () => patchTarget(t, { enabled: enabled.checked }));
   const overlap = el("select", {},
     el("option", { value: "skip", selected: t.overlap_policy === "skip" }, "スキップ"),
@@ -115,7 +115,7 @@ function targetRow(t, siblings, index) {
     el("td", {}, memo ? na() : overlap),
     el("td", {}, el("button", {
       class: "link-btn small", "data-keep": "1",
-      title: memo ? "このアイテムの予定を表示" : "このアイテムのスケジューラを表示",
+      title: memo ? "このレーンの予定を表示" : "このレーンのスケジューラを表示",
       onclick: () => showSchedulersOf(t.id),
     }, `${memo ? "予定" : "スケジューラ"} ${(schedulesByTarget.get(t.id) || []).length}件 ›`)),
     el("td", { class: "row" },
@@ -124,7 +124,7 @@ function targetRow(t, siblings, index) {
       !can.editItem(t) ? null : el("button", {
         class: "btn small danger",
         onclick: async () => {
-          if (!(await confirmDialog("アイテムの削除", memo ? `${t.display_name}（テキスト）を削除します。\nこのアイテムの予定もすべて削除されます。` : `${t.display_name}（${t.job_path}）を削除します。\nこのアイテムのスケジューラと run 履歴も削除されます。`, "削除", true))) return;
+          if (!(await confirmDialog("レーンの削除", memo ? `${t.display_name}（テキスト）を削除します。\nこのレーンの予定もすべて削除されます。` : `${t.display_name}（${t.job_path}）を削除します。\nこのレーンのスケジューラと run 履歴も削除されます。`, "削除", true))) return;
           try {
             await api("DELETE", `/api/targets/${t.id}`);
             toast("削除しました");
@@ -135,7 +135,7 @@ function targetRow(t, siblings, index) {
         },
       }, "削除")));
   if (!can.editItem(t)) {
-    // Jenkins アイテムの設定は管理者だけ。並び替え（↑↓）は残す
+    // Jenkins レーンの設定は管理者だけ。並び替え（↑↓）は残す
     const ops = row.lastElementChild;
     lockForm(row);
     ops.querySelectorAll("button").forEach((b) => (b.disabled = b.textContent === "↑" ? index === 0 : b.textContent === "↓" ? index === siblings.length - 1 : b.disabled));
@@ -144,14 +144,14 @@ function targetRow(t, siblings, index) {
   return row;
 }
 
-/* ---- スケジューラ一覧（すべてのアイテムのスケジューラ・予定）と追加 ---- */
-let scheduleFilter = ""; // 絞り込むアイテム（"t:<アイテム id>"）。"" ならすべて
+/* ---- スケジューラ一覧（すべてのレーンのスケジューラ・予定）と追加 ---- */
+let scheduleFilter = ""; // 絞り込むレーン（"t:<レーン id>"）。"" ならすべて
 
 function matchesScheduleFilter(t) {
   return !scheduleFilter || scheduleFilter === `t:${t.id}`;
 }
 
-/** 押したカテゴリのアイテム・押したアイテムのスケジューラに絞り込んで、そこまでスクロールする */
+/** 押したカテゴリのレーン・押したレーンのスケジューラに絞り込んで、そこまでスクロールする */
 function showItemsOf(categoryId) {
   itemFilter = String(categoryId);
   renderTargets();
@@ -187,7 +187,7 @@ function scheduleTitleOf(s) {
   return scheduleRule(s);
 }
 
-/** カテゴリ順・アイテム順に並べたアイテム */
+/** カテゴリ順・レーン順に並べたレーン */
 function orderedTargets() {
   const out = [];
   for (const c of categories) {
@@ -201,8 +201,8 @@ function renderScheduleList() {
   const ordered = orderedTargets();
   if (scheduleFilter && !ordered.some(matchesScheduleFilter)) scheduleFilter = "";
 
-  const filter = el("select", { "aria-label": "アイテムで絞り込む" },
-    el("option", { value: "" }, "すべてのアイテム"),
+  const filter = el("select", { "aria-label": "レーンで絞り込む" },
+    el("option", { value: "" }, "すべてのレーン"),
     ordered.map((t) => el("option", { value: `t:${t.id}`, selected: scheduleFilter === `t:${t.id}` }, t.display_name)));
   filter.addEventListener("change", () => {
     scheduleFilter = filter.value;
@@ -234,14 +234,14 @@ function renderScheduleList() {
   }
   box.replaceChildren(rows.length
     ? el("div", { class: "table-wrap" }, el("table", { class: "table schedule-table" },
-        el("thead", {}, el("tr", {}, ["アイテム", "件名", "実行規則", "期間", "状態", "警告", ""].map((h) => el("th", {}, h)))),
+        el("thead", {}, el("tr", {}, ["レーン", "件名", "実行規則", "期間", "状態", "警告", ""].map((h) => el("th", {}, h)))),
         el("tbody", {}, rows)))
     : el("p", { class: "muted" }, "スケジューラはありません。"));
 }
 
 /** そのスケジューラの警告をまとめて出す。
  *  パラメータの確認結果（Jenkins の最新のパラメータ定義と照らし合わせたもの）と、
- *  予定どおり動かない原因（保留・ジョブ・Jenkins 側の cron・アイテムが無効）。何も無ければ「なし」 */
+ *  予定どおり動かない原因（保留・ジョブ・Jenkins 側の cron・レーンが無効）。何も無ければ「なし」 */
 function scheduleWarnings(s, t) {
   const out = [];
   const issues = ["draft", "active", "paused"].includes(s.status) ? (s.issues || []).filter((i) => i.level !== "info") : [];
@@ -257,7 +257,7 @@ function scheduleWarnings(s, t) {
   if (s.holding_count) out.push(el("span", { class: "status-err", title: "キックされずに止まっている run があります" }, `⛔ 保留${s.holding_count}`));
   if (t.schema_error) out.push(el("span", { class: "status-err", title: t.schema_error }, "⛔ ジョブ"));
   if (t.timer_trigger_detected) out.push(el("span", { class: "status-warn", title: "Jenkins 側の cron が残っています（二重実行の恐れ）" }, "⏰ cron 残存"));
-  if (!t.enabled) out.push(el("span", { class: "muted", title: "アイテムが無効なので run はスキップされます" }, "アイテム無効"));
+  if (!t.enabled) out.push(el("span", { class: "muted", title: "レーンが無効なので run はスキップされます" }, "レーン無効"));
   return out.length ? el("span", { class: "warn-list" }, out) : el("span", { class: "status-ok" }, "✔ なし");
 }
 
@@ -299,8 +299,8 @@ async function runNowSchedule(t, s) {
   }
 }
 
-/** 追加ダイアログ。アイテムを選ぶと、Jenkins ならスケジューラ、テキストのアイテムなら予定の入力欄にする。
- *  追加できないアイテム（管理者ログインしていないときの Jenkins アイテム）も、選べない形で並べる */
+/** 追加ダイアログ。レーンを選ぶと、Jenkins ならスケジューラ、テキストのレーンなら予定の入力欄にする。
+ *  追加できないレーン（管理者ログインしていないときの Jenkins レーン）も、選べない形で並べる */
 function openAddSchedule(ordered) {
   const editable = ordered.filter((t) => can.editItem(t));
   const first = editable.find((t) => scheduleFilter === `t:${t.id}`) || editable[0];
@@ -314,7 +314,7 @@ function openAddSchedule(ordered) {
       : null;
   }));
   const note = editable.length < ordered.length
-    ? readonlyNote("Jenkins のアイテムへのスケジューラの追加は管理者のみです")
+    ? readonlyNote("Jenkins のレーンへのスケジューラの追加は管理者のみです")
     : null;
   const area = el("div");
   const buttons = el("div", { class: "row" });
@@ -349,11 +349,11 @@ function openAddSchedule(ordered) {
   };
   pick.addEventListener("change", build);
   build();
-  openModal("スケジューラ・予定の追加", el("div", { class: "form" }, note, el("label", { class: "field" }, el("span", {}, "アイテム"), pick), area), [buttons]);
+  openModal("スケジューラ・予定の追加", el("div", { class: "form" }, note, el("label", { class: "field" }, el("span", {}, "レーン"), pick), area), [buttons]);
 }
 
 let registerState = { results: [], open: false };
-/** アイテムの追加ダイアログ（テキスト / Jenkins ジョブ） */
+/** レーンの追加ダイアログ（テキスト / Jenkins ジョブ） */
 function openRegisterDialog() {
   registerState = { results: [], open: false };
   const box = el("div", { class: "form", id: "register-form" });
@@ -412,7 +412,7 @@ function openRegisterDialog() {
   }, "登録（Jenkins で存在とパラメータを確認）");
 
   const field = (label, input) => el("label", { class: "field" }, el("span", {}, label), input);
-  // Jenkins アイテムのときだけ使う欄
+  // Jenkins レーンのときだけ使う欄
   const searchField = field("Jenkins のジョブを検索", q);
   const jobField = field("ジョブのパス", jobPath);
   const overlapRow = el("div", { class: "row wrap" }, field("前回ビルドが実行中/キュー中のとき", overlap));
@@ -435,7 +435,7 @@ function openRegisterDialog() {
     el("div", { class: "row wrap" },
       el("span", { class: "muted small" }, "種類"),
       el("label", { class: "check" }, kindMemo, " テキスト"),
-      el("label", { class: "check", title: can.admin() ? "" : "Jenkins アイテムの登録には管理者ログインが必要です" }, kindJenkins, " Jenkins ジョブ")),
+      el("label", { class: "check", title: can.admin() ? "" : "Jenkins レーンの登録には管理者ログインが必要です" }, kindJenkins, " Jenkins ジョブ")),
     kindHint,
     searchField,
     results,
@@ -445,7 +445,7 @@ function openRegisterDialog() {
   renderKind();
   box._jobPath = jobPath;
   box._displayName = displayName;
-  openModal("アイテムの追加", box, [el("button", { class: "btn", onclick: closeModal }, "やめる"), submit]);
+  openModal("レーンの追加", box, [el("button", { class: "btn", onclick: closeModal }, "やめる"), submit]);
 }
 
 function renderResults() {
@@ -504,13 +504,13 @@ function renderCategories() {
     });
     return el("div", { class: "cat-row" },
       name,
-      el("button", { class: "link-btn small", title: "このカテゴリのアイテムを表示", onclick: () => showItemsOf(c.id) }, `アイテム ${c.target_count}件 ›`),
+      el("button", { class: "link-btn small", title: "このカテゴリのレーンを表示", onclick: () => showItemsOf(c.id) }, `レーン ${c.target_count}件 ›`),
       el("button", { class: "btn small", disabled: i === 0, onclick: () => move(i, -1) }, "↑"),
       el("button", { class: "btn small", disabled: i === sorted.length - 1, onclick: () => move(i, 1) }, "↓"),
       el("button", {
         class: "btn small danger",
         disabled: c.target_count > 0,
-        title: c.target_count > 0 ? "所属アイテムがあると削除できません" : "",
+        title: c.target_count > 0 ? "所属レーンがあると削除できません" : "",
         onclick: async () => {
           try {
             await api("DELETE", `/api/categories/${c.id}`);
@@ -543,7 +543,7 @@ document.getElementById("btn-sync").onclick = async () => {
   try {
     const res = await api("POST", "/api/targets/sync");
     const errs = res.filter((r) => r.error);
-    toast(`${res.length} 件のアイテムを Jenkins から取り直しました${errs.length ? `（エラー ${errs.length} 件）` : ""}`, errs.length ? "error" : "");
+    toast(`${res.length} 件のレーンを Jenkins から取り直しました${errs.length ? `（エラー ${errs.length} 件）` : ""}`, errs.length ? "error" : "");
     load();
   } catch (e) {
     toast(e.message, "error");
@@ -552,13 +552,13 @@ document.getElementById("btn-sync").onclick = async () => {
 
 ready.then(() => {
   if (!can.admin()) {
-    // Jenkins アイテムの設定・再取得は管理者だけ
+    // Jenkins レーンの設定・再取得は管理者だけ
     document.getElementById("btn-sync").hidden = true;
     if (can.memo()) {
-      document.getElementById("target-list").before(readonlyNote("テキストのアイテムとカテゴリは編集できます。Jenkins アイテムの設定は閲覧と並び替えのみです"));
+      document.getElementById("target-list").before(readonlyNote("テキストのレーンとカテゴリは編集できます。Jenkins レーンの設定は閲覧と並び替えのみです"));
     } else {
       document.getElementById("category-list").closest("section").hidden = true;
-      document.getElementById("target-list").before(readonlyNote("アイテムの設定は閲覧のみです"));
+      document.getElementById("target-list").before(readonlyNote("レーンの設定は閲覧のみです"));
     }
   }
   return load();
@@ -580,7 +580,7 @@ async function loadBackups() {
       b.enabled ? `毎日 ${b.time} に自動で取得し、${b.keep} 世代残します。` : "自動バックアップは無効です（BACKUP_ENABLED=false）。",
       " 保存先は ", b.dir_configured ? ".env の BACKUP_DIR で指定した場所です。" : "既定の場所です（.env の BACKUP_DIR が未設定）。",
       el("br"), "保存先・時刻・世代数は .env の BACKUP_DIR / BACKUP_TIME / BACKUP_KEEP で変更し、ツールを再起動すると反映されます。",
-      el("br"), "scheduler-*.db は復元用（run 履歴・ログを含む）、settings-*.json はアイテム・スケジューラ・パラメータの内容を読める形で書き出したものです。Jenkins のトークンを含む .env はバックアップしません。"),
+      el("br"), "scheduler-*.db は復元用（run 履歴・ログを含む）、settings-*.json はレーン・スケジューラ・パラメータの内容を読める形で書き出したものです。Jenkins のトークンを含む .env はバックアップしません。"),
     b.files.length
       ? el("table", { class: "table small" },
           el("thead", {}, el("tr", {}, ["ファイル", "サイズ", "作成日時", ""].map((h) => el("th", {}, h)))),
@@ -595,7 +595,7 @@ async function restoreBackup(f) {
   const ok = await confirmDialog(
     "バックアップの時点に戻す",
     `${fmtDateTime(f.modified_at, true)} のバックアップ（${f.name}）の時点に、すべてのデータを戻します。\n\n` +
-      "・アイテム、スケジューラ、パラメータ、実行履歴、ログがこの時点の内容に置き換わります\n" +
+      "・レーン、スケジューラ、パラメータ、実行履歴、ログがこの時点の内容に置き換わります\n" +
       "・戻す直前に今の状態を自動でバックアップするので、間違えた場合はそこから戻せます\n" +
       "・戻したあと、予定時刻を過ぎている未実行の run は、遅延時の扱い（missed_policy）に従って処理されます\n" +
       "・他の人が開いている画面は、再読み込みで新しい内容になります",

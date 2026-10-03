@@ -77,7 +77,7 @@ def run_out(r: Run) -> dict[str, Any]:
     return {
         "id": r.id,
         "schedule_id": r.schedule_id,
-        # 一覧で何の run か分かるように、アイテム名とスケジューラの見出しも返す
+        # 一覧で何の run か分かるように、レーン名とスケジューラの見出しも返す
         "target_name": r.target.display_name if r.target else None,
         "schedule_title": (s.label or (summarize(s.cron_expr) if s.mode == "cron" else "1回")) if s else None,
         "target_id": r.target_id,

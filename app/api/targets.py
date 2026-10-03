@@ -25,7 +25,7 @@ router = APIRouter(tags=["targets"])
 
 class TargetIn(BaseModel):
     kind: Literal["jenkins", "memo"] = ITEM_JENKINS
-    job_path: str | None = Field(default=None, max_length=500)  # Jenkins アイテムのみ
+    job_path: str | None = Field(default=None, max_length=500)  # Jenkins レーンのみ
     display_name: str | None = Field(default=None, max_length=200)
     category_id: int | None = None
     pinned: bool = False
@@ -72,7 +72,7 @@ def _out(db: Session, t: Target) -> dict:
 
 @router.get("/api/jenkins/jobs")
 def search_jobs(q: str | None = None, client: JenkinsClientProtocol = Depends(get_client), user: User = Depends(get_user)):
-    # アイテム登録用。Jenkins のフォルダをすべてたどる重い呼び出しなので管理者だけ
+    # レーン登録用。Jenkins のフォルダをすべてたどる重い呼び出しなので管理者だけ
     if not user.is_admin:
         raise HTTPException(403, "ジョブの検索には管理者ログインが必要です")
     try:
@@ -99,11 +99,11 @@ def create_target(
     user: User = Depends(get_user),
 ):
     if body.kind != ITEM_MEMO and not user.is_admin:
-        raise HTTPException(403, "Jenkins アイテムの登録には管理者ログインが必要です")
+        raise HTTPException(403, "Jenkins レーンの登録には管理者ログインが必要です")
     if body.kind == ITEM_MEMO:
         job_path = None
         if not (body.display_name or "").strip():
-            raise HTTPException(400, "テキストのアイテムには名前を入れてください")
+            raise HTTPException(400, "テキストのレーンには名前を入れてください")
     else:
         job_path = (body.job_path or "").strip().strip("/")
         if not job_path:
@@ -132,7 +132,7 @@ def create_target(
     db.add(t)
     db.flush()
     if not t.is_memo:
-        # Jenkins アイテムは登録時にジョブの存在とパラメータ定義を確認する
+        # Jenkins レーンは登録時にジョブの存在とパラメータ定義を確認する
         try:
             state = fetch_schema(db, client, t)
         except JenkinsError as exc:
@@ -150,11 +150,11 @@ def create_target(
 def update_target(tid: int, body: TargetPatch, db: Session = Depends(get_db), actor: str = Depends(get_actor), user: User = Depends(get_user)):
     t = db.get(Target, tid)
     if not t:
-        raise not_found("アイテム")
+        raise not_found("レーン")
     if not user.is_admin and not t.is_memo:
-        # Jenkins アイテムは、並び替え（表示順）だけ管理者以外も変えられる
+        # Jenkins レーンは、並び替え（表示順）だけ管理者以外も変えられる
         if body.model_dump(exclude_unset=True).keys() - {"sort_order", "revision"}:
-            raise HTTPException(403, "Jenkins アイテムの設定の変更には管理者ログインが必要です")
+            raise HTTPException(403, "Jenkins レーンの設定の変更には管理者ログインが必要です")
     bump_revision(db, Target, t.id, body.revision)
     changes = body.model_dump(exclude_unset=True, exclude={"revision"})
     if "category_id" in changes and not db.get(Category, changes["category_id"]):
@@ -172,9 +172,9 @@ def update_target(tid: int, body: TargetPatch, db: Session = Depends(get_db), ac
 def delete_target(tid: int, db: Session = Depends(get_db), actor: str = Depends(get_actor), user: User = Depends(get_user)):
     t = db.get(Target, tid)
     if not t:
-        raise not_found("アイテム")
+        raise not_found("レーン")
     if not user.is_admin and not t.is_memo:
-        raise HTTPException(403, "Jenkins アイテムの削除には管理者ログインが必要です")
+        raise HTTPException(403, "Jenkins レーンの削除には管理者ログインが必要です")
     if any(s.status == ACTIVE for s in t.schedules):
         raise HTTPException(409, "有効なスケジューラがあるため削除できません")
     for r in db.scalars(select(Run).where(Run.target_id == t.id)):
@@ -216,9 +216,9 @@ def run_now(
     """即時キック。schedule_id を渡すとそのスケジューラのパラメータで実行する。"""
     t = db.get(Target, tid)
     if not t:
-        raise not_found("アイテム")
+        raise not_found("レーン")
     if t.is_memo:
-        raise HTTPException(400, "テキストのアイテムは実行できません")
+        raise HTTPException(400, "テキストのレーンは実行できません")
     now = utcnow()
     params: dict[str, str] = {k: str(v) for k, v in (body.params or {}).items()}
     if body.schedule_id is not None:

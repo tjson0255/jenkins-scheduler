@@ -173,7 +173,7 @@ function runChip(status) {
   return el("span", { class: `chip rs-${status}` }, RUN_STATUS_LABEL[status] || status);
 }
 
-/** アイテムの警告レベル（行の網掛けに使う）: "error" | "warning" | null */
+/** レーンの警告レベル（行の網掛けに使う）: "error" | "warning" | null */
 function itemAlertLevel(t) {
   if (!t || t.kind === "memo") return null;
   const ic = t.issue_counts || {};
@@ -266,7 +266,7 @@ const can = {
   admin: () => !ME || ME.can.admin,
   /** 2. 予定を編集できる（フルコントロールも含む） */
   memo: () => !ME || ME.can.edit_memo,
-  /** そのアイテムの予定を編集できるか */
+  /** そのレーンの予定を編集できるか */
   editItem: (t) => can.admin() || (!!t && t.kind === "memo" && can.memo()),
 };
 
@@ -376,7 +376,7 @@ function renderHeader(active) {
   const nav = [
     ["/day", "1日の予定"],
     ["/", "タイムライン"],
-    ["/targets", "アイテム"],
+    ["/targets", "レーン"],
     ["/audit", "ログ"],
     ["/help", "ヘルプ"],
   ];
@@ -478,7 +478,7 @@ function holdingTable(runs, onChanged, opts) {
     return b;
   };
   return el("table", { class: "table small holding-table" },
-    el("thead", {}, el("tr", {}, ["予定日時", opts.hideItem ? null : "アイテム", "スケジューラ", "詳細", ""].filter(Boolean).map((h) => el("th", {}, h)))),
+    el("thead", {}, el("tr", {}, ["予定日時", opts.hideItem ? null : "レーン", "スケジューラ", "詳細", ""].filter(Boolean).map((h) => el("th", {}, h)))),
     el("tbody", {}, runs.map((r) =>
       el("tr", {},
         el("td", { style: { whiteSpace: "nowrap" } }, fmtDateTime(r.scheduled_at, true)),

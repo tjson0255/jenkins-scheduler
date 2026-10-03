@@ -1,4 +1,4 @@
-/* 縦表示: 行=日付、列=アイテム（カテゴリごとにまとめ、折りたたみ可）
+/* 縦表示: 行=日付、列=レーン（カテゴリごとにまとめ、折りたたみ可）
  *
  * vis-timeline は縦向きに対応していないので、表（table）で描く。
  * state / visibleTargets / openPanel などは app.js のものを使う（関数は呼び出し時に解決される）。
@@ -210,7 +210,7 @@ function renderVertical() {
         </thead>
         <tbody>${rows.join("")}</tbody>
       </table>`
-    : '<p class="muted" style="padding:16px">表示するアイテムがありません。アイテム画面で登録してください。</p>';
+    : '<p class="muted" style="padding:16px">表示するレーンがありません。レーン画面で登録してください。</p>';
 
   if (vState.scrollToToday) {
     vState.scrollToToday = false;
