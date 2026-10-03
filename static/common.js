@@ -414,7 +414,6 @@ function renderHeader(active) {
               },
             }, "ログアウト"))
         : el("div", { class: "userbox" },
-            el("span", { title: "閲覧と、自由記入の予定・メモの編集ができます" }, "利用者"),
             el("a", { class: "login-link", href: adminLoginUrl(), title: "Jenkins のスケジュールなどを操作するには管理者でログインします" }, "管理者ログイン")));
     } else if (me && (me.auth_mode === "ldap" || me.auth_mode === "mock")) {
       header.append(el("div", { class: "userbox" },
