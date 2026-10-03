@@ -164,10 +164,21 @@ function showSchedulersOf(targetId) {
   document.getElementById("sec-schedulers").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+/** 括弧を使わない日付（例: 2026/9/28） */
+function plainDate(ymdStr) {
+  const d = parseYmd(ymdStr);
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 function scheduleRule(s) {
   if (s.mode === "memo") return "予定";
-  if (s.mode === "once") return s.once_at ? `1回 ${fmtDateTime(s.once_at)}` : "1回";
-  return s.cron_summary || s.cron_expr || "";
+  if (s.mode === "once") {
+    if (!s.once_at) return "1回";
+    const d = new Date(s.once_at);
+    return `1回 ${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  // 「6時間ごと（00分）」のような括弧は使わずに出す
+  return (s.cron_summary || s.cron_expr || "").replace(/（([^）]*)）/g, " $1");
 }
 
 function scheduleTitleOf(s) {
@@ -213,7 +224,7 @@ function renderScheduleList() {
         el("td", {}, el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }), t.display_name),
         el("td", {}, scheduleLink(s, "basic", { title: "詳細を開く" }, scheduleTitleOf(s))),
         el("td", {}, scheduleRule(s)),
-        el("td", {}, `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`),
+        el("td", {}, `${plainDate(s.start_date)} 〜 ${s.end_date ? plainDate(s.end_date) : "無期限"}`),
         el("td", {}, memo ? "" : statusChip(s.status)),
         el("td", { class: "small" }, memo ? "" : scheduleWarnings(s, t)),
         el("td", {}, !memo && can.admin() && ["draft", "active", "paused"].includes(s.status)
