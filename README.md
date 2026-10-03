@@ -450,3 +450,17 @@ py -3.11 -m venv .venv
   ```powershell
   .\.venv\Scripts\alembic revision --autogenerate -m "変更内容"
   ```
+
+---
+
+## ライセンス
+
+[MIT License](LICENSE)
+
+同梱しているサードパーティのソフトウェアは、それぞれのライセンスに従います。
+
+| ソフトウェア | 場所 | ライセンス |
+|---|---|---|
+| vis-timeline 8.5.4 | `static/vendor/vis-timeline/` | Apache-2.0 または MIT（[LICENSE.md](static/vendor/vis-timeline/LICENSE.md)） |
+
+Python の依存ライブラリ（`requirements.txt`）は同梱せず、インストール時に取得します。AD 認証用の `ldap3`（LGPL-3.0）は任意で、標準の構成には含めていません。
