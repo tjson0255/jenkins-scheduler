@@ -26,7 +26,7 @@ def _title(s: Schedule) -> str:
 
 @router.get("/api/agenda")
 def get_agenda(day: date = Query(alias="date"), db: Session = Depends(get_db)):
-    """その日（Asia/Tokyo）の run と、まだ run になっていない予定、予定メモ。"""
+    """その日（Asia/Tokyo）の run と、まだ run になっていない予定、予定・メモ。"""
     lo = local_midnight_utc(day)
     hi = local_midnight_utc(day + timedelta(days=1))
     now = utcnow()

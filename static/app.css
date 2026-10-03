@@ -359,11 +359,11 @@ td.v-collapsed-cell:hover { background: var(--accent-weak); }
 .v-run:hover { outline: 1px solid var(--c); }
 .v-more { font-size: 11px; color: var(--accent); cursor: pointer; padding: 0 3px; }
 
-/* 予定メモのアイテム */
+/* 予定・メモのアイテム */
 .kind-tag { display: inline-block; font-family: inherit; font-size: 11px; padding: 0 6px; border-radius: 4px; background: #eef0f4; color: var(--muted); }
 .kind-tag.memo { background: #f3eefb; color: #6b4fa0; }
 .memo-icon { font-size: 11px; margin-left: 2px; }
-/* 予定メモ: 付箋のような見た目。過ぎた予定は薄く */
+/* 予定・メモ: 付箋のような見た目。過ぎた予定は薄く */
 .vis-item.sched.memo { border-style: solid; border-width: 1px; border-left-width: 4px; background: color-mix(in srgb, var(--c) 10%, #fffdf3); }
 .vis-item.sched.memo .ttl { font-weight: 600; }
 .vis-item.sched.memo.past, .sched-row.past { opacity: .5; }

@@ -103,7 +103,7 @@ def create_target(
     if body.kind == ITEM_MEMO:
         job_path = None
         if not (body.display_name or "").strip():
-            raise HTTPException(400, "予定メモのアイテムには名前を入れてください")
+            raise HTTPException(400, "予定・メモのアイテムには名前を入れてください")
     else:
         job_path = (body.job_path or "").strip().strip("/")
         if not job_path:
@@ -218,7 +218,7 @@ def run_now(
     if not t:
         raise not_found("アイテム")
     if t.is_memo:
-        raise HTTPException(400, "予定メモのアイテムは実行できません")
+        raise HTTPException(400, "予定・メモのアイテムは実行できません")
     now = utcnow()
     params: dict[str, str] = {k: str(v) for k, v in (body.params or {}).items()}
     if body.schedule_id is not None:

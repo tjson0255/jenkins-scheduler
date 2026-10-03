@@ -42,8 +42,8 @@ PUBLIC_PATHS = ("/login", "/api/auth/login", "/favicon.ico")
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 CSRF_HEADER = "x-requested-with"
 CSRF_VALUE = "jenkins-scheduler"
-# 2. 予定メモの編集: 予定メモのアイテムとその予定、カテゴリの追加・変更・削除
-#    （対象が予定メモのアイテムかどうかは各 API で確かめる。Jenkins アイテムは並び順の変更だけ）
+# 2. 予定・メモの編集: 予定・メモのアイテムとその予定、カテゴリの追加・変更・削除
+#    （対象が予定・メモのアイテムかどうかは各 API で確かめる。Jenkins アイテムは並び順の変更だけ）
 MEMO_EDITOR_WRITES = [
     ("POST", re.compile(r"^/api/schedules$")),
     ("PATCH", re.compile(r"^/api/schedules/\d+$")),
@@ -171,7 +171,7 @@ def create_app(
             if user is not None and mode == "shared_admin" and not user.is_admin:
                 user = None  # 他の方式で作られたログイン状態は使わない（この方式で有効なのは管理者だけ）
             if user is None and mode == "shared_admin":
-                # ログインしていない人: 閲覧と予定メモの編集ができる。ログには接続元を残す
+                # ログインしていない人: 閲覧と予定・メモの編集ができる。ログには接続元を残す
                 client = request.client.host if request.client else "-"
                 user = User(f"guest@{client}", "利用者（ログインなし）", MEMO_EDITOR)
             elif user is None:
