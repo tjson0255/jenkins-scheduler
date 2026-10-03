@@ -94,15 +94,15 @@ def _get(db: Session, sid: int) -> Schedule:
 
 
 def _require_editable(user: User, *, memo: bool) -> None:
-    """2. 自由記入のみ編集の人は、自由記入アイテムの予定・メモだけ変更できる（3. 読み取り専用はミドルウェアで拒否済み）。"""
+    """2. 予定メモのみ編集の人は、予定メモのアイテムの予定だけ変更できる（3. 読み取り専用はミドルウェアで拒否済み）。"""
     if not user.is_admin and not (memo and user.can_edit_memo):
-        raise HTTPException(403, "自由記入の予定・メモ以外の変更には管理者ログインが必要です")
+        raise HTTPException(403, "予定メモ以外の変更には管理者ログインが必要です")
 
 
 def _require_jenkins(s: Schedule) -> Schedule:
     """実行に関わる操作（有効化・パラメータ・ドライランなど）は Jenkins アイテムの予定だけ。"""
     if s.is_memo:
-        raise HTTPException(400, "自由記入の予定には実行に関する操作はありません")
+        raise HTTPException(400, "予定メモには実行に関する操作はありません")
     return s
 
 
@@ -233,7 +233,7 @@ def create_schedule(
     _require_editable(user, memo=t.is_memo)
     st = dispatcher.settings
     if t.is_memo:
-        # 自由記入: タイトル・期間・メモだけ。run は作らず、作った時点でタイムラインに出す
+        # 予定メモ: タイトル・期間・メモだけ。run は作らず、作った時点でタイムラインに出す
         s = Schedule(target=t, label=body.label or None, start_date=body.start_date, end_date=body.end_date,
                      mode="memo", status=ACTIVE, note=body.note)
         _validate(s)
@@ -286,7 +286,7 @@ def update_schedule(
     before = _snapshot(s)
     changes = body.model_dump(exclude_unset=True, exclude={"revision"})
     if s.is_memo:
-        # 自由記入はタイトル・期間・メモだけ変更できる
+        # 予定メモはタイトル・期間・メモだけ変更できる
         changes = {k: v for k, v in changes.items() if k in ("label", "start_date", "end_date", "note")}
     timing_changed = False
     for k, v in changes.items():

@@ -105,7 +105,7 @@ def populate(db: Session, settings: Settings, client) -> None:
     db.add(Run(schedule_id=None, target_id=targets["buildset/ios-pipeline"].id, scheduled_at=now - timedelta(hours=2), status=R_HOLDING,
                params_json={"BUILD_TYPE": "nightly"}, reason="パラメータ BUILD_TYPE の値「nightly」は選択肢にありません（デモ用の例）"))
 
-    # 自由記入（メモ・計画）
+    # 予定メモ
     plan_cat = db.query(Category).filter(Category.name == "リリース関連").one()
     memo_item = Target(kind=ITEM_MEMO, job_path=None, display_name="リリース計画", category_id=plan_cat.id, color="#9b7ccc", sort_order=0)
     db.add(memo_item)

@@ -373,7 +373,7 @@ function groupTemplate(g) {
   if (g.kind === "category") return `<span class="grp-cat-name">${esc(g.name)}</span>`;
   const t = g.target;
   if (t.kind === "memo") {
-    return `<div class="grp-target-inner" title="自由記入">
+    return `<div class="grp-target-inner" title="予定メモ">
       <span class="swatch" style="background:${esc(t.color || "#8a94a6")}"></span>
       <span class="grp-name">${esc(t.display_name)}</span><span class="memo-icon">📝</span>
     </div>`;
@@ -1042,7 +1042,7 @@ async function openItemPanel(targetId) {
     const rank = { active: 0, paused: 1, draft: 2, ended: 3, cancelled: 4 };
     const isPast = (s) => !!s.end_date && s.end_date < today;
     if (memo) {
-      // 自由記入: これからの予定を日付順に、過ぎた予定は下に
+      // 予定メモ: これからの予定を日付順に、過ぎた予定は下に
       schedules.sort((a, b) => isPast(a) - isPast(b) || (isPast(a) ? (a.start_date < b.start_date ? 1 : -1) : a.start_date < b.start_date ? -1 : 1));
     } else {
       schedules.sort((a, b) => rank[a.status] - rank[b.status] || (a.start_date < b.start_date ? 1 : -1));
@@ -1061,7 +1061,7 @@ async function openItemPanel(targetId) {
               el("div", { class: "muted small" },
                 `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`, scheduleRule(s) ? " ／ " : "", scheduleRule(s)),
               s.next_run_at ? el("div", { class: "small" }, "次回: ", fmtDateTime(s.next_run_at, true)) : null)))
-        : el("p", { class: "muted" }, memo ? "予定・メモはありません。タイムラインの行の空き部分をドラッグするか、上のボタンで追加できます。" : "スケジュールはありません。タイムラインの行の空き部分をドラッグするか、上のボタンで作成できます。")
+        : el("p", { class: "muted" }, memo ? "予定メモはありません。タイムラインの行の空き部分をドラッグするか、上のボタンで追加できます。" : "スケジュールはありません。タイムラインの行の空き部分をドラッグするか、上のボタンで作成できます。")
     );
 
     const runTable = (runs, empty) =>
@@ -1085,7 +1085,7 @@ async function openItemPanel(targetId) {
   panel.replaceChildren(
     el("div", { class: "panel-header" },
       el("div", {},
-        el("div", { class: "muted small mono" }, memo ? "自由記入" : t.job_path),
+        el("div", { class: "muted small mono" }, memo ? "予定メモ" : t.job_path),
         el("h2", {}, el("span", { class: "swatch", style: { background: t.color || "#8a94a6", display: "inline-block", marginRight: "6px" } }), t.display_name)),
       el("button", { class: "icon-btn", title: "閉じる", onclick: closePanel }, "×")),
     el("div", { class: "actions" },
@@ -1095,7 +1095,7 @@ async function openItemPanel(targetId) {
           const d = new Date();
           openCreateDialog(t.id, ymd(d), ymd(addDays(d, 6)));
         },
-      }, memo ? "予定・メモを追加" : "スケジュールを作成") : null,
+      }, memo ? "予定メモを追加" : "スケジュールを作成") : null,
       memo || !can.admin() ? null : el("button", {
         class: "btn",
         onclick: async () => {
@@ -1113,7 +1113,7 @@ async function openItemPanel(targetId) {
       el("a", { class: "btn", href: `/audit?type=target&target=${t.id}` }, "ログ")),
     issueList(warn),
     holdingBox,
-    el("h3", {}, memo ? "予定・メモ" : "スケジュール"),
+    el("h3", {}, memo ? "予定メモ" : "スケジュール"),
     scheduleBox,
     memo ? null : el("h3", {}, "今後の run（直近10件）"),
     memo ? null : upcomingBox,
@@ -1123,21 +1123,21 @@ async function openItemPanel(targetId) {
   load();
 }
 
-/* ------------------------------------------------------------------ 自由記入（メモ・計画） */
+/* ------------------------------------------------------------------ 予定メモ */
 function openMemoDialog(targetId, startDate, endDate) {
   const form = memoForm({ target_id: targetId, start_date: startDate, end_date: endDate }, { targets: state.targets.filter((t) => t.kind === "memo") });
   const save = async () => {
     try {
       const s = await api("POST", "/api/schedules", form.value());
       closeModal();
-      toast("予定・メモを追加しました");
+      toast("予定メモを追加しました");
       await loadData();
       openPanel(s.id);
     } catch (e) {
       toast(e.message, "error");
     }
   };
-  openModal("予定・メモの追加", form.root, [
+  openModal("予定メモの追加", form.root, [
     el("button", { class: "btn", onclick: closeModal }, "やめる"),
     el("button", { class: "btn primary", onclick: save }, "保存"),
   ]);
@@ -1151,11 +1151,11 @@ function renderMemoPanel(s, t) {
   panel.replaceChildren(
     el("div", { class: "panel-header" },
       el("div", {},
-        el("a", { class: "small back-link", href: "#", onclick: (e) => { e.preventDefault(); openItemPanel(s.target_id); } }, `← ${t.display_name || ""} の予定・メモ一覧`),
+        el("a", { class: "small back-link", href: "#", onclick: (e) => { e.preventDefault(); openItemPanel(s.target_id); } }, `← ${t.display_name || ""} の予定メモ一覧`),
         el("h2", {}, scheduleTitle(s), " ", el("span", { class: "kind-tag memo" }, "メモ"))),
       el("button", { class: "icon-btn", title: "閉じる", onclick: closePanel }, "×")),
     el("p", { class: "muted small" }, `作成 ${fmtDateTime(s.created_at, true)} ／ 更新 ${fmtDateTime(s.updated_at, true)}`),
-    editable ? null : readonlyNote("この予定・メモは閲覧のみです"),
+    editable ? null : readonlyNote("この予定メモは閲覧のみです"),
     form.root,
     !editable ? null : el("div", { class: "actions end" },
       el("button", {

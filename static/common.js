@@ -264,7 +264,7 @@ let ME = null;
 const can = {
   /** 1. フルコントロール */
   admin: () => !ME || ME.can.admin,
-  /** 2. 自由記入の予定・メモを編集できる（フルコントロールも含む） */
+  /** 2. 予定メモを編集できる（フルコントロールも含む） */
   memo: () => !ME || ME.can.edit_memo,
   /** そのアイテムの予定を編集できるか */
   editItem: (t) => can.admin() || (!!t && t.kind === "memo" && can.memo()),
@@ -402,7 +402,7 @@ function renderHeader(active) {
         d.admin_password ? el("span", {}, " 管理者で試す: ユーザー ", el("code", {}, d.admin_username), " ／ パスワード ", el("code", {}, d.admin_password)) : null));
     }
     if (me && me.auth_mode === "shared_admin") {
-      // ログインなし（自由記入の編集まで）⇄ 共有の管理者アカウント（すべて）を切り替える
+      // ログインなし（予定メモの編集まで）⇄ 共有の管理者アカウント（すべて）を切り替える
       header.append(me.can.admin
         ? el("div", { class: "userbox" },
             el("span", { class: "role admin" }, "管理者"),

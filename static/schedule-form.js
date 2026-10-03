@@ -175,7 +175,7 @@ function scheduleForm(s, opts) {
   };
 }
 
-/** 自由記入アイテムの予定・メモのフォーム（タイトル・期間・本文だけ） */
+/** 予定メモのアイテムの予定のフォーム（タイトル・期間・本文だけ） */
 function memoForm(s, opts) {
   opts = opts || {};
   const field = (label, input) => el("label", { class: "field" }, el("span", {}, label), input);
