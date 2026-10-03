@@ -374,8 +374,8 @@ function readonlyNote(text) {
 /* ---- ヘッダー（ナビとヘルス表示） ---- */
 function renderHeader(active) {
   const nav = [
-    ["/", "タイムライン"],
     ["/day", "1日の予定"],
+    ["/", "タイムライン"],
     ["/targets", "アイテム"],
     ["/audit", "ログ"],
     ["/help", "ヘルプ"],

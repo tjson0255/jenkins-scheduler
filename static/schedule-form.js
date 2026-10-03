@@ -187,7 +187,7 @@ function memoForm(s, opts) {
   f.start = el("input", { type: "date", value: s.start_date || ymd(new Date()), required: true });
   f.end = el("input", { type: "date", value: s.end_date || "" });
   f.infinite = el("input", { type: "checkbox", checked: !s.end_date && !!s.id });
-  f.note = el("textarea", { rows: 7, placeholder: "メモ・計画の内容（自由に記入できます）" }, s.note || "");
+  f.note = el("textarea", { rows: 7 }, s.note || "");
   const renderEnd = () => {
     f.end.disabled = f.infinite.checked;
     if (!f.infinite.checked && !f.end.value) f.end.value = f.start.value;
@@ -198,7 +198,7 @@ function memoForm(s, opts) {
     f.target ? field("アイテム", f.target) : null,
     field("タイトル", f.label),
     el("div", { class: "row wrap" }, field("開始日", f.start), field("終了日", f.end), el("label", { class: "check" }, f.infinite, " 無期限")),
-    field("メモ", f.note));
+    field("内容", f.note));
   return {
     root,
     value() {
