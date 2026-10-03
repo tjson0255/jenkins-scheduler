@@ -178,7 +178,7 @@ function renderScheduleList() {
       rows.push(el("tr", { class: lvl ? "alert-" + lvl : "" },
         el("td", { class: "muted" }, cat ? cat.name : ""),
         el("td", {}, el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }), t.display_name),
-        el("td", {}, el("a", { href: `/?date=${s.start_date}#schedule=${s.id}&tab=basic`, title: "タイムラインで開く" }, scheduleTitleOf(s))),
+        el("td", {}, scheduleLink(s, "basic", { title: "詳細を開く" }, scheduleTitleOf(s))),
         el("td", {}, scheduleRule(s)),
         el("td", {}, `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`),
         el("td", {}, memo ? "" : statusChip(s.status)),
@@ -205,9 +205,8 @@ function scheduleWarnings(s, t) {
     const err = issues.filter((i) => i.level === "error").length;
     const warn = issues.length - err;
     const label = [err ? `エラー${err}` : null, warn ? `警告${warn}` : null].filter(Boolean).join("・");
-    out.push(el("a", {
+    out.push(scheduleLink(s, "params", {
       class: err ? "status-err" : "status-warn",
-      href: `/?date=${s.start_date}#schedule=${s.id}&tab=params`,
       title: issues.map((i) => i.message).join("\n") + "\n\n押すとパラメータの画面を開きます（確かめて保存すると警告が消えます）",
     }, `${err ? "⛔" : "⚠"} パラメータ ${label}`));
   }
@@ -217,6 +216,33 @@ function scheduleWarnings(s, t) {
   if (!t.enabled) out.push(el("span", { class: "muted", title: "アイテムが無効なので run はスキップされます" }, "アイテム無効"));
   return out.length ? el("span", { class: "warn-list" }, out) : el("span", { class: "status-ok" }, "✔ なし");
 }
+
+/** スケジュールの詳細を、この画面のモーダルで開くリンク（Ctrl・⌘ を押しながらなら、タイムラインを別のタブで開く） */
+function scheduleLink(s, tab, attrs, text) {
+  return el("a", {
+    ...attrs,
+    href: `/?date=${s.start_date}#schedule=${s.id}&tab=${tab}`,
+    onclick: (e) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+      e.preventDefault();
+      openScheduleModal(s, tab);
+    },
+  }, text);
+}
+
+/** タイムライン画面の詳細パネルを、埋め込み表示（?embed=1）でモーダルの中に出す。閉じたら一覧を読み直す */
+function openScheduleModal(s, tab) {
+  const frame = el("iframe", { class: "schedule-frame", src: `/?embed=1&date=${s.start_date}#schedule=${s.id}&tab=${tab}`, title: "スケジュールの詳細" });
+  const modal = openModal(scheduleTitleOf(s), frame, []);
+  modal.querySelector(".modal").classList.add("modal-wide");
+  modal.querySelector(".modal-footer").remove();
+  onModalClose = () => load(); // 詳細で変えた内容（パラメータの保存など）を一覧に反映する
+}
+
+// 埋め込み表示のパネルが閉じられたら、モーダルも閉じる
+window.addEventListener("message", (e) => {
+  if (e.origin === location.origin && e.data && e.data.type === "schedule-panel-closed" && document.getElementById("modal")) closeModal();
+});
 
 async function runNowSchedule(t, s) {
   if (!(await confirmDialog("今すぐ実行", `${t.display_name}「${scheduleTitleOf(s)}」を、このスケジュールのパラメータで今すぐキックします。`, "キックする"))) return;

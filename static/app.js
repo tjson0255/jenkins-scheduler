@@ -31,6 +31,10 @@ const groups = new vis.DataSet();
 const items = new vis.DataSet();
 let timeline;
 
+// ?embed=1: 他の画面のモーダルの中に、スケジュールの詳細パネルだけを出す（アイテム画面から使う）
+const EMBED = new URLSearchParams(location.search).get("embed") === "1";
+if (EMBED) document.body.classList.add("embed");
+
 // ログイン中の利用者（権限）を読み込んでから画面を作る
 renderHeader("/").then(init);
 
@@ -628,6 +632,8 @@ function closePanel() {
   panel.classList.add("hidden");
   panel.replaceChildren();
   render();
+  // 埋め込み表示なら、パネルを閉じたら外側のモーダルも閉じてもらう
+  if (EMBED && window.parent !== window) window.parent.postMessage({ type: "schedule-panel-closed" }, location.origin);
 }
 
 async function openPanel(id, tab, focusRunId) {
