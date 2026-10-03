@@ -341,8 +341,8 @@ document.getElementById("btn-sync").onclick = async () => {
 
 ready.then(() => {
   if (!can.admin()) {
-    // Jenkins アイテムの設定・再取得・バックアップは管理者だけ
-    for (const id of ["btn-sync", "btn-backup"]) document.getElementById(id).hidden = true;
+    // Jenkins アイテムの設定・再取得は管理者だけ
+    document.getElementById("btn-sync").hidden = true;
     if (can.memo()) {
       document.getElementById("target-list").before(readonlyNote("自由記入アイテムとカテゴリは編集できます。Jenkins アイテムの設定は閲覧と並び替えのみです"));
     } else {
@@ -375,7 +375,7 @@ async function loadBackups() {
           el("thead", {}, el("tr", {}, ["ファイル", "サイズ", "作成日時", ""].map((h) => el("th", {}, h)))),
           el("tbody", {}, b.files.map((f) => el("tr", {},
             el("td", { class: "mono" }, f.name), el("td", {}, kb(f.size)), el("td", {}, fmtDateTime(f.modified_at, true)),
-            el("td", {}, can.admin() && f.name.endsWith(".db") ? el("button", { class: "btn small danger", onclick: () => restoreBackup(f) }, "この時点に戻す") : null)))))
+            el("td", {}, f.name.endsWith(".db") ? el("button", { class: "btn small danger", onclick: () => restoreBackup(f) }, "この時点に戻す") : null)))))
       : el("p", { class: "muted" }, "まだバックアップはありません。")
   );
 }
@@ -410,4 +410,9 @@ document.getElementById("btn-backup").onclick = async () => {
     toast(e.message, "error");
   }
 };
-loadBackups();
+// バックアップは管理者だけに表示する
+ready.then(() => {
+  if (!can.admin()) return;
+  document.getElementById("backup-section").hidden = false;
+  loadBackups();
+});

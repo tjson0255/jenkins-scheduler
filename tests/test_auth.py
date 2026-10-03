@@ -101,6 +101,7 @@ def test_memo_editor_can_only_edit_memo_text(auth_app):
     assert c.patch(f"/api/targets/{jenkins['id']}", json={"enabled": False, "sort_order": 1}).status_code == 403
     assert c.delete(f"/api/targets/{jenkins['id']}").status_code == 403
     assert c.post("/api/backups").status_code == 403
+    assert c.get("/api/backups").status_code == 403
     assert c.delete(f"/api/schedules/{m.json()['id']}").status_code == 204
     # 閲覧はできる
     assert c.get("/api/targets").status_code == 200
