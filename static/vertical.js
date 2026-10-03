@@ -125,9 +125,7 @@ function renderVertical() {
   const days = state.v.days;
   const vt = visibleTargets();
   const showRuns = days <= RUN_POINT_MAX_DAYS;
-  document.getElementById("summary-note").textContent = showRuns
-    ? ""
-    : `表示範囲が ${RUN_POINT_MAX_DAYS} 日を超えているため、run の時刻は表示していません。`;
+  document.getElementById("summary-note").textContent = runNote(showRuns);
 
   const cols = []; // {cat, items:[t]|null(collapsed)}
   for (const c of state.categories) {
@@ -140,6 +138,7 @@ function renderVertical() {
   const runsByDay = new Map();
   if (showRuns) {
     for (const r of state.runs) {
+      if (!runVisible(r)) continue;
       const k = `${r.target_id}|${ymd(new Date(r.scheduled_at))}`;
       if (!runsByDay.has(k)) runsByDay.set(k, []);
       runsByDay.get(k).push(r);

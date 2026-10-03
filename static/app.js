@@ -2,6 +2,16 @@
 "use strict";
 
 const RUN_POINT_MAX_DAYS = 31; // これより広い表示範囲では run の点を描かず件数サマリーにする
+// 凡例の項目ごとに、run の丸を表示・非表示できる
+const RUN_GROUPS = [
+  ["scheduled", "予定", ["scheduled"]],
+  ["holding", "保留", ["holding"]],
+  ["running", "キュー/実行中", ["queued", "running"]],
+  ["success", "成功", ["success"]],
+  ["unstable", "不安定", ["unstable"]],
+  ["failure", "失敗/中断", ["failure", "aborted"]],
+  ["missed", "スキップ/見逃し", ["skipped", "missed", "cancelled"]],
+];
 const state = {
   categories: [],
   targets: [],
@@ -12,6 +22,8 @@ const state = {
   panelScheduleId: null,
   panelTab: "basic",
   layout: "horizontal", // horizontal: 横軸=日付 / vertical: 行=日付・列=アイテム（vertical.js）
+  runsOn: true, // 実行状況（丸）を表示するか
+  hiddenRunGroups: new Set(), // 凡例で非表示にした状態
   v: { start: null, days: 28 }, // 縦表示の表示範囲
 };
 
@@ -25,6 +37,8 @@ renderHeader("/").then(init);
 function init() {
   try {
     state.layout = localStorage.getItem("layout") === "vertical" ? "vertical" : "horizontal";
+    state.runsOn = localStorage.getItem("runsOn") !== "0";
+    state.hiddenRunGroups = new Set(JSON.parse(localStorage.getItem("hiddenRunGroups") || "[]"));
   } catch (_) {}
 
   const today = startOfDay(new Date());
@@ -91,6 +105,14 @@ function init() {
   });
   document.getElementById("btn-collapse-all").onclick = () => setAllCollapsed(true);
   document.getElementById("btn-expand-all").onclick = () => setAllCollapsed(false);
+  const runsToggle = document.getElementById("runs-toggle");
+  runsToggle.checked = state.runsOn;
+  runsToggle.onchange = () => {
+    state.runsOn = runsToggle.checked;
+    saveRunPrefs();
+    renderLegend();
+    loadData(); // 表示しないときは run を読み込まない
+  };
   const toggle = document.getElementById("layout-toggle");
   toggle.checked = vertical();
   toggle.onchange = () => setLayout(toggle.checked ? "vertical" : "horizontal");
@@ -205,7 +227,7 @@ async function loadData(quiet) {
   const to = new Date(w.end.getTime() + span * 0.5);
   const q = `from=${ymd(from)}&to=${ymd(to)}`;
   try {
-    const wantRuns = windowDays() <= RUN_POINT_MAX_DAYS;
+    const wantRuns = state.runsOn && windowDays() <= RUN_POINT_MAX_DAYS;
     const [categories, targets, schedules, runs] = await Promise.all([
       api("GET", "/api/categories"),
       api("GET", "/api/targets"),
@@ -302,7 +324,7 @@ function render() {
   }
   if (showRuns) {
     for (const r of state.runs) {
-      if (!visibleIds.has(r.target_id)) continue;
+      if (!visibleIds.has(r.target_id) || !runVisible(r)) continue;
       newItems.push({
         id: "r" + r.id,
         kind: "run",
@@ -317,10 +339,8 @@ function render() {
         title: runTooltip(r),
       });
     }
-    document.getElementById("summary-note").textContent = "";
-  } else {
-    document.getElementById("summary-note").textContent = `表示範囲が ${RUN_POINT_MAX_DAYS} 日を超えているため、run は件数サマリーのみ表示しています。`;
   }
+  document.getElementById("summary-note").textContent = runNote(showRuns);
   syncDataSet(items, newItems);
 }
 
@@ -403,18 +423,48 @@ function runTooltip(r) {
   return esc(lines.filter(Boolean).join("\n")).replace(/\n/g, "<br>");
 }
 
+/** その run の丸を表示するか（実行状況のスイッチと、凡例での状態ごとの切り替え） */
+function runVisible(r) {
+  if (!state.runsOn) return false;
+  const g = RUN_GROUPS.find(([, , statuses]) => statuses.includes(r.status));
+  return !g || !state.hiddenRunGroups.has(g[0]);
+}
+
+function runNote(withinRange) {
+  if (!state.runsOn) return "実行状況（丸）を非表示にしています。";
+  if (!withinRange) return `表示範囲が ${RUN_POINT_MAX_DAYS} 日を超えているため、run は件数サマリーのみ表示しています。`;
+  if (state.hiddenRunGroups.size) {
+    const names = RUN_GROUPS.filter(([k]) => state.hiddenRunGroups.has(k)).map(([, label]) => label);
+    return `凡例で非表示にしている状態: ${names.join("、")}（凡例を押すと戻ります）`;
+  }
+  return "";
+}
+
+function saveRunPrefs() {
+  try {
+    localStorage.setItem("runsOn", state.runsOn ? "1" : "0");
+    localStorage.setItem("hiddenRunGroups", JSON.stringify([...state.hiddenRunGroups]));
+  } catch (_) {}
+}
+
 function renderLegend() {
-  const list = [
-    ["scheduled", "予定"],
-    ["holding", "保留"],
-    ["running", "キュー/実行中"],
-    ["success", "成功"],
-    ["unstable", "不安定"],
-    ["failure", "失敗"],
-    ["missed", "スキップ/見逃し"],
-  ];
   document.getElementById("legend").replaceChildren(
-    ...list.map(([s, l]) => el("span", { class: "legend-item" }, el("span", { class: `legend-dot rs-${s}` }), l)),
+    ...RUN_GROUPS.map(([key, label]) => {
+      const off = state.hiddenRunGroups.has(key);
+      return el("button", {
+        type: "button",
+        class: `legend-item legend-toggle${off ? " off" : ""}`,
+        "aria-pressed": String(!off),
+        disabled: !state.runsOn,
+        title: state.runsOn ? `${label}の丸を${off ? "表示する" : "隠す"}` : "実行状況（丸）がオフです",
+        onclick: () => {
+          off ? state.hiddenRunGroups.delete(key) : state.hiddenRunGroups.add(key);
+          saveRunPrefs();
+          renderLegend();
+          render();
+        },
+      }, el("span", { class: `legend-dot rs-${key}` }), label);
+    }),
     el("span", { class: "legend-item" }, el("span", { class: "legend-bar draft" }), "ドラフト"),
     el("span", { class: "legend-item" }, el("span", { class: "legend-bar hatch-warning" }), "警告（要確認）"),
     el("span", { class: "legend-item" }, el("span", { class: "legend-bar hatch-error" }), "エラー（キックされない）")

@@ -445,3 +445,9 @@ input:disabled, select:disabled, textarea:disabled { background: #f4f5f7; color:
 .targets-table tbody tr:not(.cat-title) td:first-child { padding-left: 34px; box-shadow: inset 18px 0 0 #fff, inset 20px 0 0 #c9d1de; }
 .targets-table tbody tr.alert-warning:not(.cat-title) td:first-child,
 .targets-table tbody tr.alert-error:not(.cat-title) td:first-child { box-shadow: inset 20px 0 0 rgba(255,255,255,.75), inset 22px 0 0 #c9d1de; }
+
+/* 凡例で状態ごとに丸の表示を切り替える */
+.legend-toggle { border: 1px solid transparent; background: transparent; font: inherit; color: inherit; padding: 1px 6px; border-radius: 10px; cursor: pointer; }
+.legend-toggle:hover:not(:disabled) { border-color: var(--line); background: #fff; }
+.legend-toggle.off { opacity: .45; text-decoration: line-through; }
+.legend-toggle:disabled { cursor: default; opacity: .35; }
