@@ -114,24 +114,41 @@ begin
   SetPreviousData(PreviousDataKey, 'Port', Port());
 end;
 
-function NextButtonClick(CurPageID: Integer): Boolean;
+function ValidPort(const Value: String): Boolean;
 var
   p: Integer;
 begin
+  p := StrToIntDef(Trim(Value), 0);
+  Result := (p >= 1) and (p <= 65535);
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
   Result := True;
+  // サイレントインストールでも各ページの「次へ」は呼ばれる。そのときは画面の入力欄ではなく
+  // コマンドラインの /ADMINPASSWORD と /PORT を確かめる（メッセージは /SUPPRESSMSGBOXES で自動的に閉じるものだけ使う）
   if CurPageID = PasswordPage.ID then begin
+    if WizardSilent() then begin
+      if (AdminPassword() = '') and IsUpgrade() then Exit;
+      if Length(AdminPassword()) < 12 then begin
+        Log('/ADMINPASSWORD が無いか、12文字未満です');
+        SuppressibleMsgBox('/ADMINPASSWORD に12文字以上のパスワードを指定してください。', mbError, MB_OK, IDOK);
+        Result := False;
+      end;
+      Exit;
+    end;
     if (PasswordPage.Values[0] = '') and IsUpgrade() then Exit;
     if Length(PasswordPage.Values[0]) < 12 then begin
-      MsgBox('パスワードは12文字以上にしてください。', mbError, MB_OK);
+      SuppressibleMsgBox('パスワードは12文字以上にしてください。', mbError, MB_OK, IDOK);
       Result := False;
     end else if PasswordPage.Values[0] <> PasswordPage.Values[1] then begin
-      MsgBox('確認のパスワードが一致しません。', mbError, MB_OK);
+      SuppressibleMsgBox('確認のパスワードが一致しません。', mbError, MB_OK, IDOK);
       Result := False;
     end;
   end else if CurPageID = PortPage.ID then begin
-    p := StrToIntDef(Trim(PortPage.Values[0]), 0);
-    if (p < 1) or (p > 65535) then begin
-      MsgBox('ポート番号は 1〜65535 で指定してください。', mbError, MB_OK);
+    if not ValidPort(Port()) then begin
+      Log('ポート番号が不正です: ' + Port());
+      SuppressibleMsgBox('ポート番号は 1〜65535 で指定してください。', mbError, MB_OK, IDOK);
       Result := False;
     end;
   end;
