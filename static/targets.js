@@ -100,8 +100,8 @@ function targetRow(t, siblings, index) {
     el("td", { class: "row" },
       el("button", { class: "btn small", title: "上へ", disabled: index === 0, onclick: () => move(-1) }, "↑"),
       el("button", { class: "btn small", title: "下へ", disabled: index === siblings.length - 1, onclick: () => move(1) }, "↓"),
-      memo ? null : el("button", { class: "btn small", onclick: () => runNow(t) }, "今すぐ実行"),
-      el("button", {
+      memo || !can.admin() ? null : el("button", { class: "btn small", onclick: () => runNow(t) }, "今すぐ実行"),
+      !can.editItem(t) ? null : el("button", {
         class: "btn small danger",
         onclick: async () => {
           if (!(await confirmDialog("アイテムの削除", memo ? `${t.display_name}（自由記入）を削除します。\nこのアイテムの予定・メモもすべて削除されます。` : `${t.display_name}（${t.job_path}）を削除します。\nこのアイテムのスケジュールと run 履歴も削除されます。`, "削除", true))) return;
@@ -114,9 +114,12 @@ function targetRow(t, siblings, index) {
           }
         },
       }, "削除")));
-  if (!can.admin()) {
+  if (!can.editItem(t)) {
+    // Jenkins アイテムの設定は管理者だけ。並び替え（↑↓）は残す
+    const ops = row.lastElementChild;
     lockForm(row);
-    row.lastElementChild.replaceChildren();
+    ops.querySelectorAll("button").forEach((b) => (b.disabled = b.textContent === "↑" ? index === 0 : b.textContent === "↓" ? index === siblings.length - 1 : b.disabled));
+    if (!can.memo()) ops.replaceChildren();
   }
   return row;
 }
@@ -143,8 +146,8 @@ function renderRegisterForm() {
     return;
   }
   box.dataset.ready = "1";
-  const kindJenkins = el("input", { type: "radio", name: "kind", value: "jenkins", checked: true });
-  const kindMemo = el("input", { type: "radio", name: "kind", value: "memo" });
+  const kindJenkins = el("input", { type: "radio", name: "kind", value: "jenkins", checked: can.admin(), disabled: !can.admin() });
+  const kindMemo = el("input", { type: "radio", name: "kind", value: "memo", checked: !can.admin() });
   const isMemo = () => kindMemo.checked;
   const q = el("input", { type: "text", placeholder: "ジョブ名で検索（例: release）", name: "q" });
   const jobPath = el("input", { type: "text", placeholder: "release/core-pipeline", name: "job_path", class: "mono" });
@@ -221,7 +224,7 @@ function renderRegisterForm() {
   box.append(
     el("div", { class: "row wrap" },
       el("span", { class: "muted small" }, "種類"),
-      el("label", { class: "check" }, kindJenkins, " Jenkins ジョブ"),
+      el("label", { class: "check", title: can.admin() ? "" : "Jenkins アイテムの登録には管理者ログインが必要です" }, kindJenkins, " Jenkins ジョブ", can.admin() ? "" : "（管理者のみ）"),
       el("label", { class: "check" }, kindMemo, " 自由記入（メモ・計画）")),
     kindHint,
     searchField,
@@ -339,10 +342,14 @@ document.getElementById("btn-sync").onclick = async () => {
 
 ready.then(() => {
   if (!can.admin()) {
-    // アイテム・カテゴリ・バックアップの変更はフルコントロールだけ
-    for (const id of ["register-form", "category-list"]) document.getElementById(id).closest("section").hidden = true;
+    // Jenkins アイテムの設定・再取得・バックアップは管理者だけ
     for (const id of ["btn-sync", "btn-backup"]) document.getElementById(id).hidden = true;
-    document.getElementById("target-list").before(readonlyNote("アイテムの設定は閲覧のみです"));
+    if (can.memo()) {
+      document.getElementById("target-list").before(readonlyNote("自由記入アイテムとカテゴリは編集できます。Jenkins アイテムの設定は閲覧と並び替えのみです"));
+    } else {
+      for (const id of ["register-form", "category-list"]) document.getElementById(id).closest("section").hidden = true;
+      document.getElementById("target-list").before(readonlyNote("アイテムの設定は閲覧のみです"));
+    }
   }
   return load();
 }).catch((e) => toast(e.message, "error"));

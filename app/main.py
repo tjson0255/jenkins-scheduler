@@ -43,11 +43,18 @@ PUBLIC_PATHS = ("/login", "/api/auth/login", "/favicon.ico")
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 CSRF_HEADER = "x-requested-with"
 CSRF_VALUE = "jenkins-scheduler"
-# 2. 自由記入のみ編集: 予定・メモの追加・変更・削除だけ（自由記入アイテムかどうかは各 API で確かめる）
+# 2. 自由記入の編集: 自由記入アイテムとその予定・メモ、カテゴリの追加・変更・削除
+#    （対象が自由記入アイテムかどうかは各 API で確かめる。Jenkins アイテムは並び順の変更だけ）
 MEMO_EDITOR_WRITES = [
     ("POST", re.compile(r"^/api/schedules$")),
     ("PATCH", re.compile(r"^/api/schedules/\d+$")),
     ("DELETE", re.compile(r"^/api/schedules/\d+$")),
+    ("POST", re.compile(r"^/api/targets$")),
+    ("PATCH", re.compile(r"^/api/targets/\d+$")),
+    ("DELETE", re.compile(r"^/api/targets/\d+$")),
+    ("POST", re.compile(r"^/api/categories$")),
+    ("PATCH", re.compile(r"^/api/categories/\d+$")),
+    ("DELETE", re.compile(r"^/api/categories/\d+$")),
 ]
 ANY_USER_WRITES = [("POST", re.compile(r"^/api/auth/logout$"))]
 

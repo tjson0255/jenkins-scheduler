@@ -96,7 +96,10 @@ def create_target(
     db: Session = Depends(get_db),
     client: JenkinsClientProtocol = Depends(get_client),
     actor: str = Depends(get_actor),
+    user: User = Depends(get_user),
 ):
+    if body.kind != ITEM_MEMO and not user.is_admin:
+        raise HTTPException(403, "Jenkins アイテムの登録には管理者ログインが必要です")
     if body.kind == ITEM_MEMO:
         job_path = None
         if not (body.display_name or "").strip():
@@ -144,10 +147,14 @@ def create_target(
 
 
 @router.patch("/api/targets/{tid}")
-def update_target(tid: int, body: TargetPatch, db: Session = Depends(get_db), actor: str = Depends(get_actor)):
+def update_target(tid: int, body: TargetPatch, db: Session = Depends(get_db), actor: str = Depends(get_actor), user: User = Depends(get_user)):
     t = db.get(Target, tid)
     if not t:
         raise not_found("アイテム")
+    if not user.is_admin and not t.is_memo:
+        # Jenkins アイテムは、並び替え（表示順）だけ管理者以外も変えられる
+        if body.model_dump(exclude_unset=True).keys() - {"sort_order", "revision"}:
+            raise HTTPException(403, "Jenkins アイテムの設定の変更には管理者ログインが必要です")
     bump_revision(db, Target, t.id, body.revision)
     changes = body.model_dump(exclude_unset=True, exclude={"revision"})
     if "category_id" in changes and not db.get(Category, changes["category_id"]):
@@ -162,10 +169,12 @@ def update_target(tid: int, body: TargetPatch, db: Session = Depends(get_db), ac
 
 
 @router.delete("/api/targets/{tid}", status_code=204)
-def delete_target(tid: int, db: Session = Depends(get_db), actor: str = Depends(get_actor)):
+def delete_target(tid: int, db: Session = Depends(get_db), actor: str = Depends(get_actor), user: User = Depends(get_user)):
     t = db.get(Target, tid)
     if not t:
         raise not_found("アイテム")
+    if not user.is_admin and not t.is_memo:
+        raise HTTPException(403, "Jenkins アイテムの削除には管理者ログインが必要です")
     if any(s.status == ACTIVE for s in t.schedules):
         raise HTTPException(409, "有効なスケジュールがあるため削除できません")
     for r in db.scalars(select(Run).where(Run.target_id == t.id)):

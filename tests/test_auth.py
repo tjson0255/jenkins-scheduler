@@ -84,8 +84,21 @@ def test_memo_editor_can_only_edit_memo_text(auth_app):
     assert c.delete(f"/api/schedules/{jsched['id']}").status_code == 403
     assert c.post(f"/api/schedules/{jsched['id']}/activate").status_code == 403
     assert c.post(f"/api/targets/{jenkins['id']}/run-now", json={}).status_code == 403
-    assert c.patch(f"/api/targets/{memo_item['id']}", json={"display_name": "x"}).status_code == 403
-    assert c.post("/api/targets", json={"kind": "memo", "display_name": "新しい行"}).status_code == 403
+    # 自由記入アイテムとカテゴリは編集できる
+    assert c.patch(f"/api/targets/{memo_item['id']}", json={"display_name": "計画（改）", "color": "#123456"}).status_code == 200
+    new_memo = c.post("/api/targets", json={"kind": "memo", "display_name": "新しい行"})
+    assert new_memo.status_code == 201
+    assert c.delete(f"/api/targets/{new_memo.json()['id']}").status_code == 204
+    cat = c.post("/api/categories", json={"name": "計画"})
+    assert cat.status_code == 201
+    assert c.patch(f"/api/categories/{cat.json()['id']}", json={"name": "計画（改）", "sort_order": 0}).status_code == 200
+    assert c.delete(f"/api/categories/{cat.json()['id']}").status_code == 204
+    # Jenkins アイテムは並び替えだけ（登録・設定変更・削除はできない）
+    assert c.post("/api/targets", json={"kind": "jenkins", "job_path": "buildset/web-pipeline"}).status_code == 403
+    assert c.patch(f"/api/targets/{jenkins['id']}", json={"sort_order": 5}).status_code == 200
+    assert c.patch(f"/api/targets/{jenkins['id']}", json={"display_name": "x"}).status_code == 403
+    assert c.patch(f"/api/targets/{jenkins['id']}", json={"enabled": False, "sort_order": 1}).status_code == 403
+    assert c.delete(f"/api/targets/{jenkins['id']}").status_code == 403
     assert c.post("/api/backups").status_code == 403
     assert c.delete(f"/api/schedules/{m.json()['id']}").status_code == 204
     # 閲覧はできる
@@ -255,7 +268,8 @@ def test_admin_login_switch(shared_app):
     assert c.post("/api/categories", json={"name": "新しいカテゴリ"}).status_code == 201
     c.post("/api/auth/logout")
     assert c.get("/api/auth/me").json()["can"]["admin"] is False
-    assert c.post("/api/categories", json={"name": "別"}).status_code == 403
+    assert c.post("/api/targets/sync").status_code == 403  # 管理者だけの操作
+    assert c.post("/api/categories", json={"name": "別"}).status_code == 201  # カテゴリはみんな編集できる
 
 
 def test_plain_admin_password_also_works(settings, mock_client):
