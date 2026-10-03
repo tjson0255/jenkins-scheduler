@@ -19,6 +19,7 @@ function vSetCollapsed(catId, collapsed) {
   try {
     localStorage.setItem("vCollapsed", JSON.stringify([...vState.collapsed]));
   } catch (_) {}
+  updateCollapseButtons();
 }
 
 /** すべてのカテゴリをまとめて折りたたむ／展開する（横表示・縦表示で共通） */
@@ -28,6 +29,30 @@ function setAllCollapsed(collapsed) {
     localStorage.setItem("vCollapsed", JSON.stringify([...vState.collapsed]));
   } catch (_) {}
   render();
+}
+
+/* ---- まとめて開閉する1つのボタン（タイムラインの左上・縦表示の「日付」欄） ---- */
+function allExpanded() {
+  const used = new Set(state.targets.map((t) => t.category_id));
+  return state.categories.filter((c) => used.has(c.id)).every((c) => !vState.collapsed.has(c.id));
+}
+
+/** 全部開いていればすべて閉じ、1つでも閉じていればすべて開く */
+function toggleAllCollapsed() {
+  setAllCollapsed(allExpanded());
+}
+
+function collapseToggleHtml() {
+  const open = allExpanded();
+  return `<button type="button" class="collapse-toggle" data-action="toggle-all" title="${open ? "すべてのカテゴリを折りたたむ" : "すべてのカテゴリを展開する"}">${open ? "⊟ 折りたたむ" : "⊞ 展開"}</button>`;
+}
+
+function updateCollapseButtons() {
+  const open = allExpanded();
+  document.querySelectorAll(".collapse-toggle").forEach((b) => {
+    b.textContent = open ? "⊟ 折りたたむ" : "⊞ 展開";
+    b.title = open ? "すべてのカテゴリを折りたたむ" : "すべてのカテゴリを展開する";
+  });
 }
 
 /* ------------------------------------------------------------------ 表示範囲の操作 */
@@ -178,7 +203,7 @@ function renderVertical() {
   box.innerHTML = cols.length
     ? `<table class="v-table">
         <thead>
-          <tr><th class="v-corner" rowspan="2">日付</th>${head1.join("")}</tr>
+          <tr><th class="v-corner" rowspan="2"><div>日付</div>${collapseToggleHtml()}</th>${head1.join("")}</tr>
           <tr>${head2.join("")}</tr>
         </thead>
         <tbody>${rows.join("")}</tbody>
@@ -220,6 +245,7 @@ function vWire(box) {
 
   box.addEventListener("click", (e) => {
     if (vState.justDragged) return;
+    if (e.target.closest('[data-action="toggle-all"]')) return toggleAllCollapsed();
     const sched = e.target.closest("[data-sched]");
     if (sched) return openPanel(Number(sched.dataset.sched), "basic");
     const run = e.target.closest("[data-run]");

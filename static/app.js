@@ -103,8 +103,8 @@ function init() {
       timeline.setWindow(addDays(startOfDay(center), -Math.floor(days / 2)), addDays(startOfDay(center), Math.ceil(days / 2)));
     };
   });
-  document.getElementById("btn-collapse-all").onclick = () => setAllCollapsed(true);
-  document.getElementById("btn-expand-all").onclick = () => setAllCollapsed(false);
+  // カテゴリをまとめて開閉するボタンは、名前の列の上（タイムラインの左上）に置く
+  document.getElementById("timeline").append(el("button", { type: "button", class: "collapse-toggle tl-corner", onclick: toggleAllCollapsed }));
   // 凡例の表示・非表示
   const legendToggle = document.getElementById("legend-toggle");
   let legendOn = true;
@@ -358,6 +358,7 @@ function render() {
   }
   document.getElementById("summary-note").textContent = runNote(showRuns);
   syncDataSet(items, newItems);
+  updateCollapseButtons();
 }
 
 function syncDataSet(ds, list) {
@@ -465,6 +466,10 @@ function saveRunPrefs() {
 
 function renderLegend() {
   document.getElementById("legend").replaceChildren(
+    el("span", { class: "legend-item" }, el("span", { class: "legend-bar draft" }), "ドラフト"),
+    el("span", { class: "legend-item", title: "要確認（パラメータ定義の変更、Jenkins 側の cron の残存など）" }, el("span", { class: "legend-bar hatch-warning" }), "警告"),
+    el("span", { class: "legend-item", title: "キックされない（パラメータ定義のエラー、ジョブが無い、保留中の run がある）" }, el("span", { class: "legend-bar hatch-error" }), "エラー"),
+    el("span", { class: "legend-sep" }),
     ...RUN_GROUPS.map(([key, label]) => {
       const off = state.hiddenRunGroups.has(key);
       return el("button", {
@@ -480,10 +485,7 @@ function renderLegend() {
           render();
         },
       }, el("span", { class: `legend-dot rs-${key}` }), label);
-    }),
-    el("span", { class: "legend-item" }, el("span", { class: "legend-bar draft" }), "ドラフト"),
-    el("span", { class: "legend-item", title: "要確認（パラメータ定義の変更、Jenkins 側の cron の残存など）" }, el("span", { class: "legend-bar hatch-warning" }), "警告"),
-    el("span", { class: "legend-item", title: "キックされない（パラメータ定義のエラー、ジョブが無い、保留中の run がある）" }, el("span", { class: "legend-bar hatch-error" }), "エラー")
+    })
   );
 }
 

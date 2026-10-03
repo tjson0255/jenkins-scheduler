@@ -451,3 +451,11 @@ input:disabled, select:disabled, textarea:disabled { background: #f4f5f7; color:
 .legend-toggle:hover:not(:disabled) { border-color: var(--line); background: #fff; }
 .legend-toggle.off { opacity: .45; text-decoration: line-through; }
 .legend-toggle:disabled { cursor: default; opacity: .35; }
+
+/* カテゴリをまとめて開閉するボタン（名前の列の上・縦表示の「日付」欄） */
+#timeline { position: relative; }
+.collapse-toggle { font: inherit; font-size: 12px; color: var(--fg); background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; cursor: pointer; white-space: nowrap; }
+.collapse-toggle:hover { background: var(--accent-weak); border-color: var(--accent); }
+.collapse-toggle.tl-corner { position: absolute; left: 10px; top: 10px; z-index: 5; }
+.v-corner .collapse-toggle { margin-top: 4px; font-weight: 400; }
+.legend-sep { width: 1px; height: 14px; background: var(--line); margin: 0 4px; }
