@@ -295,14 +295,19 @@ New-NetFirewallRule -DisplayName "Jenkins Scheduler" -Direction Inbound -Protoco
 - 同じディスクに置くとディスク故障で一緒に失われます。`BACKUP_DIR` に別ドライブか共有フォルダを指定するのを推奨します（サービス実行アカウントに書き込み権限が必要）
 - 手動で取る場合：アイテム画面の「今すぐバックアップ」、または `.\.venv\Scripts\python.exe -m app --backup`
 
-**復元手順**
+**復元（リストア）**
+
+管理者でログインし、アイテム画面の「バックアップ」欄で、戻したい `.db` の行の「この時点に戻す」を押します（管理者以外には表示されず、サーバーでも拒否します）。
+
+- 戻す直前に今の状態を自動でバックアップするので、間違えて戻してもそこから戻せます
+- 古い版で取ったバックアップでも、戻したあとに DB の作りを今の版へ自動で合わせます
+- 戻している管理者のログイン状態は引き継ぎます。戻している間は定時キックの処理を止めます
+
+サービスが起動しないなどで画面が使えないときは、サービスを止めてからコマンドで戻します（動いている間は拒否します）。
 
 ```powershell
 Stop-Service jenkins-scheduler
-$data = "$env:ProgramData\jenkins-scheduler\data"
-Copy-Item "$data\scheduler.db" "$data\scheduler.db.before-restore"   # 念のため現在の DB を退避
-Remove-Item "$data\scheduler.db-wal", "$data\scheduler.db-shm" -ErrorAction SilentlyContinue
-Copy-Item "$env:ProgramData\jenkins-scheduler\backups\scheduler-20261003-013000.db" "$data\scheduler.db"
+& "C:\Program Files\Jenkins Scheduler\python\python.exe" -m app --restore "C:\ProgramData\jenkins-scheduler\backups\scheduler-20261003-013000.db"
 Start-Service jenkins-scheduler
 ```
 

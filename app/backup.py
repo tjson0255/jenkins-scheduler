@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sqlite3
 from collections.abc import Callable
 from datetime import datetime
@@ -121,8 +122,10 @@ def list_backups(settings: Settings) -> list[dict[str, Any]]:
     ]
 
 
-def backup_now(settings: Settings, session_factory: Callable[[], Session], actor: str = audit.SYSTEM) -> dict[str, Any]:
-    """バックアップを作成し、古い世代を削除する。"""
+def backup_now(
+    settings: Settings, session_factory: Callable[[], Session], actor: str = audit.SYSTEM, *, prune_old: bool = True
+) -> dict[str, Any]:
+    """バックアップを作成し、古い世代を削除する（prune_old=False なら削除しない）。"""
     dest_dir = settings.backup_path
     dest_dir.mkdir(parents=True, exist_ok=True)
     stamp = base = datetime.now(local_tz()).strftime("%Y%m%d-%H%M%S")
@@ -144,7 +147,7 @@ def backup_now(settings: Settings, session_factory: Callable[[], Session], actor
         json_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
         created.append(json_file)
 
-        removed = prune(dest_dir, settings.backup_keep)
+        removed = prune(dest_dir, settings.backup_keep) if prune_old else []
         result = {
             "created": [p.name for p in created],
             "removed": [p.name for p in removed],
@@ -166,3 +169,93 @@ def scheduled_backup(settings: Settings, session_factory: Callable[[], Session])
     except Exception:
         metrics.backup_failures_total.inc()
         log.exception("バックアップに失敗しました")
+
+
+# ---------------------------------------------------------------- リストア（復元）
+BACKUP_DB_NAME = re.compile(r"^scheduler-\d{8}-\d{6}(-\d+)?\.db$")
+REQUIRED_TABLES = {"category", "target", "schedule", "run", "alembic_version"}
+
+
+class RestoreError(Exception):
+    pass
+
+
+def _check_backup_file(path: Path) -> None:
+    """このツールの DB のバックアップで、壊れていないことを確かめる。"""
+    if not path.is_file():
+        raise RestoreError("バックアップのファイルが見つかりません")
+    try:
+        con = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+        try:
+            tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            ok = con.execute("PRAGMA quick_check").fetchone()[0]
+        finally:
+            con.close()
+    except sqlite3.DatabaseError as exc:
+        raise RestoreError(f"DB ファイルとして読めません: {exc}") from exc
+    if not REQUIRED_TABLES <= tables:
+        raise RestoreError("このツールのバックアップではありません")
+    if ok != "ok":
+        raise RestoreError(f"バックアップのファイルが壊れています: {ok}")
+
+
+def restore_file(settings: Settings, src: Path) -> None:
+    """src の DB で、今の DB を置き換える（呼び出し側で他の処理を止めておくこと）。"""
+    from app import db as dbmod
+
+    live = _sqlite_path(settings.db_url)
+    if live is None:
+        raise RestoreError("SQLite 以外の DB には対応していません")
+    _check_backup_file(src)
+    if dbmod.engine is not None:
+        dbmod.engine.dispose()  # 今の接続を閉じる
+    s = sqlite3.connect(str(src))
+    d = sqlite3.connect(str(live), timeout=30)
+    try:
+        s.backup(d)  # ページ単位で丸ごと置き換える（WAL の DB にもそのまま書ける）
+    finally:
+        d.close()
+        s.close()
+    # 古い版で取ったバックアップでも、DB の作りを今の版に合わせる
+    dbmod.run_migrations(settings.db_url)
+
+
+def restore_backup(
+    settings: Settings,
+    session_factory: Callable[[], Session],
+    name: str,
+    *,
+    lock,
+    actor: str,
+) -> dict[str, Any]:
+    """バックアップの1つ（scheduler-<日時>.db）の時点に戻す。
+
+    - 戻す前に今の状態をバックアップする（間違えて戻しても、もう一度戻せる）
+    - ログイン状態（user_session）は今のものを引き継ぐ（戻した管理者がログアウトされないように）
+    - lock（dispatcher のロック）を持っている間に行い、定時キックの処理と重ならないようにする
+    """
+    from sqlalchemy import delete, select
+
+    from app.models import UserSession
+
+    if not BACKUP_DB_NAME.match(name or ""):
+        raise RestoreError("バックアップの名前が不正です")
+    src = settings.backup_path / name
+    _check_backup_file(src)
+    with lock:
+        before = backup_now(settings, session_factory, actor=actor, prune_old=False)
+        with session_factory() as db:
+            sessions = [
+                {c.name: getattr(r, c.name) for c in UserSession.__table__.columns}
+                for r in db.scalars(select(UserSession))
+            ]
+        restore_file(settings, src)
+        with session_factory() as db:
+            db.execute(delete(UserSession))
+            for row in sessions:
+                db.add(UserSession(**row))
+            detail = {"restored_from": name, "backup_before_restore": before["created"]}
+            audit.record(db, actor, "backup.restore", "system", None, detail)
+            db.commit()
+    log.warning("バックアップ %s の時点に戻しました（戻す前の状態: %s）", name, before["created"])
+    return detail

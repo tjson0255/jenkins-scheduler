@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from starlette.concurrency import run_in_threadpool
 
-from app.api.deps import get_actor
-from app.backup import backup_now, list_backups
+from app.api.deps import get_actor, get_user
+from app.auth.roles import User
+from app.backup import RestoreError, backup_now, list_backups, restore_backup
 from app.db import SessionLocal
 
 router = APIRouter(prefix="/api/backups", tags=["backup"])
@@ -25,3 +27,17 @@ def get_backups(request: Request):
 @router.post("", status_code=201)
 def create_backup(request: Request, actor: str = Depends(get_actor)):
     return backup_now(request.app.state.settings, SessionLocal, actor=actor)
+
+
+@router.post("/{name}/restore")
+async def restore(name: str, request: Request, user: User = Depends(get_user)):
+    """バックアップの時点に戻す（管理者だけ）。"""
+    if not user.is_admin:
+        raise HTTPException(403, "リストアには管理者ログインが必要です")
+    try:
+        return await run_in_threadpool(
+            restore_backup, request.app.state.settings, SessionLocal, name,
+            lock=request.app.state.dispatcher.lock, actor=user.username,
+        )
+    except RestoreError as exc:
+        raise HTTPException(400, str(exc)) from exc

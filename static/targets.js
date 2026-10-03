@@ -372,10 +372,33 @@ async function loadBackups() {
       el("br"), "scheduler-*.db は復元用（run 履歴・ログを含む）、settings-*.json はアイテム・スケジュール・パラメータの内容を読める形で書き出したものです。Jenkins のトークンを含む .env はバックアップしません。"),
     b.files.length
       ? el("table", { class: "table small" },
-          el("thead", {}, el("tr", {}, ["ファイル", "サイズ", "作成日時"].map((h) => el("th", {}, h)))),
-          el("tbody", {}, b.files.map((f) => el("tr", {}, el("td", { class: "mono" }, f.name), el("td", {}, kb(f.size)), el("td", {}, fmtDateTime(f.modified_at, true))))))
+          el("thead", {}, el("tr", {}, ["ファイル", "サイズ", "作成日時", ""].map((h) => el("th", {}, h)))),
+          el("tbody", {}, b.files.map((f) => el("tr", {},
+            el("td", { class: "mono" }, f.name), el("td", {}, kb(f.size)), el("td", {}, fmtDateTime(f.modified_at, true)),
+            el("td", {}, can.admin() && f.name.endsWith(".db") ? el("button", { class: "btn small danger", onclick: () => restoreBackup(f) }, "この時点に戻す") : null)))))
       : el("p", { class: "muted" }, "まだバックアップはありません。")
   );
+}
+
+async function restoreBackup(f) {
+  const ok = await confirmDialog(
+    "バックアップの時点に戻す",
+    `${fmtDateTime(f.modified_at, true)} のバックアップ（${f.name}）の時点に、すべてのデータを戻します。\n\n` +
+      "・アイテム、スケジュール、パラメータ、実行履歴、ログがこの時点の内容に置き換わります\n" +
+      "・戻す直前に今の状態を自動でバックアップするので、間違えた場合はそこから戻せます\n" +
+      "・戻したあと、予定時刻を過ぎている未実行の run は、遅延時の扱い（missed_policy）に従って処理されます\n" +
+      "・他の人が開いている画面は、再読み込みで新しい内容になります",
+    "戻す",
+    true
+  );
+  if (!ok) return;
+  try {
+    const r = await api("POST", `/api/backups/${encodeURIComponent(f.name)}/restore`);
+    toast(`戻しました（戻す前の状態は ${r.backup_before_restore.find((n) => n.endsWith(".db"))} に保存）`);
+    setTimeout(() => location.reload(), 1500);
+  } catch (e) {
+    toast(e.message, "error");
+  }
 }
 
 document.getElementById("btn-backup").onclick = async () => {

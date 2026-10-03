@@ -29,6 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--set-admin-password-file", metavar="PATH", help="ファイルの1行目を管理者パスワードとして .env に（ハッシュで）書き込む")
     parser.add_argument("--set-env", metavar="KEY=VALUE", action="append", default=[], help=".env に設定を書き込む（複数指定可）")
     parser.add_argument("--version", action="store_true", help="バージョンを表示する")
+    parser.add_argument("--restore", metavar="PATH", help="バックアップの .db の時点に戻して終了する（サービスを止めてから実行する）")
     args = parser.parse_args(argv)
 
     if args.version:
@@ -66,6 +67,9 @@ def main(argv: list[str] | None = None) -> int:
         dbmod.init_engine(settings.db_url)
         print(backup_now(settings, dbmod.SessionLocal, actor="cli"))
         return 0
+
+    if args.restore:
+        return _restore(settings, args.restore)
 
     if args.migrate_only or args.seed:
         from app import db as dbmod
@@ -108,6 +112,36 @@ def main(argv: list[str] | None = None) -> int:
     server = uvicorn.Server(config)
     server.run()
     return 0 if server.started else 1
+
+
+def _restore(settings, path: str) -> int:
+    """サービスが起動しないときなどのためのリストア。動いている間は行わない。"""
+    from pathlib import Path
+
+    from app import audit
+    from app import db as dbmod
+    from app.backup import RestoreError, backup_now, restore_file
+
+    probe = ProcessLock(settings.lock_file)
+    try:
+        probe.acquire()
+    except AlreadyRunning:
+        print("エラー: サービスが動いています。止めてから実行するか、画面（アイテム → バックアップ）から戻してください", file=sys.stderr)
+        return 2
+    try:
+        dbmod.init_engine(settings.db_url)
+        before = backup_now(settings, dbmod.SessionLocal, actor="cli", prune_old=False)
+        restore_file(settings, Path(path))
+        with dbmod.SessionLocal() as db:
+            audit.record(db, "cli", "backup.restore", "system", None, {"restored_from": str(Path(path).name), "backup_before_restore": before["created"]})
+            db.commit()
+        print(f"戻しました: {path}（戻す前の状態: {', '.join(before['created'])}）")
+        return 0
+    except RestoreError as exc:
+        print(f"エラー: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        probe.release()
 
 
 def _edit_env(args) -> int:
