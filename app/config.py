@@ -120,7 +120,7 @@ class Settings(BaseModel):
     jenkins_mock_min_seconds: float = 3.0
     jenkins_mock_max_seconds: float = 10.0
 
-    # --- スケジューラ ---
+    # --- 定期処理（キックの判定・run の先行生成・パラメータ定義の取得） ---
     dispatch_interval_seconds: int = 30
     run_horizon_days: int = 14
     catchup_max_days: int = 7  # 停止が長かった場合に遡って run を補完する上限
