@@ -800,6 +800,8 @@ async function renderParamsTab(body, s) {
   }, "保存（Jenkins の現在の定義を確認済みにする）");
   const keepOrphans = el("input", { type: "checkbox", checked: true });
   body.replaceChildren(
+    p.fresh ? null : el("p", { class: "muted small" },
+      `Jenkins から最後に取得した定義を表示しています${p.fetched_at ? `（${fmtDateTime(p.fetched_at, true)}、5分ごとに自動取得）` : ""}。`),
     p.job_error ? el("div", { class: "error-text" }, p.job_error) : null,
     issueList(p.issues.filter((i) => !i.param || !p.fields.some((f) => f.name === i.param))),
     p.fields.length ? null : el("p", { class: "muted" }, "このジョブにはパラメータがありません（/build でキックします）。"),

@@ -35,7 +35,7 @@ from app.scheduler.dispatcher import Dispatcher
 from app.scheduler.poller import schedule_issues_cached
 from app.schema import diff
 from app.schema.normalize import default_as_str, kind_of
-from app.schema.service import evaluate_schedule, fetch_schema, next_pending_run, schedule_context
+from app.schema.service import cached_state, evaluate_schedule, fetch_schema, next_pending_run, schedule_context
 from app.timeutil import iso_z, local_midnight_utc, local_today, parse_datetime_input, to_local, utcnow
 
 router = APIRouter(tags=["schedules"])
@@ -378,12 +378,17 @@ def cancel_schedule(sid: int, db: Session = Depends(get_db), actor: str = Depend
 
 
 # ---------------------------------------------------------------------- パラメータ
-def _params_view(db: Session, s: Schedule, client: JenkinsClientProtocol) -> dict:
+def _params_view(db: Session, s: Schedule, client: JenkinsClientProtocol, *, fresh: bool = True) -> dict:
+    """fresh=False のときは Jenkins に問い合わせず、最後に取得した定義（5分ごとに更新）で表示する。"""
     _require_jenkins(s)
-    try:
-        state = fetch_schema(db, client, s.target)
-    except JenkinsError as exc:
-        raise jenkins_http_error(exc) from exc
+    if fresh:
+        try:
+            state = fetch_schema(db, client, s.target)
+        except JenkinsError as exc:
+            raise jenkins_http_error(exc) from exc
+    else:
+        state = cached_state(db, s.target)
+        state.error = s.target.schema_error
     nxt = next_pending_run(db, s)
     at = nxt.scheduled_at if nxt else utcnow()
     params, detail, issues = evaluate_schedule(db, s, state, at)
@@ -414,12 +419,15 @@ def _params_view(db: Session, s: Schedule, client: JenkinsClientProtocol) -> dic
         "issues": issues,
         "context": schedule_context(s, at),
         "context_at": iso_z(at),
+        "fresh": fresh,
+        "fetched_at": iso_z(s.target.last_synced_at),
     }
 
 
 @router.get("/api/schedules/{sid}/params")
-def get_params(sid: int, db: Session = Depends(get_db), client: JenkinsClientProtocol = Depends(get_client)):
-    return _params_view(db, _get(db, sid), client)
+def get_params(sid: int, db: Session = Depends(get_db), client: JenkinsClientProtocol = Depends(get_client), user: User = Depends(get_user)):
+    # Jenkins から取り直すのは管理者が開いたときだけ（閲覧者が何人開いても Jenkins を呼ばない）
+    return _params_view(db, _get(db, sid), client, fresh=user.is_admin)
 
 
 @router.put("/api/schedules/{sid}/params")

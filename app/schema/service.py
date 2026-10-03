@@ -17,6 +17,10 @@ from app.schema.validate import build_context, resolve_params
 from app.timeutil import utcnow
 
 
+# 最後に取得したパラメータの説明文（説明はハッシュの対象外なので DB には持たない）。job_path ごと
+_descriptions: dict[str, dict[str, str]] = {}
+
+
 @dataclass
 class SchemaState:
     defs: list[dict[str, Any]] = field(default_factory=list)
@@ -57,6 +61,7 @@ def fetch_schema(db: Session, client: JenkinsClientProtocol, target: Target) -> 
     defs = normalize(raw)
     h = schema_hash(defs)
     store_snapshot(db, target.job_path, defs, h)
+    _descriptions[target.job_path] = descriptions(raw)
     target.schema_hash = h
     target.schema_error = "ジョブがビルド不可（buildable=false）です" if info.get("buildable") is False else None
     target.last_synced_at = utcnow()
@@ -78,7 +83,8 @@ def snapshot_defs(db: Session, job_path: str, h: str | None) -> list[dict[str, A
 def cached_state(db: Session, target: Target) -> SchemaState:
     """ネットワークに出ず、最後に取得したスキーマを使う（一覧表示用）。"""
     defs = snapshot_defs(db, target.job_path, target.schema_hash) or []
-    return SchemaState(defs=defs, hash=target.schema_hash, error=None, info=None)
+    return SchemaState(defs=defs, hash=target.schema_hash, error=None, info=None,
+                       descriptions=_descriptions.get(target.job_path, {}))
 
 
 def next_pending_run(db: Session, schedule: Schedule) -> Run | None:

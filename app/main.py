@@ -27,6 +27,7 @@ from app.auth.sessions import COOKIE_NAME, LoginThrottle, get_session_user
 from app.backup import scheduled_backup
 from app.config import PROJECT_ROOT, Settings, get_settings
 from app.jenkins import make_client
+from app.jenkins.health import JenkinsHealth
 from app.locking import ProcessLock
 from app.logging_setup import setup_logging
 from app.scheduler.dispatcher import Dispatcher
@@ -81,6 +82,7 @@ def create_app(
                     load_seed(db, settings.seed_file, settings.default_overlap_policy)
 
             app.state.client = client or make_client(settings)
+            app.state.jenkins_health = JenkinsHealth(app.state.client, interval_seconds=30)
             dispatcher = Dispatcher(dbmod.SessionLocal, app.state.client, settings)
             app.state.dispatcher = dispatcher
             dispatcher.startup_check()

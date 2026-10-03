@@ -8,7 +8,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app import audit
-from app.api.deps import get_actor, get_client, get_db, get_dispatcher, jenkins_http_error, not_found
+from app.api.deps import get_actor, get_client, get_db, get_dispatcher, get_user, jenkins_http_error, not_found
+from app.auth.roles import User
 from app.api.concurrency import bump_revision
 from app.api.holding import holding_count
 from app.api.serializers import run_out, target_out
@@ -70,7 +71,10 @@ def _out(db: Session, t: Target) -> dict:
 
 
 @router.get("/api/jenkins/jobs")
-def search_jobs(q: str | None = None, client: JenkinsClientProtocol = Depends(get_client)):
+def search_jobs(q: str | None = None, client: JenkinsClientProtocol = Depends(get_client), user: User = Depends(get_user)):
+    # アイテム登録用。Jenkins のフォルダをすべてたどる重い呼び出しなので管理者だけ
+    if not user.is_admin:
+        raise HTTPException(403, "ジョブの検索には管理者ログインが必要です")
     try:
         return client.search_jobs(q)[:200]
     except JenkinsError as exc:

@@ -62,14 +62,11 @@ def health(request: Request, db: Session = Depends(get_db)):
     except Exception as exc:  # pragma: no cover
         out["db"] = f"error: {exc}"
         out["status"] = "error"
-    client = request.app.state.client
-    out["jenkins_mock"] = client.is_mock
-    try:
-        client.ping()
-        out["jenkins"] = "ok"
-    except Exception as exc:
-        out["jenkins"] = f"error: {exc}"
-        out["status"] = "degraded" if out["status"] == "ok" else out["status"]
+    out["jenkins_mock"] = request.app.state.client.is_mock
+    # 何人が開いていても、Prometheus が何回見に来ても、Jenkins への問い合わせは30秒に1回だけ
+    out["jenkins"] = request.app.state.jenkins_health.status()
+    if out["jenkins"] != "ok" and out["status"] == "ok":
+        out["status"] = "degraded"
     last = request.app.state.dispatcher.last_tick
     out["dispatcher_last_tick"] = iso_z(last)
     lag = (utcnow() - last).total_seconds() if last else None
