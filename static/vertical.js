@@ -7,7 +7,8 @@
 
 const LANE_W = 9; // スケジュール1本分の縦帯の幅(px)
 const V_MAX_RUNS_PER_CELL = 4;
-const vState = { collapsed: new Set(), scrollToToday: true, drag: null, wired: false };
+// focusDay: 日付をクリックして選んだ日（null なら今日）。その行にスケジュールの見出しを出す
+const vState = { collapsed: new Set(), scrollToToday: true, drag: null, wired: false, focusDay: null };
 
 try {
   for (const id of JSON.parse(localStorage.getItem("vCollapsed") || "[]")) vState.collapsed.add(id);
@@ -70,6 +71,7 @@ function vShift(frac) {
 }
 
 function vGoToday() {
+  vState.focusDay = null;
   state.v.start = addDays(startOfDay(new Date()), -Math.round(state.v.days * 0.25));
   vState.scrollToToday = true;
   loadData();
@@ -122,8 +124,8 @@ function vCell(t, dayIdx, day, info, runsByDay, showRuns) {
     const isEnd = dayIdx === sp.ei;
     const cls = `v-stripe st-${s.status}${s.mode === "memo" ? " memo" : ""}${isStart ? " is-start" : ""}${isEnd ? " is-end" : ""}${scheduleAlertLevel(s) ? " has-" + scheduleAlertLevel(s) : ""}`;
     stripes.push(`<div class="${cls}" data-sched="${s.id}" style="left:${sp.lane * LANE_W + 2}px;--c:${color}" title="${esc(scheduleTitle(s))}"></div>`);
-    // ラベルは開始日に出す。途中から見ても分かるよう、表示範囲の先頭行と今日の行にも「↑」付きで出す
-    if (isStart || dayIdx === sp.from || day === vState.today) {
+    // ラベルは開始日に出す。途中から見ても分かるよう、表示範囲の先頭行と選んだ日（既定は今日）の行にも「↑」付きで出す
+    if (isStart || dayIdx === sp.from || day === vState.focus) {
       const lvl = scheduleAlertLevel(s);
       const badge = lvl ? `<span class="badge-dot ${lvl}">!</span>` : "";
       const st = s.status !== "active" && s.mode !== "memo" ? `<span class="st-tag">${SCHEDULE_STATUS_LABEL[s.status]}</span>` : "";
@@ -180,19 +182,19 @@ function renderVertical() {
   const head2 = cols.flatMap(({ items, collapsed }) => (collapsed ? [] : items.map(vItemHead)));
 
   const todayStr = ymd(new Date());
-  vState.today = todayStr;
+  vState.focus = vState.focusDay || todayStr;
   const rows = [];
   for (let i = 0; i < days; i++) {
     const d = addDays(state.v.start, i);
     const day = ymd(d);
     const dow = d.getDay();
     const showMonth = i === 0 || d.getDate() === 1;
-    const cls = [dow === 0 ? "sun" : dow === 6 ? "sat" : "", day === todayStr ? "today" : "", d.getDate() === 1 ? "month-start" : ""].join(" ");
+    const cls = [dow === 0 ? "sun" : dow === 6 ? "sat" : "", day === todayStr ? "today" : "", day === vState.focus ? "focus" : "", d.getDate() === 1 ? "month-start" : ""].join(" ");
     const cells = cols.flatMap(({ cat, items, collapsed }) =>
       collapsed ? [vCollapsedCell(cat, items, day, runsByDay, showRuns)] : items.map((t) => vCell(t, i, day, spansByItem.get(t.id), runsByDay, showRuns))
     );
     rows.push(`<tr class="${cls}" data-day="${day}">
-      <th class="v-date" scope="row">${showMonth ? `<span class="v-month">${d.getFullYear()}/${d.getMonth() + 1}</span>` : ""}${d.getDate()}<span class="v-dow">(${WD[dow]})</span>${day === todayStr ? '<span class="v-today">今日</span>' : ""}</th>
+      <th class="v-date" scope="row" data-day="${day}" title="クリックでこの日のスケジュールを表示">${showMonth ? `<span class="v-month">${d.getFullYear()}/${d.getMonth() + 1}</span>` : ""}${d.getDate()}<span class="v-dow">(${WD[dow]})</span>${day === todayStr ? '<span class="v-today">今日</span>' : ""}</th>
       ${cells.join("")}
     </tr>`);
   }
@@ -212,7 +214,7 @@ function renderVertical() {
 
   if (vState.scrollToToday) {
     vState.scrollToToday = false;
-    const row = box.querySelector("tr.today");
+    const row = box.querySelector("tr.focus");
     const headH = box.querySelector("thead") ? box.querySelector("thead").offsetHeight : 0;
     box.scrollTop = row ? Math.max(0, row.offsetTop - headH - 40) : 0;
   } else {
@@ -246,6 +248,12 @@ function vWire(box) {
   box.addEventListener("click", (e) => {
     if (vState.justDragged) return;
     if (e.target.closest('[data-action="toggle-all"]')) return toggleAllCollapsed();
+    const date = e.target.closest("th.v-date[data-day]");
+    if (date) {
+      // 選んだ日の行に、その日にかかっているスケジュールの見出しを出す（「今日」の印は今日のまま）
+      vState.focusDay = date.dataset.day === ymd(new Date()) ? null : date.dataset.day;
+      return renderVertical();
+    }
     const sched = e.target.closest("[data-sched]");
     if (sched) return openPanel(Number(sched.dataset.sched), "basic");
     const run = e.target.closest("[data-run]");

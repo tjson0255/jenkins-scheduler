@@ -326,8 +326,11 @@ tr.sat .v-date, tr.sat td.v-cell { background: var(--sat); }
 tr.sun .v-date, tr.sun td.v-cell { background: var(--sun); }
 tr.sun .v-dow { color: var(--danger); }
 tr.sat .v-dow { color: var(--accent); }
-tr.today .v-date { box-shadow: inset 3px 0 0 var(--danger); }
-tr.today td.v-cell { box-shadow: inset 0 1px 0 rgba(201,58,58,.45), inset 0 -1px 0 rgba(201,58,58,.45); }
+/* 選んだ日（既定は今日）の行。「今日」の印（.v-today）は今日の行に付ける */
+tr.focus .v-date { box-shadow: inset 3px 0 0 var(--danger); }
+tr.focus td.v-cell { box-shadow: inset 0 1px 0 rgba(201,58,58,.45), inset 0 -1px 0 rgba(201,58,58,.45); }
+th.v-date[data-day] { cursor: pointer; }
+th.v-date[data-day]:hover { background: var(--accent-weak); }
 tr.month-start .v-date, tr.month-start td { border-top: 2px solid #c9cfd9; }
 
 td.v-cell { position: relative; min-width: 150px; height: 28px; padding: 3px 4px; vertical-align: top; border-left: 1px solid #eef0f4; border-top: 1px solid #eef0f4; background: #fff; }

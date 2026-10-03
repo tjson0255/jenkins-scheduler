@@ -44,6 +44,7 @@ function init() {
   // ?date=YYYY-MM-DD で開くと、その日を中心に表示する（1日の予定からのリンク）
   const asked = new URLSearchParams(location.search).get("date");
   const today = /^\d{4}-\d{2}-\d{2}$/.test(asked || "") ? parseYmd(asked) : startOfDay(new Date());
+  if (asked && ymd(today) !== ymd(new Date())) vState.focusDay = ymd(today); // 縦表示ではその日を選んだ状態にする
   state.v.start = addDays(today, -7);
   const options = {
     locale: "ja",
