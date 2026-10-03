@@ -50,13 +50,13 @@ function renderTargets() {
   const tbody = el("tbody");
   for (const c of categories) {
     const list = targets.filter((t) => t.category_id === c.id).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
-    tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 9 }, c.name)));
+    tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 5 }, c.name)));
     list.forEach((t, i) => tbody.append(targetRow(t, list, i)));
   }
   box.replaceChildren(
     el("div", { class: "table-wrap" }, el("table", { class: "table targets-table" },
       el("thead", {}, el("tr", {},
-        ["色", "表示名", "ジョブ / 種類", "カテゴリ", "有効", "前回ビルド実行中", "パラメータ定義", "警告", ""].map((h) => el("th", {}, h)))),
+        ["色", "表示名", "ジョブ / 種類", "カテゴリ", ""].map((h) => el("th", {}, h)))),
       tbody))
   );
 }
@@ -67,12 +67,6 @@ function targetRow(t, siblings, index) {
   const color = colorPicker(t.color, (c) => patchTarget(t, { color: c }, true));
   const cat = el("select", {}, categories.map((c) => el("option", { value: c.id, selected: c.id === t.category_id }, c.name)));
   cat.addEventListener("change", () => patchTarget(t, { category_id: Number(cat.value) }));
-  const enabled = el("input", { type: "checkbox", checked: t.enabled });
-  enabled.addEventListener("change", () => patchTarget(t, { enabled: enabled.checked }));
-  const overlap = el("select", {},
-    el("option", { value: "skip", selected: t.overlap_policy === "skip" }, "スキップ"),
-    el("option", { value: "queue", selected: t.overlap_policy === "queue" }, "キューに積む"));
-  overlap.addEventListener("change", () => patchTarget(t, { overlap_policy: overlap.value }));
 
   const move = async (dir) => {
     const list = siblings.slice();
@@ -88,26 +82,15 @@ function targetRow(t, siblings, index) {
     }
   };
   const memo = t.kind === "memo";
-  const na = () => el("span", { class: "muted" }, "—");
-  const warn = [];
-  if (t.schema_error) warn.push(el("div", { class: "status-err small" }, "⛔ " + t.schema_error));
-  if (t.timer_trigger_detected) warn.push(el("div", { class: "status-warn small" }, "⏰ Jenkins 側の cron が残っています"));
-  if (!t.enabled && !memo) warn.push(el("div", { class: "muted small" }, "無効（run はスキップされます）"));
-
-  const lvl = itemAlertLevel(t);
-  const row = el("tr", { class: lvl ? "alert-" + lvl : "", title: itemAlertMessages(t).join("\n") },
+  // ビルドに関わる設定（有効・前回ビルド実行中・パラメータ定義・警告・今すぐ実行）はスケジュール一覧に置く
+  const row = el("tr", {},
     el("td", {}, color),
     el("td", {}, name),
     el("td", { class: "mono small" }, memo ? el("span", { class: "kind-tag memo" }, "予定") : t.job_path),
     el("td", {}, cat),
-    el("td", {}, memo ? na() : enabled),
-    el("td", {}, memo ? na() : overlap),
-    el("td", { class: "small" }, memo ? na() : schemaStatus(t)),
-    el("td", {}, warn),
     el("td", { class: "row" },
       el("button", { class: "btn small", title: "上へ", disabled: index === 0, onclick: () => move(-1) }, "↑"),
       el("button", { class: "btn small", title: "下へ", disabled: index === siblings.length - 1, onclick: () => move(1) }, "↓"),
-      memo || !can.admin() ? null : el("button", { class: "btn small", onclick: () => runNow(t) }, "今すぐ実行"),
       !can.editItem(t) ? null : el("button", {
         class: "btn small danger",
         onclick: async () => {
@@ -179,22 +162,55 @@ function renderScheduleList() {
   for (const t of ordered) {
     if (scheduleFilter && String(t.id) !== scheduleFilter) continue;
     const list = (schedulesByTarget.get(t.id) || []).slice().sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id - b.id);
-    const cat = categories.find((c) => c.id === t.category_id);
+    rows.push(itemGroupRow(t));
     for (const s of list) {
-      rows.push(el("tr", {},
-        el("td", { class: "muted" }, cat ? cat.name : ""),
-        el("td", {}, el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }), t.display_name),
+      rows.push(el("tr", { class: "sched-item" },
         el("td", {}, el("a", { href: `/?date=${s.start_date}#schedule=${s.id}&tab=basic`, title: "タイムラインで開く" }, scheduleTitleOf(s))),
         el("td", {}, scheduleRule(s)),
-        el("td", { class: "nowrap" }, `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`),
+        el("td", {}, `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`),
         el("td", {}, s.mode === "memo" ? "" : statusChip(s.status))));
+    }
+    if (!list.length) {
+      rows.push(el("tr", { class: "sched-item" }, el("td", { colspan: 4, class: "muted small" }, t.kind === "memo" ? "予定はありません" : "スケジュールはありません")));
     }
   }
   box.replaceChildren(rows.length
     ? el("div", { class: "table-wrap" }, el("table", { class: "table schedule-table" },
-        el("thead", {}, el("tr", {}, ["カテゴリ", "アイテム", "タイトル", "実行規則", "期間", "状態"].map((h) => el("th", {}, h)))),
+        el("thead", {}, el("tr", {}, ["タイトル", "実行規則", "期間", "状態"].map((h) => el("th", {}, h)))),
         el("tbody", {}, rows)))
-    : el("p", { class: "muted" }, "スケジュールはありません。"));
+    : el("p", { class: "muted" }, "アイテムがありません。"));
+}
+
+/** スケジュール一覧の、アイテムごとの見出しの行。Jenkins アイテムはビルドに関わる設定もここで変える */
+function itemGroupRow(t) {
+  const cat = categories.find((c) => c.id === t.category_id);
+  const head = el("div", { class: "group-name" },
+    el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }),
+    el("b", {}, t.display_name),
+    el("span", { class: "muted small" }, ` ${cat ? cat.name : ""}`),
+    t.kind === "memo" ? el("span", { class: "kind-tag memo" }, "予定") : el("span", { class: "mono small muted" }, t.job_path));
+  if (t.kind === "memo") {
+    return el("tr", { class: "item-group" }, el("td", { colspan: 4 }, el("div", { class: "group-bar" }, head)));
+  }
+  const enabled = el("input", { type: "checkbox", checked: t.enabled });
+  enabled.addEventListener("change", () => patchTarget(t, { enabled: enabled.checked }));
+  const overlap = el("select", {},
+    el("option", { value: "skip", selected: t.overlap_policy === "skip" }, "スキップ"),
+    el("option", { value: "queue", selected: t.overlap_policy === "queue" }, "キューに積む"));
+  overlap.addEventListener("change", () => patchTarget(t, { overlap_policy: overlap.value }));
+  const warn = [];
+  if (t.timer_trigger_detected) warn.push(el("span", { class: "status-warn small" }, "⏰ Jenkins 側の cron が残っています"));
+  if (!t.enabled) warn.push(el("span", { class: "muted small" }, "無効（run はスキップされます）"));
+  const settings = el("div", { class: "group-settings" },
+    el("label", { class: "check", title: "オフにすると、このアイテムの run はスキップされます" }, enabled, " 有効"),
+    el("label", { class: "inline-field" }, "前回ビルド実行中:", overlap),
+    el("span", { class: "small" }, "パラメータ定義: ", schemaStatus(t)),
+    warn,
+    can.admin() ? el("button", { class: "btn small", onclick: () => runNow(t) }, "今すぐ実行") : null);
+  if (!can.admin()) lockForm(settings); // Jenkins アイテムの設定は管理者だけ
+  const lvl = itemAlertLevel(t);
+  return el("tr", { class: `item-group${lvl ? " alert-" + lvl : ""}`, title: itemAlertMessages(t).join("\n") },
+    el("td", { colspan: 4 }, el("div", { class: "group-bar" }, head, settings)));
 }
 
 /** 追加ダイアログ。アイテムを選ぶと、Jenkins ならスケジュール、予定のアイテムなら予定の入力欄にする。

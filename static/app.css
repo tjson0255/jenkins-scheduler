@@ -374,10 +374,10 @@ td.v-collapsed-cell:hover { background: var(--accent-weak); }
 .v-stripe.memo { width: 5px; opacity: .7; }
 
 /* 警告・エラーのあるアイテムの行（横表示の行見出しと行全体、縦表示の列見出し、アイテム一覧の行） */
-.vis-label.grp-target.alert-warning, .v-item-head.alert-warning, .targets-table tr.alert-warning td {
+.vis-label.grp-target.alert-warning, .v-item-head.alert-warning, .targets-table tr.alert-warning td, .schedule-table tr.item-group.alert-warning > td {
   background: repeating-linear-gradient(-45deg, #fff4cd 0 6px, #ffeaa8 6px 12px) !important;
 }
-.vis-label.grp-target.alert-error, .v-item-head.alert-error, .targets-table tr.alert-error td {
+.vis-label.grp-target.alert-error, .v-item-head.alert-error, .targets-table tr.alert-error td, .schedule-table tr.item-group.alert-error > td {
   background: repeating-linear-gradient(-45deg, #fde4e4 0 6px, #fbcfcf 6px 12px) !important;
 }
 .vis-label.grp-target.alert-warning { box-shadow: inset 4px 0 0 var(--warn); }
@@ -526,3 +526,9 @@ section.help { scroll-margin-top: 12px; }
 /* アイテム画面: スケジュール一覧 */
 .schedule-table .swatch.inline { display: inline-block; margin-right: 6px; vertical-align: -1px; }
 .schedule-table td { white-space: nowrap; }
+.schedule-table tr.item-group > td { background: #f3f5f9; border-top: 2px solid var(--line); padding: 8px 10px; white-space: normal; }
+.schedule-table tr.sched-item > td:first-child { padding-left: 28px; }
+.group-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
+.group-name { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.group-settings { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; font-size: 13px; }
+.group-settings .inline-field { display: flex; align-items: center; gap: 4px; }
