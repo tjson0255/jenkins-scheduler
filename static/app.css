@@ -255,7 +255,6 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent-weak
 .targets-table input[type=text] { width: 100%; min-width: 120px; }
 .targets-table input[type=color] { width: 32px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
 .cat-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
-.cat-title td { background: #eef1f6; font-weight: 700; }
 .status-ok { color: var(--ok); }
 .status-err { color: var(--danger); }
 .status-warn { color: var(--warn); }
@@ -446,11 +445,6 @@ input:disabled, select:disabled, textarea:disabled { background: #f4f5f7; color:
 .color-other { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--muted); cursor: pointer; }
 .color-other .color-native { width: 28px; height: 22px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
 
-/* アイテム一覧: カテゴリの下のアイテムを字下げして、どのカテゴリに属するか分かるようにする */
-.targets-table tbody tr.cat-title td { padding-left: 10px; border-top: 2px solid #d5dae3; }
-.targets-table tbody tr:not(.cat-title) td:first-child { padding-left: 34px; box-shadow: inset 18px 0 0 #fff, inset 20px 0 0 #c9d1de; }
-.targets-table tbody tr.alert-warning:not(.cat-title) td:first-child,
-.targets-table tbody tr.alert-error:not(.cat-title) td:first-child { box-shadow: inset 20px 0 0 rgba(255,255,255,.75), inset 22px 0 0 #c9d1de; }
 
 /* 凡例で状態ごとに丸の表示を切り替える */
 .legend-toggle { border: 1px solid transparent; background: transparent; font: inherit; color: inherit; padding: 1px 6px; border-radius: 10px; cursor: pointer; }
@@ -542,15 +536,6 @@ body.embed .panel { position: static; width: auto; border: none; box-shadow: non
 .modal.modal-wide { overflow: hidden; }
 .schedule-frame { display: block; width: 100%; height: calc(100vh - 120px); border: 0; }
 
-/* アイテム画面: カテゴリ › アイテム › スケジューラ の構成 */
-.tree-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; font-size: 13px; }
-.tree-steps a { font-weight: 600; text-decoration: none; }
-.tree-steps a:hover { text-decoration: underline; }
-.tree-sep { color: var(--muted); }
-.tree-level { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-right: 8px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; vertical-align: 2px; }
 .link-btn { border: none; background: none; padding: 0; color: var(--accent); cursor: pointer; font: inherit; white-space: nowrap; }
 .link-btn:hover { text-decoration: underline; }
 .link-btn.small { font-size: 12px; }
-.schedule-table tr.cat-start > td { border-top: 2px solid var(--line); }
-.schedule-table tr.item-start > td { border-top: 1px solid var(--line); }
-.schedule-table tr:not(.cat-start):not(.item-start) > td:nth-child(-n+2) { border-top-color: transparent; }

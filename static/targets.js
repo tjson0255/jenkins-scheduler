@@ -66,13 +66,12 @@ function renderTargets() {
   for (const c of categories) {
     if (itemFilter && String(c.id) !== itemFilter) continue;
     const list = targets.filter((t) => t.category_id === c.id).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
-    tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 9 }, c.name)));
     list.forEach((t, i) => tbody.append(targetRow(t, list, i)));
   }
   box.replaceChildren(
     el("div", { class: "table-wrap" }, el("table", { class: "table targets-table" },
       el("thead", {}, el("tr", {},
-        ["色", "表示名", "種類", "ジョブ", "カテゴリ", "有効", "前回ビルド実行中", "スケジューラ", ""].map((h) => el("th", {}, h)))),
+        ["カテゴリ", "色", "表示名", "種類", "ジョブ", "有効", "前回ビルド実行中", "スケジューラ", ""].map((h) => el("th", {}, h)))),
       tbody))
   );
 }
@@ -107,11 +106,11 @@ function targetRow(t, siblings, index) {
   // パラメータ定義・警告・今すぐ実行はスケジューラごとの情報なので、スケジューラ一覧に置く
   const na = () => el("span", { class: "muted" }, "—");
   const row = el("tr", {},
+    el("td", {}, cat),
     el("td", {}, color),
     el("td", {}, name),
     el("td", {}, memo ? el("span", { class: "kind-tag memo" }, "テキスト") : el("span", { class: "kind-tag jenkins" }, "Jenkins ジョブ")),
     el("td", { class: "mono small" }, memo ? na() : t.job_path),
-    el("td", {}, cat),
     el("td", {}, memo ? na() : enabled),
     el("td", {}, memo ? na() : overlap),
     el("td", {}, el("button", {
@@ -146,14 +145,13 @@ function targetRow(t, siblings, index) {
 }
 
 /* ---- スケジューラ一覧（すべてのアイテムのスケジューラ・予定）と追加 ---- */
-let scheduleFilter = ""; // 絞り込み。"" ならすべて、"c:<カテゴリ id>" ならそのカテゴリ、"t:<アイテム id>" ならそのアイテム
+let scheduleFilter = ""; // 絞り込むアイテム（"t:<アイテム id>"）。"" ならすべて
 
 function matchesScheduleFilter(t) {
-  if (!scheduleFilter) return true;
-  return scheduleFilter === `t:${t.id}` || scheduleFilter === `c:${t.category_id}`;
+  return !scheduleFilter || scheduleFilter === `t:${t.id}`;
 }
 
-/** 下の階層の一覧を絞り込んで、そこまでスクロールする（カテゴリ → アイテム → スケジューラ） */
+/** 押したカテゴリのアイテム・押したアイテムのスケジューラに絞り込んで、そこまでスクロールする */
 function showItemsOf(categoryId) {
   itemFilter = String(categoryId);
   renderTargets();
@@ -192,17 +190,9 @@ function renderScheduleList() {
   const ordered = orderedTargets();
   if (scheduleFilter && !ordered.some(matchesScheduleFilter)) scheduleFilter = "";
 
-  // カテゴリ（その中のアイテムすべて）か、アイテム1つで絞り込む
-  const filter = el("select", { "aria-label": "カテゴリ・アイテムで絞り込む" },
-    el("option", { value: "" }, "すべて"),
-    categories.flatMap((c) => {
-      const items = ordered.filter((t) => t.category_id === c.id);
-      if (!items.length) return [];
-      return [
-        el("option", { value: `c:${c.id}`, selected: scheduleFilter === `c:${c.id}` }, `${c.name}（すべて）`),
-        ...items.map((t) => el("option", { value: `t:${t.id}`, selected: scheduleFilter === `t:${t.id}` }, `\u3000└ ${t.display_name}`)),
-      ];
-    }));
+  const filter = el("select", { "aria-label": "アイテムで絞り込む" },
+    el("option", { value: "" }, "すべてのアイテム"),
+    ordered.map((t) => el("option", { value: `t:${t.id}`, selected: scheduleFilter === `t:${t.id}` }, t.display_name)));
   filter.addEventListener("change", () => {
     scheduleFilter = filter.value;
     renderScheduleList();
@@ -213,21 +203,14 @@ function renderScheduleList() {
   tools.replaceChildren(filter, addBtn || "");
 
   const rows = [];
-  let prevCat = null;
   for (const t of ordered) {
     if (!matchesScheduleFilter(t)) continue;
-    const cat = categories.find((c) => c.id === t.category_id);
     const list = (schedulesByTarget.get(t.id) || []).slice().sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id - b.id);
-    list.forEach((s, k) => {
+    list.forEach((s) => {
       const memo = s.mode === "memo";
       const lvl = scheduleAlertLevel(s) || (memo ? null : t.schema_error ? "error" : t.timer_trigger_detected ? "warning" : null);
-      // 同じカテゴリ・アイテムが続くときは名前を省き、木の枝のように見せる
-      const newCat = t.category_id !== prevCat;
-      prevCat = t.category_id;
-      const cls = [lvl ? "alert-" + lvl : "", newCat ? "cat-start" : k === 0 ? "item-start" : ""].filter(Boolean).join(" ");
-      rows.push(el("tr", { class: cls },
-        el("td", { class: "muted" }, newCat && cat ? cat.name : ""),
-        el("td", {}, k === 0 ? [el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }), t.display_name] : ""),
+      rows.push(el("tr", { class: lvl ? "alert-" + lvl : "" },
+        el("td", {}, el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }), t.display_name),
         el("td", {}, scheduleLink(s, "basic", { title: "詳細を開く" }, scheduleTitleOf(s))),
         el("td", {}, scheduleRule(s)),
         el("td", {}, `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`),
@@ -240,7 +223,7 @@ function renderScheduleList() {
   }
   box.replaceChildren(rows.length
     ? el("div", { class: "table-wrap" }, el("table", { class: "table schedule-table" },
-        el("thead", {}, el("tr", {}, ["カテゴリ", "アイテム", "タイトル", "実行規則", "期間", "状態", "警告", ""].map((h) => el("th", {}, h)))),
+        el("thead", {}, el("tr", {}, ["アイテム", "タイトル", "実行規則", "期間", "状態", "警告", ""].map((h) => el("th", {}, h)))),
         el("tbody", {}, rows)))
     : el("p", { class: "muted" }, "スケジューラはありません。"));
 }
@@ -309,7 +292,7 @@ async function runNowSchedule(t, s) {
  *  追加できないアイテム（管理者ログインしていないときの Jenkins アイテム）も、選べない形で並べる */
 function openAddSchedule(ordered) {
   const editable = ordered.filter((t) => can.editItem(t));
-  const first = editable.find((t) => scheduleFilter === `t:${t.id}`) || editable.find((t) => scheduleFilter === `c:${t.category_id}`) || editable[0];
+  const first = editable.find((t) => scheduleFilter === `t:${t.id}`) || editable[0];
   const pick = el("select", {}, categories.map((c) => {
     const items = ordered.filter((t) => t.category_id === c.id);
     return items.length
