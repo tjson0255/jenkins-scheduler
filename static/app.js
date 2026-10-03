@@ -370,7 +370,7 @@ function syncDataSet(ds, list) {
 
 function groupTemplate(g) {
   if (!g) return "";
-  if (g.kind === "category") return `<span class="grp-cat-name">${esc(g.name)}</span> <span class="muted">${g.count}</span>`;
+  if (g.kind === "category") return `<span class="grp-cat-name">${esc(g.name)}</span>`;
   const t = g.target;
   if (t.kind === "memo") {
     return `<div class="grp-target-inner" title="自由記入（メモ・計画）">

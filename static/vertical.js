@@ -174,8 +174,8 @@ function renderVertical() {
   // 折りたたんだカテゴリは見出し2段ぶんを1つのセルにする
   const head1 = cols.map(({ cat, items, collapsed }) =>
     collapsed
-      ? `<th class="v-cat-head collapsed" rowspan="2" data-cat="${cat.id}" title="クリックで展開">▶ ${esc(cat.name)} <span class="muted">${items.length}</span></th>`
-      : `<th class="v-cat-head" colspan="${items.length}" data-cat="${cat.id}" title="クリックで折りたたみ">▼ ${esc(cat.name)} <span class="muted">${items.length}</span></th>`
+      ? `<th class="v-cat-head collapsed" rowspan="2" data-cat="${cat.id}" title="クリックで展開">▶ ${esc(cat.name)}</th>`
+      : `<th class="v-cat-head" colspan="${items.length}" data-cat="${cat.id}" title="クリックで折りたたみ">▼ ${esc(cat.name)}</th>`
   );
   const head2 = cols.flatMap(({ items, collapsed }) => (collapsed ? [] : items.map(vItemHead)));
 
@@ -203,7 +203,7 @@ function renderVertical() {
   box.innerHTML = cols.length
     ? `<table class="v-table">
         <thead>
-          <tr><th class="v-corner" rowspan="2"><div>日付</div>${collapseToggleHtml()}</th>${head1.join("")}</tr>
+          <tr><th class="v-corner" rowspan="2">${collapseToggleHtml()}</th>${head1.join("")}</tr>
           <tr>${head2.join("")}</tr>
         </thead>
         <tbody>${rows.join("")}</tbody>

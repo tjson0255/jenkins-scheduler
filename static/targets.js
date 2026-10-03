@@ -42,7 +42,7 @@ function renderTargets() {
   const tbody = el("tbody");
   for (const c of categories) {
     const list = targets.filter((t) => t.category_id === c.id).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
-    tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 9 }, `${c.name}（${list.length}）`)));
+    tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 9 }, c.name)));
     list.forEach((t, i) => tbody.append(targetRow(t, list, i)));
   }
   box.replaceChildren(
