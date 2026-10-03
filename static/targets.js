@@ -50,13 +50,13 @@ function renderTargets() {
   const tbody = el("tbody");
   for (const c of categories) {
     const list = targets.filter((t) => t.category_id === c.id).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
-    tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 5 }, c.name)));
+    tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 7 }, c.name)));
     list.forEach((t, i) => tbody.append(targetRow(t, list, i)));
   }
   box.replaceChildren(
     el("div", { class: "table-wrap" }, el("table", { class: "table targets-table" },
       el("thead", {}, el("tr", {},
-        ["色", "表示名", "ジョブ / 種類", "カテゴリ", ""].map((h) => el("th", {}, h)))),
+        ["色", "表示名", "ジョブ / 種類", "カテゴリ", "有効", "前回ビルド実行中", ""].map((h) => el("th", {}, h)))),
       tbody))
   );
 }
@@ -67,6 +67,12 @@ function targetRow(t, siblings, index) {
   const color = colorPicker(t.color, (c) => patchTarget(t, { color: c }, true));
   const cat = el("select", {}, categories.map((c) => el("option", { value: c.id, selected: c.id === t.category_id }, c.name)));
   cat.addEventListener("change", () => patchTarget(t, { category_id: Number(cat.value) }));
+  const enabled = el("input", { type: "checkbox", checked: t.enabled, title: "オフにすると、このアイテムの run はスキップされます" });
+  enabled.addEventListener("change", () => patchTarget(t, { enabled: enabled.checked }));
+  const overlap = el("select", {},
+    el("option", { value: "skip", selected: t.overlap_policy === "skip" }, "スキップ"),
+    el("option", { value: "queue", selected: t.overlap_policy === "queue" }, "キューに積む"));
+  overlap.addEventListener("change", () => patchTarget(t, { overlap_policy: overlap.value }));
 
   const move = async (dir) => {
     const list = siblings.slice();
@@ -82,12 +88,15 @@ function targetRow(t, siblings, index) {
     }
   };
   const memo = t.kind === "memo";
-  // ビルドに関わる設定（有効・前回ビルド実行中・パラメータ定義・警告・今すぐ実行）はスケジュール一覧に置く
+  // パラメータ定義・警告・今すぐ実行はスケジュールごとの情報なので、スケジュール一覧に置く
+  const na = () => el("span", { class: "muted" }, "—");
   const row = el("tr", {},
     el("td", {}, color),
     el("td", {}, name),
     el("td", { class: "mono small" }, memo ? el("span", { class: "kind-tag memo" }, "予定") : t.job_path),
     el("td", {}, cat),
+    el("td", {}, memo ? na() : enabled),
+    el("td", {}, memo ? na() : overlap),
     el("td", { class: "row" },
       el("button", { class: "btn small", title: "上へ", disabled: index === 0, onclick: () => move(-1) }, "↑"),
       el("button", { class: "btn small", title: "下へ", disabled: index === siblings.length - 1, onclick: () => move(1) }, "↓"),
@@ -161,56 +170,63 @@ function renderScheduleList() {
   const rows = [];
   for (const t of ordered) {
     if (scheduleFilter && String(t.id) !== scheduleFilter) continue;
+    const cat = categories.find((c) => c.id === t.category_id);
     const list = (schedulesByTarget.get(t.id) || []).slice().sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id - b.id);
-    rows.push(itemGroupRow(t));
     for (const s of list) {
-      rows.push(el("tr", { class: "sched-item" },
+      const memo = s.mode === "memo";
+      const lvl = scheduleAlertLevel(s) || (memo ? null : t.schema_error ? "error" : t.timer_trigger_detected ? "warning" : null);
+      rows.push(el("tr", { class: lvl ? "alert-" + lvl : "" },
+        el("td", { class: "muted" }, cat ? cat.name : ""),
+        el("td", {}, el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }), t.display_name),
         el("td", {}, el("a", { href: `/?date=${s.start_date}#schedule=${s.id}&tab=basic`, title: "タイムラインで開く" }, scheduleTitleOf(s))),
         el("td", {}, scheduleRule(s)),
         el("td", {}, `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`),
-        el("td", {}, s.mode === "memo" ? "" : statusChip(s.status))));
-    }
-    if (!list.length) {
-      rows.push(el("tr", { class: "sched-item" }, el("td", { colspan: 4, class: "muted small" }, t.kind === "memo" ? "予定はありません" : "スケジュールはありません")));
+        el("td", {}, memo ? "" : statusChip(s.status)),
+        el("td", { class: "small" }, memo ? "" : paramCheck(s)),
+        el("td", { class: "small" }, memo ? "" : scheduleWarnings(s, t)),
+        el("td", {}, !memo && can.admin() && ["draft", "active", "paused"].includes(s.status)
+          ? el("button", { class: "btn small", title: "このスケジュールのパラメータで今すぐキックする", onclick: () => runNowSchedule(t, s) }, "今すぐ実行")
+          : "")));
     }
   }
   box.replaceChildren(rows.length
     ? el("div", { class: "table-wrap" }, el("table", { class: "table schedule-table" },
-        el("thead", {}, el("tr", {}, ["タイトル", "実行規則", "期間", "状態"].map((h) => el("th", {}, h)))),
+        el("thead", {}, el("tr", {}, ["カテゴリ", "アイテム", "タイトル", "実行規則", "期間", "状態", "パラメータ定義", "警告", ""].map((h) => el("th", {}, h)))),
         el("tbody", {}, rows)))
-    : el("p", { class: "muted" }, "アイテムがありません。"));
+    : el("p", { class: "muted" }, "スケジュールはありません。"));
 }
 
-/** スケジュール一覧の、アイテムごとの見出しの行。Jenkins アイテムはビルドに関わる設定もここで変える */
-function itemGroupRow(t) {
-  const cat = categories.find((c) => c.id === t.category_id);
-  const head = el("div", { class: "group-name" },
-    el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }),
-    el("b", {}, t.display_name),
-    el("span", { class: "muted small" }, ` ${cat ? cat.name : ""}`),
-    t.kind === "memo" ? el("span", { class: "kind-tag memo" }, "予定") : el("span", { class: "mono small muted" }, t.job_path));
-  if (t.kind === "memo") {
-    return el("tr", { class: "item-group" }, el("td", { colspan: 4 }, el("div", { class: "group-bar" }, head)));
+/** そのスケジュールのパラメータの確認結果（Jenkins の最新のパラメータ定義と照らし合わせたもの） */
+function paramCheck(s) {
+  if (!["draft", "active", "paused"].includes(s.status)) return el("span", { class: "muted" }, "—");
+  const issues = (s.issues || []).filter((i) => i.level !== "info");
+  if (!issues.length) return el("span", { class: "status-ok" }, "✔ OK");
+  const err = issues.filter((i) => i.level === "error").length;
+  const warn = issues.length - err;
+  return el("span", { title: issues.map((i) => i.message).join("\n") },
+    err ? el("span", { class: "status-err" }, `⛔ エラー${err} `) : null,
+    warn ? el("span", { class: "status-warn" }, `⚠ 警告${warn}`) : null);
+}
+
+/** そのスケジュールが予定どおり動かない原因になること（ジョブ・アイテム側のものも含む） */
+function scheduleWarnings(s, t) {
+  const out = [];
+  if (s.holding_count) out.push(el("span", { class: "status-err", title: "キックされずに止まっている run があります" }, `保留${s.holding_count} `));
+  if (t.schema_error) out.push(el("span", { class: "status-err", title: t.schema_error }, "⛔ ジョブ "));
+  if (t.timer_trigger_detected) out.push(el("span", { class: "status-warn", title: "Jenkins 側の cron が残っています（二重実行の恐れ）" }, "⏰ cron 残存 "));
+  if (!t.enabled) out.push(el("span", { class: "muted", title: "アイテムが無効なので run はスキップされます" }, "アイテム無効"));
+  return out.length ? out : el("span", { class: "muted" }, "—");
+}
+
+async function runNowSchedule(t, s) {
+  if (!(await confirmDialog("今すぐ実行", `${t.display_name}「${scheduleTitleOf(s)}」を、このスケジュールのパラメータで今すぐキックします。`, "キックする"))) return;
+  try {
+    const r = await api("POST", `/api/targets/${t.id}/run-now`, { schedule_id: s.id });
+    toast(`キックしました: ${RUN_STATUS_LABEL[r.status]}${r.reason ? "（" + r.reason + "）" : ""}`, ["holding", "skipped"].includes(r.status) ? "error" : "");
+    load();
+  } catch (e) {
+    toast(e.message, "error");
   }
-  const enabled = el("input", { type: "checkbox", checked: t.enabled });
-  enabled.addEventListener("change", () => patchTarget(t, { enabled: enabled.checked }));
-  const overlap = el("select", {},
-    el("option", { value: "skip", selected: t.overlap_policy === "skip" }, "スキップ"),
-    el("option", { value: "queue", selected: t.overlap_policy === "queue" }, "キューに積む"));
-  overlap.addEventListener("change", () => patchTarget(t, { overlap_policy: overlap.value }));
-  const warn = [];
-  if (t.timer_trigger_detected) warn.push(el("span", { class: "status-warn small" }, "⏰ Jenkins 側の cron が残っています"));
-  if (!t.enabled) warn.push(el("span", { class: "muted small" }, "無効（run はスキップされます）"));
-  const settings = el("div", { class: "group-settings" },
-    el("label", { class: "check", title: "オフにすると、このアイテムの run はスキップされます" }, enabled, " 有効"),
-    el("label", { class: "inline-field" }, "前回ビルド実行中:", overlap),
-    el("span", { class: "small" }, "パラメータ定義: ", schemaStatus(t)),
-    warn,
-    can.admin() ? el("button", { class: "btn small", onclick: () => runNow(t) }, "今すぐ実行") : null);
-  if (!can.admin()) lockForm(settings); // Jenkins アイテムの設定は管理者だけ
-  const lvl = itemAlertLevel(t);
-  return el("tr", { class: `item-group${lvl ? " alert-" + lvl : ""}`, title: itemAlertMessages(t).join("\n") },
-    el("td", { colspan: 4 }, el("div", { class: "group-bar" }, head, settings)));
 }
 
 /** 追加ダイアログ。アイテムを選ぶと、Jenkins ならスケジュール、予定のアイテムなら予定の入力欄にする。
@@ -264,16 +280,6 @@ function openAddSchedule(ordered) {
   pick.addEventListener("change", build);
   build();
   openModal("スケジュール・予定の追加", el("div", { class: "form" }, note, el("label", { class: "field" }, el("span", {}, "アイテム"), pick), area), [buttons]);
-}
-
-async function runNow(t) {
-  if (!(await confirmDialog("今すぐ実行", `${t.display_name}（${t.job_path}）を Jenkins のデフォルト値で今すぐキックします。`, "キックする"))) return;
-  try {
-    const r = await api("POST", `/api/targets/${t.id}/run-now`, {});
-    toast(`キックしました: ${RUN_STATUS_LABEL[r.status]}${r.reason ? "（" + r.reason + "）" : ""}`, ["holding", "skipped"].includes(r.status) ? "error" : "");
-  } catch (e) {
-    toast(e.message, "error");
-  }
 }
 
 let registerState = { results: [], open: false };
