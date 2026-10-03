@@ -539,3 +539,9 @@ body.embed .panel { position: static; width: auto; border: none; box-shadow: non
 .link-btn { border: none; background: none; padding: 0; color: var(--accent); cursor: pointer; font: inherit; white-space: nowrap; }
 .link-btn:hover { text-decoration: underline; }
 .link-btn.small { font-size: 12px; }
+
+/* アイテム画面の上部: カテゴリ › アイテム › スケジューラ の構成 */
+.tree-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; font-size: 13px; }
+.tree-steps a { font-weight: 600; text-decoration: none; }
+.tree-steps a:hover { text-decoration: underline; }
+.tree-sep { color: var(--muted); }
