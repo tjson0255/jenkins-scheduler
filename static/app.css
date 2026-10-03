@@ -365,6 +365,7 @@ td.v-collapsed-cell:hover { background: var(--accent-weak); }
 /* テキストのアイテム */
 .kind-tag { display: inline-block; font-family: inherit; font-size: 11px; padding: 0 6px; border-radius: 4px; background: #eef0f4; color: var(--muted); }
 .kind-tag.memo { background: #f3eefb; color: #6b4fa0; }
+.kind-tag.jenkins { background: #e8f0fb; color: #2f5d94; white-space: nowrap; }
 .memo-icon { font-size: 11px; margin-left: 2px; }
 /* 予定: 付箋のような見た目。過ぎた予定は薄く */
 .vis-item.sched.memo { border-style: solid; border-width: 1px; border-left-width: 4px; background: color-mix(in srgb, var(--c) 10%, #fffdf3); }

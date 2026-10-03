@@ -66,13 +66,13 @@ function renderTargets() {
   for (const c of categories) {
     if (itemFilter && String(c.id) !== itemFilter) continue;
     const list = targets.filter((t) => t.category_id === c.id).sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
-    tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 7 }, c.name)));
+    tbody.append(el("tr", { class: "cat-title" }, el("td", { colspan: 8 }, c.name)));
     list.forEach((t, i) => tbody.append(targetRow(t, list, i)));
   }
   box.replaceChildren(
     el("div", { class: "table-wrap" }, el("table", { class: "table targets-table" },
       el("thead", {}, el("tr", {},
-        ["色", "表示名", "ジョブ / 種類", "カテゴリ", "有効", "前回ビルド実行中", ""].map((h) => el("th", {}, h)))),
+        ["色", "表示名", "種類", "ジョブ", "カテゴリ", "有効", "前回ビルド実行中", ""].map((h) => el("th", {}, h)))),
       tbody))
   );
 }
@@ -109,7 +109,8 @@ function targetRow(t, siblings, index) {
   const row = el("tr", {},
     el("td", {}, color),
     el("td", {}, name),
-    el("td", { class: "mono small" }, memo ? el("span", { class: "kind-tag memo" }, "テキスト") : t.job_path),
+    el("td", {}, memo ? el("span", { class: "kind-tag memo" }, "テキスト") : el("span", { class: "kind-tag jenkins" }, "Jenkins ジョブ")),
+    el("td", { class: "mono small" }, memo ? na() : t.job_path),
     el("td", {}, cat),
     el("td", {}, memo ? na() : enabled),
     el("td", {}, memo ? na() : overlap),
