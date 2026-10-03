@@ -112,7 +112,7 @@ function renderRuns(data, isCurrent) {
   }
   if (!nowShown) body.push(el("tr", { class: "now-line" }, el("td", { colspan: 6 }, `現在 ${timeOf(nowIso)}`)));
   box.replaceChildren(el("table", { class: "table day-table" },
-    el("thead", {}, el("tr", {}, ["時刻", "アイテム", "スケジュール", "状態", "ビルド", "理由"].map((h) => el("th", {}, h)))),
+    el("thead", {}, el("tr", {}, ["時刻", "アイテム", "スケジュール", "状態", "ビルド", "詳細"].map((h) => el("th", {}, h)))),
     el("tbody", {}, body)));
 }
 

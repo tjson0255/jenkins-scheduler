@@ -22,7 +22,7 @@ const state = {
   panelScheduleId: null,
   panelTab: "basic",
   layout: "horizontal", // horizontal: 横軸=日付 / vertical: 行=日付・列=アイテム（vertical.js）
-  runsOn: true, // 実行状況（run の丸）を表示するか
+  runsOn: true, // ビルド状況（run の丸）を表示するか
   hiddenRunGroups: new Set(), // 凡例で非表示にした状態
   v: { start: null, days: 28 }, // 縦表示の表示範囲
 };
@@ -440,7 +440,7 @@ function runTooltip(r) {
   return esc(lines.filter(Boolean).join("\n")).replace(/\n/g, "<br>");
 }
 
-/** その run の丸を表示するか（実行状況のスイッチと、凡例での状態ごとの切り替え） */
+/** その run の丸を表示するか（ビルド状況のスイッチと、凡例での状態ごとの切り替え） */
 function runVisible(r) {
   if (!state.runsOn) return false;
   const g = RUN_GROUPS.find(([, , statuses]) => statuses.includes(r.status));
@@ -477,7 +477,7 @@ function renderLegend() {
         class: `legend-item legend-toggle${off ? " off" : ""}`,
         "aria-pressed": String(!off),
         disabled: !state.runsOn,
-        title: state.runsOn ? `${label}の丸を${off ? "表示する" : "隠す"}` : "実行状況がオフです",
+        title: state.runsOn ? `${label}の丸を${off ? "表示する" : "隠す"}` : "ビルド状況がオフです",
         onclick: () => {
           off ? state.hiddenRunGroups.delete(key) : state.hiddenRunGroups.add(key);
           saveRunPrefs();
