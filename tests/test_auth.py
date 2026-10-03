@@ -1,4 +1,4 @@
-"""AD 認証と、AD グループによる権限分け（1. フルコントロール / 2. 予定・メモのみ編集 / 3. 読み取り専用）。"""
+"""AD 認証と、AD グループによる権限分け（1. フルコントロール / 2. 予定のみ編集 / 3. 読み取り専用）。"""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -74,7 +74,7 @@ def test_memo_editor_can_only_edit_memo_text(auth_app):
 
     me = login(c, "memo", "pw-m")
     assert me["role"] == MEMO_EDITOR and me["can"] == {"admin": False, "edit_memo": True}
-    # 予定・メモは追加・変更・削除できる
+    # 予定は追加・変更・削除できる
     m = c.post("/api/schedules", json={"target_id": memo_item["id"], "start_date": local_today().isoformat(), "label": "QA"})
     assert m.status_code == 201
     assert c.patch(f"/api/schedules/{m.json()['id']}", json={"note": "本文"}).status_code == 200
@@ -84,7 +84,7 @@ def test_memo_editor_can_only_edit_memo_text(auth_app):
     assert c.delete(f"/api/schedules/{jsched['id']}").status_code == 403
     assert c.post(f"/api/schedules/{jsched['id']}/activate").status_code == 403
     assert c.post(f"/api/targets/{jenkins['id']}/run-now", json={}).status_code == 403
-    # 予定・メモのアイテムとカテゴリは編集できる
+    # 予定のアイテムとカテゴリは編集できる
     assert c.patch(f"/api/targets/{memo_item['id']}", json={"display_name": "計画（改）", "color": "#123456"}).status_code == 200
     new_memo = c.post("/api/targets", json={"kind": "memo", "display_name": "新しい行"})
     assert new_memo.status_code == 201

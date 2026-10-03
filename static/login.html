@@ -33,7 +33,7 @@
       if (me.auth_mode !== "shared_admin") return;
       if (me.can.admin) location.href = safeNext;
       document.getElementById("login-title").textContent = "管理者ログイン";
-      document.getElementById("login-hint").textContent = "Jenkins のスケジュールやアイテムを操作する管理者用です。閲覧と予定・メモの編集はログインしなくてもできます。";
+      document.getElementById("login-hint").textContent = "Jenkins のスケジュールやアイテムを操作する管理者用です。閲覧と予定の編集はログインしなくてもできます。";
       document.getElementById("username").placeholder = "管理者のユーザー名";
       if (me.demo && me.demo.admin_password) {
         document.getElementById("login-hint").textContent += `（デモ版: ユーザー ${me.demo.admin_username} ／ パスワード ${me.demo.admin_password}）`;

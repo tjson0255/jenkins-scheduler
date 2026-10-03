@@ -96,7 +96,7 @@ begin
   PasswordPage := CreateInputQueryPage(wpSelectDir,
     '管理者パスワード',
     'Jenkins を操作する管理者アカウント（ユーザー名 admin）のパスワードを決めてください。',
-    '12文字以上。Jenkins を操作する人だけで共有します。ログインしない人も、閲覧と予定・メモの編集はできます。' + #13#10 +
+    '12文字以上。Jenkins を操作する人だけで共有します。ログインしない人も、閲覧と予定の編集はできます。' + #13#10 +
     '上書きインストールでパスワードを変えない場合は、空のままにしてください。');
   PasswordPage.Add('パスワード:', True);
   PasswordPage.Add('パスワード（確認）:', True);

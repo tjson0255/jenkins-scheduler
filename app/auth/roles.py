@@ -5,11 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 ADMIN = "admin"  # 1. フルコントロール
-MEMO_EDITOR = "memo_editor"  # 2. 予定・メモのみ編集可能
+MEMO_EDITOR = "memo_editor"  # 2. 予定のみ編集可能
 VIEWER = "viewer"  # 3. 読み取り専用
 
 ROLE_RANK = {VIEWER: 1, MEMO_EDITOR: 2, ADMIN: 3}
-ROLE_LABEL = {ADMIN: "フルコントロール", MEMO_EDITOR: "予定・メモのみ編集", VIEWER: "読み取り専用"}
+ROLE_LABEL = {ADMIN: "フルコントロール", MEMO_EDITOR: "予定のみ編集", VIEWER: "読み取り専用"}
 
 
 @dataclass(frozen=True)

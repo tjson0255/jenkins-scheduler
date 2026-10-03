@@ -1,4 +1,4 @@
-/* 1日の予定（日付と開始時刻を選んで、そこから24時間の予定・メモと Jenkins の実行を一覧にする） */
+/* 1日の予定（日付と開始時刻を選んで、そこから24時間の予定と Jenkins の実行を一覧にする） */
 "use strict";
 
 const ready = renderHeader("/day");
@@ -119,7 +119,7 @@ function renderRuns(data, isCurrent) {
 function renderMemos(data) {
   const box = document.getElementById("day-memos");
   if (!data.memos.length) {
-    box.replaceChildren(el("p", { class: "muted" }, "この範囲の予定・メモはありません。"));
+    box.replaceChildren(el("p", { class: "muted" }, "この範囲の予定はありません。"));
     return;
   }
   box.replaceChildren(el("ul", { class: "day-memos" }, data.memos.map((m) => {

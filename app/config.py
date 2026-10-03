@@ -69,7 +69,7 @@ class Settings(BaseModel):
     app_auth_exempt_monitoring: bool = True  # /metrics と /api/health を認証対象外にする
 
     # --- 認証（AUTH_MODE） ---
-    #   shared_admin : ログインなしで閲覧と予定・メモの編集ができ、共有の管理者アカウントでログインすると全操作できる
+    #   shared_admin : ログインなしで閲覧と予定の編集ができ、共有の管理者アカウントでログインすると全操作できる
     #   none         : 認証なし（127.0.0.1 での開発用。全員フルコントロール）
     #   basic        : APP_BASIC_AUTH_USER / PASSWORD の共有アカウント（フルコントロール）
     #   ldap         : Active Directory でログインし、AD グループで権限を分ける（別途 ldap3 が必要）
@@ -97,7 +97,7 @@ class Settings(BaseModel):
     ldap_nested_groups: bool = True  # 入れ子のグループの中の人も対象にする
     # 権限ごとの AD グループ。DN・グループ名・メールアドレス（メーリングリスト）のどれでも可。複数はカンマ区切り
     ldap_admin_groups: str = ""  # 1. フルコントロール
-    ldap_memo_editor_groups: str = ""  # 2. 予定・メモのみ編集可能
+    ldap_memo_editor_groups: str = ""  # 2. 予定のみ編集可能
     ldap_viewer_groups: str = ""  # 3. 読み取り専用
     app_tls_cert: Path | None = None
     app_tls_key: Path | None = None

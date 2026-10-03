@@ -1,4 +1,4 @@
-"""予定・メモのアイテム: Jenkins に接続せず、タイトル・期間・メモだけの予定を持つ。"""
+"""予定のアイテム: Jenkins に接続せず、タイトル・期間・メモだけの予定を持つ。"""
 
 from datetime import timedelta
 
@@ -16,7 +16,7 @@ def test_memo_item_needs_no_jenkins(app_client, mock_client):
     assert t["kind"] == "memo" and t["job_path"] is None and t["display_name"] == "リリース計画"
     # 名前が無いと作れない
     assert app_client.post("/api/targets", json={"kind": "memo"}).status_code == 400
-    # 同じ名前の予定・メモのアイテムは複数あってよい（job_path が NULL）
+    # 同じ名前の予定のアイテムは複数あってよい（job_path が NULL）
     make_memo_item(app_client)
     # Jenkins アイテムは従来どおりジョブのパスが必須
     assert app_client.post("/api/targets", json={"kind": "jenkins"}).status_code == 400

@@ -27,7 +27,7 @@ class Base(DeclarativeBase):
 
 # target.kind（アイテムの種類）
 ITEM_JENKINS = "jenkins"  # Jenkins ジョブをキックする
-ITEM_MEMO = "memo"  # 予定・メモ。Jenkins には接続せず、予定・メモを書くだけ
+ITEM_MEMO = "memo"  # 予定。Jenkins には接続せず、予定を書くだけ
 ITEM_KINDS = (ITEM_JENKINS, ITEM_MEMO)
 
 # schedule.mode
@@ -69,7 +69,7 @@ class Target(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     kind: Mapped[str] = mapped_column(String(10), default=ITEM_JENKINS, server_default=ITEM_JENKINS)
-    job_path: Mapped[str | None] = mapped_column(String(500), unique=True, nullable=True)  # 予定・メモは NULL
+    job_path: Mapped[str | None] = mapped_column(String(500), unique=True, nullable=True)  # 予定は NULL
     display_name: Mapped[str] = mapped_column(String(200))
     category_id: Mapped[int] = mapped_column(ForeignKey("category.id"))
     pinned: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -107,7 +107,7 @@ class Schedule(Base):
     label: Mapped[str | None] = mapped_column(String(200), nullable=True)
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    mode: Mapped[str] = mapped_column(String(10))  # cron | once | memo（予定・メモのアイテムの予定）
+    mode: Mapped[str] = mapped_column(String(10))  # cron | once | memo（予定のアイテムに書いた予定）
     cron_expr: Mapped[str | None] = mapped_column(String(100), nullable=True)
     once_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(10), default=DRAFT)

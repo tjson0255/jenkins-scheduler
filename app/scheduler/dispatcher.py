@@ -160,7 +160,7 @@ class Dispatcher:
     def _end_schedules(self, db: Session, now: datetime) -> None:
         today = local_today()
         for s in db.scalars(
-            # 予定・メモは実行しないので「終了」にしない（過去の予定として画面で薄く表示する）
+            # 予定は実行しないので「終了」にしない（過去の予定として画面で薄く表示する）
             select(Schedule).where(
                 Schedule.status.in_((ACTIVE, PAUSED)), Schedule.end_date.is_not(None), Schedule.mode != "memo"
             )

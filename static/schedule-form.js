@@ -49,7 +49,7 @@ function scheduleForm(s, opts) {
   if (opts.targets) {
     f.target = el("select", {}, opts.targets.map((t) => el("option", { value: t.id, selected: t.id === s.target_id }, `${t.display_name}（${t.job_path}）`)));
   }
-  f.label = el("input", { type: "text", value: s.label || "", placeholder: "例: v1.4.0（タイムラインのバーに表示）" });
+  f.label = el("input", { type: "text", value: s.label || "" });
   f.start = el("input", { type: "date", value: s.start_date || ymd(new Date()), required: true });
   f.end = el("input", { type: "date", value: s.end_date || "" });
   f.infinite = el("input", { type: "checkbox", checked: !s.end_date });
@@ -175,7 +175,7 @@ function scheduleForm(s, opts) {
   };
 }
 
-/** 予定・メモのアイテムの予定のフォーム（タイトル・期間・本文だけ） */
+/** 予定のアイテムに書く予定のフォーム（タイトル・期間・詳細だけ） */
 function memoForm(s, opts) {
   opts = opts || {};
   const field = (label, input) => el("label", { class: "field" }, el("span", {}, label), input);
