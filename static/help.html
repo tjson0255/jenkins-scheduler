@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ヘルプ - Jenkins Scheduler</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="page-narrow page-help">
+  <main>
+    <section class="card help">
+      <h2>ヘルプ</h2>
+      <p class="muted">Jenkins のジョブを決まった時刻にキックし、予定や計画をタイムラインで管理するツールです。</p>
+      <nav class="help-toc">
+        <a href="#screens">画面</a>
+        <a href="#mouse">マウス・キーボード操作</a>
+        <a href="#colors">色と模様の意味</a>
+        <a href="#status">スケジュールの状態</a>
+        <a href="#roles">権限（管理者ログイン）</a>
+        <a href="#holding">保留と保留解除</a>
+        <a href="#params">パラメータと変数</a>
+        <a href="#late">遅れたときの扱い</a>
+        <a href="#backup">バックアップと復元</a>
+        <a href="#faq">よくある質問</a>
+      </nav>
+    </section>
+
+    <section class="card help" id="screens">
+      <h2>画面</h2>
+      <table class="table">
+        <tbody>
+          <tr><th>タイムライン</th><td>横軸が日付、縦にアイテム（行）が並びます。スケジュールはバー、実行（run）は丸で表示します。「縦表示」をオンにすると、行が日付・列がアイテムの表になります。</td></tr>
+          <tr><th>アイテム</th><td>アイテム（Jenkins ジョブ・自由記入）とカテゴリの登録・編集、バックアップと復元。</td></tr>
+          <tr><th>ログ</th><td>誰がいつ何をしたかの記録。種別・対象・操作・期間で絞り込めます。</td></tr>
+        </tbody>
+      </table>
+      <h3>ツールバーのスイッチ</h3>
+      <table class="table">
+        <tbody>
+          <tr><th>縦表示</th><td>行＝日付、列＝アイテムの表に切り替えます。</td></tr>
+          <tr><th>実行状況</th><td>予定や実行結果の丸を表示します。オフにするとバーだけになります。凡例の各項目を押すと、状態ごとに表示・非表示を切り替えられます。</td></tr>
+          <tr><th>凡例</th><td>色と模様の意味の一覧を表示します。</td></tr>
+        </tbody>
+      </table>
+      <p class="muted small">スイッチやカテゴリの折りたたみの状態は、各自のブラウザに保存されます。他の人には影響しません。</p>
+    </section>
+
+    <section class="card help" id="mouse">
+      <h2>マウス・キーボード操作</h2>
+      <h3>横表示（タイムライン）</h3>
+      <table class="table">
+        <tbody>
+          <tr><th>行の空き部分をドラッグ</th><td>その期間でスケジュール（自由記入の行なら予定・メモ）を作成</td></tr>
+          <tr><th>Shift を押しながらドラッグ</th><td>表示する期間を左右に動かす</td></tr>
+          <tr><th>日付の目盛りをドラッグ</th><td>表示する期間を左右に動かす</td></tr>
+          <tr><th>Ctrl を押しながらホイール</th><td>拡大・縮小</td></tr>
+          <tr><th>バーをクリック</th><td>スケジュール（または予定・メモ）の詳細を開く</td></tr>
+          <tr><th>バーを選んでからドラッグ</th><td>期間を前後にずらす。バーの端をドラッグすると期間を伸び縮みできる</td></tr>
+          <tr><th>丸をクリック</th><td>その実行の履歴を開く</td></tr>
+          <tr><th>アイテム名をクリック</th><td>そのアイテムの予定一覧を開く</td></tr>
+          <tr><th>カテゴリ名をクリック</th><td>そのカテゴリを折りたたむ・開く</td></tr>
+          <tr><th>左上の「⊟ 折りたたむ／⊞ 展開」</th><td>すべてのカテゴリをまとめて閉じる・開く</td></tr>
+        </tbody>
+      </table>
+      <h3>縦表示</h3>
+      <table class="table">
+        <tbody>
+          <tr><th>空きセルを縦にドラッグ</th><td>その期間で作成</td></tr>
+          <tr><th>空きセルをダブルクリック</th><td>その日だけの予定を作成</td></tr>
+          <tr><th>帯・ラベル・時刻・アイテム名をクリック</th><td>詳細や予定一覧を開く</td></tr>
+          <tr><th>カテゴリ名をクリック</th><td>その列を折りたたむ・開く（折りたたんだ列には、その日の実行件数を表示）</td></tr>
+        </tbody>
+      </table>
+      <p class="muted small">縦表示ではバーをドラッグして期間を変えることはできません。横表示か、詳細の「基本情報」で変更してください。</p>
+      <h3>ツールバーのボタン</h3>
+      <p>「今日」で今日を表示、◀▶ で前後に移動、1週・4週・3か月で表示する期間を切り替え、＋－で拡大・縮小します。</p>
+    </section>
+
+    <section class="card help" id="colors">
+      <h2>色と模様の意味</h2>
+      <h3>実行（丸）の状態</h3>
+      <table class="table">
+        <tbody>
+          <tr><th><span class="legend-dot rs-scheduled"></span> 予定</th><td>まだキックしていない</td></tr>
+          <tr><th><span class="legend-dot rs-holding"></span> 保留</th><td>予定時刻にキックしようとしたが、問題があって止めた（<a href="#holding">保留と保留解除</a>）</td></tr>
+          <tr><th><span class="legend-dot rs-running"></span> キュー／実行中</th><td>Jenkins がキックを受け付けた（キュー）、またはビルドが動いている（実行中）</td></tr>
+          <tr><th><span class="legend-dot rs-success"></span> 成功</th><td>ビルドが成功して終わった（Jenkins の SUCCESS）</td></tr>
+          <tr><th><span class="legend-dot rs-unstable"></span> 不安定</th><td>ビルドは最後まで通ったが、テストの一部失敗などの問題がある（Jenkins の UNSTABLE）</td></tr>
+          <tr><th><span class="legend-dot rs-failure"></span> 失敗／中断</th><td>ビルドが失敗した、または途中で止められた（Jenkins の FAILURE / ABORTED）</td></tr>
+          <tr><th><span class="legend-dot rs-missed"></span> スキップ／見逃し</th><td>前回のビルドが実行中だった・手動でスキップした（スキップ）、ツールが止まっていたなどで猶予時間内にキックできなかった（見逃し）</td></tr>
+        </tbody>
+      </table>
+      <h3>バー・行の模様</h3>
+      <table class="table">
+        <tbody>
+          <tr><th><span class="legend-bar draft"></span> ドラフト</th><td>作成しただけで、まだ有効化していないスケジュール。キックされない</td></tr>
+          <tr><th><span class="legend-bar hatch-warning"></span> 警告</th><td>要確認。Jenkins でパラメータが追加・削除された、Jenkins 側に cron が残っている など。キックは行われる</td></tr>
+          <tr><th><span class="legend-bar hatch-error"></span> エラー</th><td>キックされない。パラメータの値が Jenkins の選択肢に無い、型が変わった、ジョブが無い、保留中の実行がある など</td></tr>
+        </tbody>
+      </table>
+      <h3>マーク</h3>
+      <table class="table">
+        <tbody>
+          <tr><th>⛔</th><td>ジョブが見つからない・ビルドできない</td></tr>
+          <tr><th>⏰</th><td>Jenkins 側の cron（定期実行）が残っている。二重に実行される恐れがあるので、Jenkins 側の設定を消す</td></tr>
+          <tr><th>📝</th><td>自由記入のアイテム（Jenkins には接続しない、メモや計画を書く行）</td></tr>
+          <tr><th>∞</th><td>終了日の無い（無期限の）スケジュール</td></tr>
+          <tr><th><span class="hold-tag">保留1</span></th><td>保留中の実行の件数</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card help" id="status">
+      <h2>スケジュールの状態</h2>
+      <table class="table">
+        <tbody>
+          <tr><th><span class="chip st-draft">ドラフト</span></th><td>作成直後。キックされない。内容を確かめてから「有効化」する</td></tr>
+          <tr><th><span class="chip st-active">有効</span></th><td>予定時刻に自動でキックされる。有効化は、内容を承認したという意味も兼ねる</td></tr>
+          <tr><th><span class="chip st-paused">一時停止</span></th><td>キックしない。再開すると、止めていた間に予定時刻を過ぎた回は「遅れたときの扱い」に従う</td></tr>
+          <tr><th><span class="chip st-ended">終了</span></th><td>終了日を過ぎた</td></tr>
+          <tr><th><span class="chip st-cancelled">キャンセル</span></th><td>取りやめた。未実行の回もキャンセルされる（元に戻せない）</td></tr>
+        </tbody>
+      </table>
+      <p>詳細パネルの「ドライラン」で、次の回にどんなパラメータでキックされるかを、実際にはキックせずに確かめられます。「今すぐ実行」はスケジュールのパラメータでその場でキックします。</p>
+    </section>
+
+    <section class="card help" id="roles">
+      <h2>権限（管理者ログイン）</h2>
+      <table class="table">
+        <thead><tr><th></th><th>ログインなし</th><th>管理者</th></tr></thead>
+        <tbody>
+          <tr><th>閲覧</th><td>できる</td><td>できる</td></tr>
+          <tr><th>自由記入のアイテム・予定・メモ</th><td>追加・変更・削除できる</td><td>できる</td></tr>
+          <tr><th>カテゴリ</th><td>追加・変更・削除できる</td><td>できる</td></tr>
+          <tr><th>Jenkins アイテムの並び替え</th><td>できる</td><td>できる</td></tr>
+          <tr><th>Jenkins アイテムの登録・設定・削除</th><td>できない</td><td>できる</td></tr>
+          <tr><th>スケジュールの作成・変更・有効化、パラメータ</th><td>できない</td><td>できる</td></tr>
+          <tr><th>今すぐ実行、保留解除、再実行</th><td>できない</td><td>できる</td></tr>
+          <tr><th>バックアップ・復元</th><td>できない</td><td>できる</td></tr>
+        </tbody>
+      </table>
+      <p>画面右上の「管理者ログイン」でログインし、「ログアウト」で戻ります。管理者アカウントは Jenkins を操作する人だけで共有します。</p>
+    </section>
+
+    <section class="card help" id="holding">
+      <h2>保留と保留解除</h2>
+      <p>保留は、予定時刻にキックしようとしたが、パラメータの値が Jenkins の選択肢に無い・キックの送信に失敗した などの問題があって止めた実行です。自動では再開しません。保留があると、画面上部に「⛔ 保留 N件」が出ます。</p>
+      <ol>
+        <li>管理者でログインする</li>
+        <li>「⛔ 保留 N件」を押し、理由を読む（アイテムの予定一覧の「保留中」欄や、スケジュールの「実行履歴」からも同じ操作ができます）</li>
+        <li>原因を直す（例：スケジュールのパラメータを直して保存する、Jenkins 側を直す）。原因が残ったままだと、また保留になります</li>
+        <li>「保留解除」を押す。ボタンが「今すぐキックする」に変わるので、もう一度押すとキックされます</li>
+      </ol>
+      <p class="muted">保留解除は、予定時刻からどれだけ遅れていてもその場で実行します。今さら実行しなくてよい回は「スキップ」で終わらせてください。</p>
+    </section>
+
+    <section class="card help" id="params">
+      <h2>パラメータと変数</h2>
+      <p>パラメータの項目・型・デフォルト値は Jenkins から取得します。詳細パネルの「パラメータ」で、変えたい項目にチェックを入れて値を書きます。チェックの無い項目は Jenkins のデフォルト値で送ります。</p>
+      <p>値には次の変数を書けます（例：<code>{{schedule.label}}-{{run.date}}</code> → <code>v2.4.0-2026-10-05</code>）。日時は東京時間です。</p>
+      <table class="table small">
+        <tbody>
+          <tr><th><code>{{schedule.label}}</code></th><td>スケジュールのラベル（バージョンなど）</td></tr>
+          <tr><th><code>{{schedule.start_date}}</code> / <code>{{schedule.end_date}}</code></th><td>スケジュールの開始日・終了日</td></tr>
+          <tr><th><code>{{run.scheduled_at}}</code></th><td>その回の予定日時（例：2026-10-05 03:00）</td></tr>
+          <tr><th><code>{{run.date}}</code></th><td>その回の予定日（例：2026-10-05）</td></tr>
+          <tr><th><code>{{target.job_path}}</code></th><td>Jenkins のジョブのパス</td></tr>
+        </tbody>
+      </table>
+      <p>「Jenkins Job パラメータのデフォルト値変更に追従しない」をオンにすると、有効化した時点（以降はパラメータを保存した時点）のデフォルト値で実行し続けます。</p>
+    </section>
+
+    <section class="card help" id="late">
+      <h2>遅れたときの扱い</h2>
+      <p>ツールが止まっていた・一時停止していた などで、予定時刻を過ぎてからキックすることになった回の扱いです。スケジュールごとに設定します。</p>
+      <table class="table">
+        <tbody>
+          <tr><th>猶予内なら遅れて実行</th><td>予定時刻から猶予（既定10分）以内なら実行する。過ぎていたら見逃しにする</td></tr>
+          <tr><th>遅れたら実行しない</th><td>1分以上遅れたら見逃しにする</td></tr>
+        </tbody>
+      </table>
+      <p>前回のビルドがまだ実行中・キュー中のときは、アイテムの「前回ビルド実行中」の設定（スキップ／キューに積む）に従います。</p>
+    </section>
+
+    <section class="card help" id="backup">
+      <h2>バックアップと復元</h2>
+      <p>毎日決まった時刻に自動でバックアップを取ります。一覧はアイテム画面の「バックアップ」欄で見られます。</p>
+      <p>復元は、管理者でログインし、戻したい <code>.db</code> の行の「この時点に戻す」を押します。戻す直前に今の状態を自動でバックアップするので、間違えてもそこから戻せます。</p>
+    </section>
+
+    <section class="card help" id="faq">
+      <h2>よくある質問</h2>
+      <dl class="faq">
+        <dt>「成功」はキックに成功したという意味？</dt>
+        <dd>いいえ。Jenkins のビルドそのものが成功して終わったという意味です。キックを受け付けた段階は「キュー」です。起点のジョブが下流のジョブを「終わるまで待つ」設定なら、下流の失敗も起点の結果に含まれます。</dd>
+        <dt>同じジョブが二重にキックされることはない？</dt>
+        <dd>ツールの中では、1回の予定を2回キックしないようにしています。ただし Jenkins 側に cron（定期実行）が残っていると、そちらでも動きます。⏰ が出ていたら Jenkins 側の設定を消してください。</dd>
+        <dt>Jenkins 側でパラメータが変わったら？</dt>
+        <dd>5分ごとに Jenkins から取り直し、変わっていれば警告・エラーの模様で知らせます。パラメータを開いて確かめ、保存すると「確認済み」になって警告が消えます。キックの直前にも必ず確かめ、問題があれば保留にします。</dd>
+        <dt>他の人と同時に編集したら？</dt>
+        <dd>後から保存した方の内容で黙って上書きされることはありません。先に他の人が保存していた場合は「他の人が先に更新しました」と出て、最新の内容を読み込み直します。</dd>
+        <dt>他の人の変更はいつ画面に出る？</dt>
+        <dd>画面は15秒ごとに読み直します。</dd>
+      </dl>
+    </section>
+  </main>
+  <script src="/static/common.js"></script>
+  <script>renderHeader("/help");</script>
+</body>
+</html>

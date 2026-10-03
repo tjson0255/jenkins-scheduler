@@ -16,7 +16,7 @@
   --rs-holding: #e8871e;
   --rs-running: #2f6fde;
   --rs-success: #2e9b55;
-  --rs-unstable: #e0b400;
+  --rs-unstable: #c2489e; /* 保留（オレンジ）と区別しやすい色 */
   --rs-failure: #d64545;
   --rs-aborted: #555b66;
   --rs-missed: #9b7ccc;
@@ -460,5 +460,15 @@ input:disabled, select:disabled, textarea:disabled { background: #f4f5f7; color:
 .v-corner .collapse-toggle { font-weight: 400; }
 .legend-sep { width: 1px; height: 14px; background: var(--line); margin: 0 4px; }
 
-.item-note textarea { font-size: 13px; }
-.item-note { margin-top: 12px; }
+
+/* ヘルプ */
+.help h3 { margin-top: 18px; }
+.help .table th { width: 30%; white-space: normal; font-size: 13px; color: var(--fg); background: #fafbfc; font-weight: 600; }
+.help .table thead th { width: auto; }
+.help .legend-dot, .help .legend-bar { vertical-align: -1px; margin-right: 4px; }
+.help-toc { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; }
+.help-toc a { text-decoration: none; }
+.help-toc a:hover { text-decoration: underline; }
+.faq dt { font-weight: 700; margin-top: 12px; }
+.faq dd { margin: 4px 0 0 0; color: #3a4150; }
+section.help { scroll-margin-top: 12px; }

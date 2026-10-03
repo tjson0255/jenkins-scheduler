@@ -33,7 +33,7 @@ def create_schedule(c, target_id, **kw):
 def test_default_categories_and_pages(app_client):
     names = [c["name"] for c in app_client.get("/api/categories").json()]
     assert names == ["ビルドセット", "リリース関連", "その他"]
-    for path in ("/", "/targets", "/audit"):
+    for path in ("/", "/targets", "/audit", "/help"):
         assert app_client.get(path).status_code == 200
 
 

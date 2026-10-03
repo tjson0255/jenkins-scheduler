@@ -377,6 +377,7 @@ function renderHeader(active) {
     ["/", "タイムライン"],
     ["/targets", "アイテム"],
     ["/audit", "ログ"],
+    ["/help", "ヘルプ"],
   ];
   const header = el(
     "header",

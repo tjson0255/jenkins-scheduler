@@ -24,20 +24,18 @@
         <button class="btn" id="btn-zoom-in" title="拡大">＋</button>
         <button class="btn" id="btn-zoom-out" title="縮小">－</button>
       </div>
-      <label class="switch" title="予定や実行結果の丸（run）を表示します。凡例の各項目を押すと、状態ごとに表示・非表示を切り替えられます">
-        <input type="checkbox" id="runs-toggle"><span class="switch-track"><span class="switch-thumb"></span></span>
-        実行状況
-      </label>
       <label class="switch" title="行を日付、列をアイテムにして表示します">
         <input type="checkbox" id="layout-toggle"><span class="switch-track"><span class="switch-thumb"></span></span>
         縦表示
+      </label>
+      <label class="switch" title="予定や実行結果の丸（run）を表示します。凡例の各項目を押すと、状態ごとに表示・非表示を切り替えられます">
+        <input type="checkbox" id="runs-toggle"><span class="switch-track"><span class="switch-thumb"></span></span>
+        実行状況
       </label>
       <label class="switch" title="凡例（色と模様の意味）を表示します">
         <input type="checkbox" id="legend-toggle"><span class="switch-track"><span class="switch-thumb"></span></span>
         凡例
       </label>
-      <span class="hint" id="hint-h">空き部分をドラッグ: 新規作成 ／ Shift+ドラッグ・日付軸のドラッグ: 移動 ／ Ctrl+ホイール: ズーム</span>
-      <span class="hint" id="hint-v" hidden>空きセルを縦にドラッグ: 新規作成 ／ ダブルクリック: その日だけ作成 ／ アイテム名・バー・時刻をクリック: 詳細</span>
       <div class="legend" id="legend"></div>
     </div>
     <div id="timeline"></div>

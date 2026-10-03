@@ -96,7 +96,7 @@ def test_memo_editor_can_only_edit_memo_text(auth_app):
     # Jenkins アイテムは並び替えだけ（登録・設定変更・削除はできない）
     assert c.post("/api/targets", json={"kind": "jenkins", "job_path": "buildset/web-pipeline"}).status_code == 403
     assert c.patch(f"/api/targets/{jenkins['id']}", json={"sort_order": 5}).status_code == 200
-    assert c.patch(f"/api/targets/{jenkins['id']}", json={"note": "担当: 山田"}).json()["note"] == "担当: 山田"  # メモは誰でも
+    assert c.patch(f"/api/targets/{jenkins['id']}", json={"note": "x"}).status_code == 403
     assert c.patch(f"/api/targets/{jenkins['id']}", json={"display_name": "x"}).status_code == 403
     assert c.patch(f"/api/targets/{jenkins['id']}", json={"enabled": False, "sort_order": 1}).status_code == 403
     assert c.delete(f"/api/targets/{jenkins['id']}").status_code == 403

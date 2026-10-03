@@ -231,6 +231,7 @@ def create_app(
     app.get("/", include_in_schema=False)(page("index.html"))
     app.get("/targets", include_in_schema=False)(page("targets.html"))
     app.get("/audit", include_in_schema=False)(page("audit.html"))
+    app.get("/help", include_in_schema=False)(page("help.html"))
 
     @app.get("/login", include_in_schema=False)
     def login_page():

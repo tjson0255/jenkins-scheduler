@@ -185,8 +185,6 @@ function applyLayout() {
   const v = state.layout === "vertical";
   document.getElementById("timeline").hidden = v;
   document.getElementById("vgrid").hidden = !v;
-  document.getElementById("hint-h").hidden = v;
-  document.getElementById("hint-v").hidden = !v;
 }
 function shiftWindow(frac) {
   const w = timeline.getWindow();
@@ -373,7 +371,7 @@ function groupTemplate(g) {
   if (g.kind === "category") return `<span class="grp-cat-name">${esc(g.name)}</span>`;
   const t = g.target;
   if (t.kind === "memo") {
-    return `<div class="grp-target-inner" title="${esc(["自由記入", t.note || ""].filter(Boolean).join("\n\n"))}">
+    return `<div class="grp-target-inner" title="自由記入">
       <span class="swatch" style="background:${esc(t.color || "#8a94a6")}"></span>
       <span class="grp-name">${esc(t.display_name)}</span><span class="memo-icon">📝</span>
     </div>`;
@@ -384,7 +382,7 @@ function groupTemplate(g) {
   if (t.issue_counts && t.issue_counts.error) warn.push(`<span class="warn-icon err" title="パラメータ定義のエラー ${t.issue_counts.error} 件">●</span>`);
   else if (t.issue_counts && t.issue_counts.warning) warn.push(`<span class="warn-icon warn" title="パラメータ定義の警告 ${t.issue_counts.warning} 件">●</span>`);
   const alerts = itemAlertMessages(t);
-  return `<div class="grp-target-inner" title="${esc([t.job_path + (t.enabled ? "" : "（無効）"), ...alerts, t.note ? "\n" + t.note : ""].filter(Boolean).join("\n"))}">
+  return `<div class="grp-target-inner" title="${esc([t.job_path + (t.enabled ? "" : "（無効）"), ...alerts].join("\n"))}">
     <span class="swatch" style="background:${esc(t.color || "#8a94a6")}"></span>
     <span class="grp-name">${esc(t.display_name)}</span>${warn.join("")}
   </div>`;
@@ -1113,7 +1111,6 @@ async function openItemPanel(targetId) {
       el("a", { class: "btn", href: `/audit?type=target&target=${t.id}` }, "ログ")),
     issueList(warn),
     holdingBox,
-    itemNoteBox(t),
     el("h3", {}, memo ? "予定・メモ" : "スケジュール"),
     scheduleBox,
     memo ? null : el("h3", {}, "今後の run（直近10件）"),
@@ -1200,37 +1197,4 @@ function openFromHash() {
   closeModal();
   openPanel(Number(m[1]), "runs");
   history.replaceState(null, "", location.pathname + location.search);
-}
-
-/** アイテムのメモ欄（アイテムを押したときのパネル）。自由記入を編集できる人なら誰でも書ける */
-function itemNoteBox(t) {
-  const area = el("textarea", { rows: 3, maxlength: 4000, placeholder: "このアイテムについてのメモ（担当者、注意点、連絡先など）" }, t.note || "");
-  const status = el("span", { class: "muted small" });
-  const save = el("button", {
-    class: "btn small primary",
-    disabled: true,
-    onclick: async () => {
-      try {
-        const updated = await api("PATCH", `/api/targets/${t.id}`, { note: area.value.trim() || null, revision: t.revision });
-        Object.assign(t, updated); // 次の保存で新しい更新番号を使う
-        save.disabled = true;
-        status.textContent = "保存しました";
-        loadData(true);
-      } catch (e) {
-        toast(e.message, "error");
-        if (isConflict(e)) {
-          await loadData();
-          openItemPanel(t.id);
-        }
-      }
-    },
-  }, "メモを保存");
-  area.addEventListener("input", () => {
-    save.disabled = area.value === (t.note || "");
-    status.textContent = save.disabled ? "" : "未保存";
-  });
-  if (!can.memo()) area.disabled = true; // 読み取り専用の人は見るだけ
-  return el("div", { class: "item-note" },
-    area,
-    can.memo() ? el("div", { class: "row", style: { justifyContent: "flex-end", marginTop: "4px" } }, status, save) : null);
 }
