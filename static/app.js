@@ -31,7 +31,7 @@ const groups = new vis.DataSet();
 const items = new vis.DataSet();
 let timeline;
 
-// ?embed=1: 他の画面のモーダルの中に、スケジュールの詳細パネルだけを出す（アイテム画面から使う）
+// ?embed=1: 他の画面のモーダルの中に、スケジューラの詳細パネルだけを出す（アイテム画面から使う）
 const EMBED = new URLSearchParams(location.search).get("embed") === "1";
 if (EMBED) document.body.classList.add("embed");
 
@@ -528,7 +528,7 @@ async function onItemMove(item, callback) {
     // 無期限バーの右端をリサイズ → 終了日を設定する
     const endIncl = addDays(newEndExcl, -1);
     if (endIncl < newStart) return callback(null);
-    const ok = await confirmDialog("終了日の設定", `無期限のスケジュールに終了日 ${fmtDate(ymd(endIncl))} を設定しますか？`, "設定する");
+    const ok = await confirmDialog("終了日の設定", `無期限のスケジューラに終了日 ${fmtDate(ymd(endIncl))} を設定しますか？`, "設定する");
     if (!ok) return callback(null);
     payload.end_date = ymd(endIncl);
   }
@@ -607,7 +607,7 @@ function openCreateDialog(targetId, startDate, endDate) {
     try {
       const s = await api("POST", "/api/schedules", { ...v, activate });
       closeModal(); // 仮表示の範囲・縦表示の選択はダイアログを閉じたときの処理で片付ける
-      toast(activate ? "スケジュールを作成して有効化しました" : "ドラフトとして保存しました");
+      toast(activate ? "スケジューラを作成して有効化しました" : "ドラフトとして保存しました");
       items.remove("__new");
       await loadData();
       openPanel(s.id, "basic");
@@ -615,7 +615,7 @@ function openCreateDialog(targetId, startDate, endDate) {
       toast(e.message, "error");
     }
   };
-  openModal("スケジュールの作成", form.root, [
+  openModal("スケジューラの作成", form.root, [
     el("button", { class: "btn", onclick: closeModal }, "やめる"),
     el("button", { class: "btn", onclick: () => submit(false) }, "ドラフトで保存"),
     el("button", { class: "btn primary", onclick: () => submit(true) }, "保存して有効化"),
@@ -670,9 +670,9 @@ async function openPanel(id, tab, focusRunId) {
     el("div", { class: "panel-header" },
       el("div", {},
         el("a", { class: "small back-link", href: "#", title: "このアイテムの予定一覧", onclick: (e) => { e.preventDefault(); openItemPanel(s.target_id); } }, `← ${t.display_name || ""}（${t.job_path || ""}）の予定一覧`),
-        el("h2", {}, s.label || (s.mode === "cron" ? s.cron_summary : "スケジュール #" + s.id), " ", statusChip(s.status))),
+        el("h2", {}, s.label || (s.mode === "cron" ? s.cron_summary : "スケジューラ #" + s.id), " ", statusChip(s.status))),
       el("button", { class: "icon-btn", title: "閉じる", onclick: closePanel }, "×")),
-    can.admin() ? actionBar(s, t) : readonlyNote("このスケジュールは閲覧のみです"),
+    can.admin() ? actionBar(s, t) : readonlyNote("このスケジューラは閲覧のみです"),
     s.holding_count
       ? el("div", { class: "holding-note" }, `⛔ 保留中の run が ${s.holding_count} 件あります（キックされずに止まっています）。`,
           el("a", { href: "#", onclick: (e) => { e.preventDefault(); openPanel(s.id, "runs"); } }, "実行履歴で確認"))
@@ -728,7 +728,7 @@ function actionBar(s, t) {
     el("button", {
       class: "btn",
       onclick: async () => {
-        if (!(await confirmDialog("今すぐ実行", `${t.display_name} を、このスケジュールのパラメータで今すぐキックします。`, "キックする"))) return;
+        if (!(await confirmDialog("今すぐ実行", `${t.display_name} を、このスケジューラのパラメータで今すぐキックします。`, "キックする"))) return;
         try {
           const r = await api("POST", `/api/targets/${s.target_id}/run-now`, { schedule_id: s.id });
           toast(`キックしました: ${RUN_STATUS_LABEL[r.status]}${r.reason ? "（" + r.reason + "）" : ""}`, r.status === "holding" || r.status === "skipped" ? "error" : "");
@@ -740,14 +740,14 @@ function actionBar(s, t) {
     }, "今すぐ実行")
   );
   if (["draft", "active", "paused"].includes(s.status)) {
-    bar.append(act("キャンセル", `/api/schedules/${s.id}/cancel`, { cls: "danger", confirm: "スケジュールをキャンセルします。未実行の run はすべてキャンセルされます（元に戻せません）。" }));
+    bar.append(act("キャンセル", `/api/schedules/${s.id}/cancel`, { cls: "danger", confirm: "スケジューラをキャンセルします。未実行の run はすべてキャンセルされます（元に戻せません）。" }));
   }
   bar.append(act("削除", `/api/schedules/${s.id}`, {
     cls: "danger",
     method: "DELETE",
     confirm: s.status === "draft"
       ? "ドラフトを削除します。"
-      : "スケジュールを削除します。これまでの実行履歴も一緒に削除されます（元に戻せません。削除したことはログに残ります）。\n\n実行履歴を残したい場合は「キャンセル」を使ってください。",
+      : "スケジューラを削除します。これまでの実行履歴も一緒に削除されます（元に戻せません。削除したことはログに残ります）。\n\n実行履歴を残したい場合は「キャンセル」を使ってください。",
   }));
   return bar;
 }
@@ -1075,7 +1075,7 @@ async function openItemPanel(targetId) {
               el("div", { class: "muted small" },
                 `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`, scheduleRule(s) ? " ／ " : "", scheduleRule(s)),
               s.next_run_at ? el("div", { class: "small" }, "次回: ", fmtDateTime(s.next_run_at, true)) : null)))
-        : el("p", { class: "muted" }, memo ? "予定はありません。タイムラインの行の空き部分をドラッグするか、上のボタンで追加できます。" : "スケジュールはありません。タイムラインの行の空き部分をドラッグするか、上のボタンで作成できます。")
+        : el("p", { class: "muted" }, memo ? "予定はありません。タイムラインの行の空き部分をドラッグするか、上のボタンで追加できます。" : "スケジューラはありません。タイムラインの行の空き部分をドラッグするか、上のボタンで作成できます。")
     );
 
     const runTable = (runs, empty) =>
@@ -1109,7 +1109,7 @@ async function openItemPanel(targetId) {
           const d = new Date();
           openCreateDialog(t.id, ymd(d), ymd(addDays(d, 6)));
         },
-      }, memo ? "予定を追加" : "スケジュールを作成") : null,
+      }, memo ? "予定を追加" : "スケジューラを作成") : null,
       memo || !can.admin() ? null : el("button", {
         class: "btn",
         onclick: async () => {
@@ -1127,7 +1127,7 @@ async function openItemPanel(targetId) {
       el("a", { class: "btn", href: `/audit?type=target&target=${t.id}` }, "ログ")),
     issueList(warn),
     holdingBox,
-    el("h3", {}, memo ? "予定" : "スケジュール"),
+    el("h3", {}, memo ? "予定" : "スケジューラ"),
     scheduleBox,
     memo ? null : el("h3", {}, "今後の run（直近10件）"),
     memo ? null : upcomingBox,
@@ -1207,7 +1207,7 @@ function renderMemoPanel(s, t) {
 }
 
 /** URL の # で開くパネルを指定する（保留一覧・1日の予定からのリンク用）
- *   #schedule=ID          そのスケジュールの実行履歴
+ *   #schedule=ID          そのスケジューラの実行履歴
  *   #schedule=ID&run=ID   実行履歴の、その run の行
  *   #schedule=ID&tab=basic など  そのタブ
  *   #item=ID              そのアイテムの予定一覧 */

@@ -3,7 +3,7 @@
 
 renderHeader("/audit");
 
-const TYPE_LABEL = { schedule: "スケジュール", run: "run", target: "アイテム", category: "カテゴリ", system: "システム" };
+const TYPE_LABEL = { schedule: "スケジューラ", run: "run", target: "アイテム", category: "カテゴリ", system: "システム" };
 const filters = ["f-type", "f-target", "f-action", "f-from", "f-to"].map((id) => document.getElementById(id));
 
 // URL の ?type=&target= で絞り込んで開けるようにする

@@ -1,7 +1,7 @@
 """run の状態機械と tick（仕様書 9.1）。
 
 tick ごとに
-  1. 終了日を過ぎたスケジュールを ended にする
+  1. 終了日を過ぎたスケジューラを ended にする
   2. run を補充する
   3. 期限が来た scheduled の run を、遅延判定 → キック直前検証 → 重複チェック → キック の順に処理する
   4. queued / running の run の状態を1段ずつ進める（ブロッキング待ちはしない）
@@ -168,7 +168,7 @@ class Dispatcher:
             if s.end_date < today:
                 s.status = ENDED
                 s.revision += 1  # 画面で開いている人の古い内容で上書きされないように
-                n = planner.cancel_pending_runs(db, s, R_CANCELLED, "スケジュール終了")
+                n = planner.cancel_pending_runs(db, s, R_CANCELLED, "スケジューラ終了")
                 audit.record(db, audit.SYSTEM, "schedule.ended", "schedule", s.id, {"cancelled_runs": n})
 
     def fill_all(self, db: Session, now: datetime | None = None) -> int:

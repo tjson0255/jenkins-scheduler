@@ -1,4 +1,4 @@
-"""スキーマの取得・保存と、スケジュールに対する検証結果の組み立て。"""
+"""スキーマの取得・保存と、スケジューラに対する検証結果の組み立て。"""
 
 from __future__ import annotations
 
@@ -113,7 +113,7 @@ def evaluate_schedule(
     at: datetime,
     target_error: str | None = None,
 ) -> tuple[dict[str, str], dict[str, dict[str, Any]], list[dict[str, Any]]]:
-    """スケジュールのパラメータを時刻 at の文脈で展開し、最新スキーマに照らして検証する。"""
+    """スケジューラのパラメータを時刻 at の文脈で展開し、最新スキーマに照らして検証する。"""
     ctx = schedule_context(schedule, at)
     overrides = schedule.override_map()
     pinned = schedule.pinned_params_json if schedule.params_pinned else None

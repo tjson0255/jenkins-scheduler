@@ -91,7 +91,7 @@ class CronPreviewIn(BaseModel):
 def _get(db: Session, sid: int) -> Schedule:
     s = db.get(Schedule, sid)
     if not s:
-        raise not_found("スケジュール")
+        raise not_found("スケジューラ")
     return s
 
 
@@ -283,7 +283,7 @@ def update_schedule(
     s = _get(db, sid)
     _require_editable(user, memo=s.is_memo)
     if s.status == CANCELLED:
-        raise HTTPException(409, "キャンセル済みのスケジュールは変更できません")
+        raise HTTPException(409, "キャンセル済みのスケジューラは変更できません")
     bump_revision(db, Schedule, s.id, body.revision)
     before = _snapshot(s)
     changes = body.model_dump(exclude_unset=True, exclude={"revision"})
@@ -327,7 +327,7 @@ def delete_schedule(
     user: User = Depends(get_user),
     dispatcher: Dispatcher = Depends(get_dispatcher),
 ):
-    """スケジュールを削除する（実行履歴も消える。ログには削除した内容を残す）。
+    """スケジューラを削除する（実行履歴も消える。ログには削除した内容を残す）。
 
     キック中・キュー中・実行中のビルドがある間は削除しない（Jenkins 側で動いているものを追えなくなるため）。
     dispatcher のキック処理と同時に進まないよう、dispatcher のロックの中で確認して削除する。
@@ -377,7 +377,7 @@ def _transition(db: Session, s: Schedule, allowed: tuple[str, ...], new: str, ac
     s.status = new
     detail = None
     if new == CANCELLED:
-        n = planner.cancel_pending_runs(db, s, R_CANCELLED, "スケジュールのキャンセル")
+        n = planner.cancel_pending_runs(db, s, R_CANCELLED, "スケジューラのキャンセル")
         detail = {"cancelled_runs": n}
     audit.record(db, actor, action, "schedule", s.id, detail)
     db.commit()
@@ -501,7 +501,7 @@ def dry_run(
     busy = bool(info.get("inQueue") or last_build.get("building"))
     errors = [i for i in issues if i["level"] == diff.ERROR]
     if s.status != ACTIVE:
-        verdict = f"スケジュールが {s.status} のため実行されません"
+        verdict = f"スケジューラが {s.status} のため実行されません"
     elif errors:
         verdict = "検証エラーのため holding になります"
     elif busy and s.target.overlap_policy == "skip":

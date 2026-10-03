@@ -5,9 +5,9 @@
  */
 "use strict";
 
-const LANE_W = 9; // スケジュール1本分の縦帯の幅(px)
+const LANE_W = 9; // スケジューラ1本分の縦帯の幅(px)
 const V_MAX_RUNS_PER_CELL = 4;
-// focusDay: 日付をクリックして選んだ日（null なら今日）。その行にスケジュールの見出しを出す
+// focusDay: 日付をクリックして選んだ日（null なら今日）。その行にスケジューラの見出しを出す
 const vState = { collapsed: new Set(), scrollToToday: true, drag: null, wired: false, focusDay: null };
 
 try {
@@ -194,7 +194,7 @@ function renderVertical() {
       collapsed ? [vCollapsedCell(cat, items, day, runsByDay, showRuns)] : items.map((t) => vCell(t, i, day, spansByItem.get(t.id), runsByDay, showRuns))
     );
     rows.push(`<tr class="${cls}" data-day="${day}">
-      <th class="v-date" scope="row" data-day="${day}" title="クリックでこの日のスケジュールを表示">${showMonth ? `<span class="v-month">${d.getFullYear()}/${d.getMonth() + 1}</span>` : ""}${d.getDate()}<span class="v-dow">(${WD[dow]})</span>${day === todayStr ? '<span class="v-today">今日</span>' : ""}</th>
+      <th class="v-date" scope="row" data-day="${day}" title="クリックでこの日のスケジューラを表示">${showMonth ? `<span class="v-month">${d.getFullYear()}/${d.getMonth() + 1}</span>` : ""}${d.getDate()}<span class="v-dow">(${WD[dow]})</span>${day === todayStr ? '<span class="v-today">今日</span>' : ""}</th>
       ${cells.join("")}
     </tr>`);
   }
@@ -250,7 +250,7 @@ function vWire(box) {
     if (e.target.closest('[data-action="toggle-all"]')) return toggleAllCollapsed();
     const date = e.target.closest("th.v-date[data-day]");
     if (date) {
-      // 選んだ日の行に、その日にかかっているスケジュールの見出しを出す（「今日」の印は今日のまま）
+      // 選んだ日の行に、その日にかかっているスケジューラの見出しを出す（「今日」の印は今日のまま）
       vState.focusDay = date.dataset.day === ymd(new Date()) ? null : date.dataset.day;
       return renderVertical();
     }

@@ -47,7 +47,7 @@ function setDay(s) {
   load();
 }
 
-/** タイムラインを開いて、スケジュール（またはアイテム）の詳細を出すリンク先 */
+/** タイムラインを開いて、スケジューラ（またはアイテム）の詳細を出すリンク先 */
 function detailHref(hash) {
   return `/?date=${currentDay()}#${hash}`;
 }
@@ -63,10 +63,10 @@ function itemCell(targetId, name, hash) {
     el("a", { href: detailHref(hash), title: "実行履歴を開く" }, name || t?.display_name || `#${targetId}`));
 }
 
-/** スケジュールの欄。押すとタイムラインでそのスケジュールの詳細（基本情報）を開く */
+/** スケジューラの欄。押すとタイムラインでそのスケジューラの詳細（基本情報）を開く */
 function scheduleCell(scheduleId, title) {
   if (!scheduleId) return el("td", {}, title);
-  return el("td", {}, el("a", { href: detailHref(`schedule=${scheduleId}&tab=basic`), title: "スケジュールの詳細を開く" }, title));
+  return el("td", {}, el("a", { href: detailHref(`schedule=${scheduleId}&tab=basic`), title: "スケジューラの詳細を開く" }, title));
 }
 
 function timeOf(iso) {
@@ -81,14 +81,14 @@ function timeCell(iso) {
 }
 
 function runRow(r) {
-  // ドラフト・一時停止中のスケジュールの未実行の run はキックされない
+  // ドラフト・一時停止中のスケジューラの未実行の run はキックされない
   if (r.status === "scheduled" && ["draft", "paused"].includes(r.schedule_status)) {
     return plannedRow(r);
   }
   return el("tr", { class: `rs-row-${r.status}` },
     timeCell(r.scheduled_at),
     categoryCell(r.target_id),
-    // スケジュールの run はその実行履歴の行へ、即時実行など（スケジュールなし）はアイテムの予定一覧へ
+    // スケジューラの run はその実行履歴の行へ、即時実行など（スケジューラなし）はアイテムの予定一覧へ
     itemCell(r.target_id, r.target_name, r.schedule_id ? `schedule=${r.schedule_id}&run=${r.id}` : `item=${r.target_id}`),
     scheduleCell(r.schedule_id, r.schedule_title || (r.retry_of_id ? "再実行" : "即時実行")),
     el("td", {}, el("span", { class: `legend-dot rs-${r.status}` }), " ", RUN_STATUS_LABEL[r.status] || r.status),
@@ -131,7 +131,7 @@ function renderRuns(data, isCurrent) {
   }
   if (!nowShown) body.push(el("tr", { class: "now-line" }, el("td", { colspan: 7 }, `現在 ${timeOf(nowIso)}`)));
   box.replaceChildren(el("table", { class: "table day-table" },
-    el("thead", {}, el("tr", {}, ["時刻", "カテゴリ", "アイテム", "スケジュール", "状態", "ビルド", "詳細"].map((h) => el("th", {}, h)))),
+    el("thead", {}, el("tr", {}, ["時刻", "カテゴリ", "アイテム", "スケジューラ", "状態", "ビルド", "詳細"].map((h) => el("th", {}, h)))),
     el("tbody", {}, body)));
 }
 

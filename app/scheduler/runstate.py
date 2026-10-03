@@ -62,7 +62,7 @@ def transition(
 
 
 def claim(db: Session, run: Run, now: datetime | None = None, *, require_active_schedule: bool = True) -> bool:
-    """予定どおりのキック用に run を確保する。スケジュールが有効でなくなっていたら確保しない。"""
+    """予定どおりのキック用に run を確保する。スケジューラが有効でなくなっていたら確保しない。"""
     cond = and_(Run.status == R_SCHEDULED, Run.triggered_at.is_(None))
     if require_active_schedule:
         cond = and_(

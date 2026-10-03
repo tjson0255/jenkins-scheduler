@@ -98,7 +98,7 @@ jenkins_api_errors_total = Counter(
     "jenkins_scheduler_jenkins_api_errors_total", "Jenkins API エラー数", ["kind"]
 )
 schema_drift = Gauge(
-    "jenkins_scheduler_schema_drift", "未実行 run を持つスケジュールのスキーマ差分件数", ["target", "level"]
+    "jenkins_scheduler_schema_drift", "未実行 run を持つスケジューラのスキーマ差分件数", ["target", "level"]
 )
 backup_last_success = Gauge(
     "jenkins_scheduler_backup_last_success_timestamp_seconds", "最後にバックアップに成功した時刻 (unix 秒)"

@@ -6,7 +6,7 @@ const ready = renderHeader("/targets");
 
 let categories = [];
 let targets = [];
-let schedulesByTarget = new Map(); // アイテムごとのスケジュール・予定（キャンセル済みは除く）
+let schedulesByTarget = new Map(); // アイテムごとのスケジューラ・予定（キャンセル済みは除く）
 
 async function load() {
   let schedules;
@@ -88,7 +88,7 @@ function targetRow(t, siblings, index) {
     }
   };
   const memo = t.kind === "memo";
-  // パラメータ定義・警告・今すぐ実行はスケジュールごとの情報なので、スケジュール一覧に置く
+  // パラメータ定義・警告・今すぐ実行はスケジューラごとの情報なので、スケジューラ一覧に置く
   const na = () => el("span", { class: "muted" }, "—");
   const row = el("tr", {},
     el("td", {}, color),
@@ -103,7 +103,7 @@ function targetRow(t, siblings, index) {
       !can.editItem(t) ? null : el("button", {
         class: "btn small danger",
         onclick: async () => {
-          if (!(await confirmDialog("アイテムの削除", memo ? `${t.display_name}（テキスト）を削除します。\nこのアイテムの予定もすべて削除されます。` : `${t.display_name}（${t.job_path}）を削除します。\nこのアイテムのスケジュールと run 履歴も削除されます。`, "削除", true))) return;
+          if (!(await confirmDialog("アイテムの削除", memo ? `${t.display_name}（テキスト）を削除します。\nこのアイテムの予定もすべて削除されます。` : `${t.display_name}（${t.job_path}）を削除します。\nこのアイテムのスケジューラと run 履歴も削除されます。`, "削除", true))) return;
           try {
             await api("DELETE", `/api/targets/${t.id}`);
             toast("削除しました");
@@ -123,7 +123,7 @@ function targetRow(t, siblings, index) {
   return row;
 }
 
-/* ---- スケジュール一覧（すべてのアイテムのスケジュール・予定）と追加 ---- */
+/* ---- スケジューラ一覧（すべてのアイテムのスケジューラ・予定）と追加 ---- */
 let scheduleFilter = ""; // 絞り込むアイテムの id（空ならすべて）
 
 function scheduleRule(s) {
@@ -184,7 +184,7 @@ function renderScheduleList() {
         el("td", {}, memo ? "" : statusChip(s.status)),
         el("td", { class: "small" }, memo ? "" : scheduleWarnings(s, t)),
         el("td", {}, !memo && can.admin() && ["draft", "active", "paused"].includes(s.status)
-          ? el("button", { class: "btn small", title: "このスケジュールのパラメータで今すぐキックする", onclick: () => runNowSchedule(t, s) }, "今すぐ実行")
+          ? el("button", { class: "btn small", title: "このスケジューラのパラメータで今すぐキックする", onclick: () => runNowSchedule(t, s) }, "今すぐ実行")
           : "")));
     }
   }
@@ -192,10 +192,10 @@ function renderScheduleList() {
     ? el("div", { class: "table-wrap" }, el("table", { class: "table schedule-table" },
         el("thead", {}, el("tr", {}, ["カテゴリ", "アイテム", "タイトル", "実行規則", "期間", "状態", "警告", ""].map((h) => el("th", {}, h)))),
         el("tbody", {}, rows)))
-    : el("p", { class: "muted" }, "スケジュールはありません。"));
+    : el("p", { class: "muted" }, "スケジューラはありません。"));
 }
 
-/** そのスケジュールの警告をまとめて出す。
+/** そのスケジューラの警告をまとめて出す。
  *  パラメータの確認結果（Jenkins の最新のパラメータ定義と照らし合わせたもの）と、
  *  予定どおり動かない原因（保留・ジョブ・Jenkins 側の cron・アイテムが無効）。何も無ければ「なし」 */
 function scheduleWarnings(s, t) {
@@ -217,7 +217,7 @@ function scheduleWarnings(s, t) {
   return out.length ? el("span", { class: "warn-list" }, out) : el("span", { class: "status-ok" }, "✔ なし");
 }
 
-/** スケジュールの詳細を、この画面のモーダルで開くリンク（Ctrl・⌘ を押しながらなら、タイムラインを別のタブで開く） */
+/** スケジューラの詳細を、この画面のモーダルで開くリンク（Ctrl・⌘ を押しながらなら、タイムラインを別のタブで開く） */
 function scheduleLink(s, tab, attrs, text) {
   return el("a", {
     ...attrs,
@@ -232,7 +232,7 @@ function scheduleLink(s, tab, attrs, text) {
 
 /** タイムライン画面の詳細パネルを、埋め込み表示（?embed=1）でモーダルの中に出す。閉じたら一覧を読み直す */
 function openScheduleModal(s, tab) {
-  const frame = el("iframe", { class: "schedule-frame", src: `/?embed=1&date=${s.start_date}#schedule=${s.id}&tab=${tab}`, title: "スケジュールの詳細" });
+  const frame = el("iframe", { class: "schedule-frame", src: `/?embed=1&date=${s.start_date}#schedule=${s.id}&tab=${tab}`, title: "スケジューラの詳細" });
   const modal = openModal(scheduleTitleOf(s), frame, []);
   modal.querySelector(".modal").classList.add("modal-wide");
   modal.querySelector(".modal-footer").remove();
@@ -245,7 +245,7 @@ window.addEventListener("message", (e) => {
 });
 
 async function runNowSchedule(t, s) {
-  if (!(await confirmDialog("今すぐ実行", `${t.display_name}「${scheduleTitleOf(s)}」を、このスケジュールのパラメータで今すぐキックします。`, "キックする"))) return;
+  if (!(await confirmDialog("今すぐ実行", `${t.display_name}「${scheduleTitleOf(s)}」を、このスケジューラのパラメータで今すぐキックします。`, "キックする"))) return;
   try {
     const r = await api("POST", `/api/targets/${t.id}/run-now`, { schedule_id: s.id });
     toast(`キックしました: ${RUN_STATUS_LABEL[r.status]}${r.reason ? "（" + r.reason + "）" : ""}`, ["holding", "skipped"].includes(r.status) ? "error" : "");
@@ -255,7 +255,7 @@ async function runNowSchedule(t, s) {
   }
 }
 
-/** 追加ダイアログ。アイテムを選ぶと、Jenkins ならスケジュール、テキストのアイテムなら予定の入力欄にする。
+/** 追加ダイアログ。アイテムを選ぶと、Jenkins ならスケジューラ、テキストのアイテムなら予定の入力欄にする。
  *  追加できないアイテム（管理者ログインしていないときの Jenkins アイテム）も、選べない形で並べる */
 function openAddSchedule(ordered) {
   const editable = ordered.filter((t) => can.editItem(t));
@@ -270,7 +270,7 @@ function openAddSchedule(ordered) {
       : null;
   }));
   const note = editable.length < ordered.length
-    ? readonlyNote("Jenkins のアイテムへのスケジュールの追加は管理者のみです")
+    ? readonlyNote("Jenkins のアイテムへのスケジューラの追加は管理者のみです")
     : null;
   const area = el("div");
   const buttons = el("div", { class: "row" });
@@ -299,13 +299,13 @@ function openAddSchedule(ordered) {
       buttons.replaceChildren(
         el("button", { class: "btn", onclick: closeModal }, "やめる"),
         el("button", { class: "btn", onclick: () => save({ activate: false }, "ドラフトとして保存しました") }, "ドラフトで保存"),
-        el("button", { class: "btn primary", onclick: () => save({ activate: true }, "スケジュールを作成して有効化しました") }, "保存して有効化"));
+        el("button", { class: "btn primary", onclick: () => save({ activate: true }, "スケジューラを作成して有効化しました") }, "保存して有効化"));
     }
     area.replaceChildren(form.root);
   };
   pick.addEventListener("change", build);
   build();
-  openModal("スケジュール・予定の追加", el("div", { class: "form" }, note, el("label", { class: "field" }, el("span", {}, "アイテム"), pick), area), [buttons]);
+  openModal("スケジューラ・予定の追加", el("div", { class: "form" }, note, el("label", { class: "field" }, el("span", {}, "アイテム"), pick), area), [buttons]);
 }
 
 let registerState = { results: [], open: false };
@@ -544,7 +544,7 @@ async function loadBackups() {
       b.enabled ? `毎日 ${b.time} に自動で取得し、${b.keep} 世代残します。` : "自動バックアップは無効です（BACKUP_ENABLED=false）。",
       " 保存先は ", b.dir_configured ? ".env の BACKUP_DIR で指定した場所です。" : "既定の場所です（.env の BACKUP_DIR が未設定）。",
       el("br"), "保存先・時刻・世代数は .env の BACKUP_DIR / BACKUP_TIME / BACKUP_KEEP で変更し、ツールを再起動すると反映されます。",
-      el("br"), "scheduler-*.db は復元用（run 履歴・ログを含む）、settings-*.json はアイテム・スケジュール・パラメータの内容を読める形で書き出したものです。Jenkins のトークンを含む .env はバックアップしません。"),
+      el("br"), "scheduler-*.db は復元用（run 履歴・ログを含む）、settings-*.json はアイテム・スケジューラ・パラメータの内容を読める形で書き出したものです。Jenkins のトークンを含む .env はバックアップしません。"),
     b.files.length
       ? el("table", { class: "table small" },
           el("thead", {}, el("tr", {}, ["ファイル", "サイズ", "作成日時", ""].map((h) => el("th", {}, h)))),
@@ -559,7 +559,7 @@ async function restoreBackup(f) {
   const ok = await confirmDialog(
     "バックアップの時点に戻す",
     `${fmtDateTime(f.modified_at, true)} のバックアップ（${f.name}）の時点に、すべてのデータを戻します。\n\n` +
-      "・アイテム、スケジュール、パラメータ、実行履歴、ログがこの時点の内容に置き換わります\n" +
+      "・アイテム、スケジューラ、パラメータ、実行履歴、ログがこの時点の内容に置き換わります\n" +
       "・戻す直前に今の状態を自動でバックアップするので、間違えた場合はそこから戻せます\n" +
       "・戻したあと、予定時刻を過ぎている未実行の run は、遅延時の扱い（missed_policy）に従って処理されます\n" +
       "・他の人が開いている画面は、再読み込みで新しい内容になります",

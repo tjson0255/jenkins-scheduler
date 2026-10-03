@@ -415,7 +415,7 @@ function renderHeader(active) {
               },
             }, "ログアウト"))
         : el("div", { class: "userbox" },
-            el("a", { class: "login-link", href: adminLoginUrl(), title: "Jenkins のスケジュールなどを操作するには管理者でログインします" }, "管理者ログイン")));
+            el("a", { class: "login-link", href: adminLoginUrl(), title: "Jenkins のスケジューラなどを操作するには管理者でログインします" }, "管理者ログイン")));
     } else if (me && (me.auth_mode === "ldap" || me.auth_mode === "mock")) {
       header.append(el("div", { class: "userbox" },
         el("span", { title: me.username }, me.display_name),
@@ -478,7 +478,7 @@ function holdingTable(runs, onChanged, opts) {
     return b;
   };
   return el("table", { class: "table small holding-table" },
-    el("thead", {}, el("tr", {}, ["予定日時", opts.hideItem ? null : "アイテム", "スケジュール", "詳細", ""].filter(Boolean).map((h) => el("th", {}, h)))),
+    el("thead", {}, el("tr", {}, ["予定日時", opts.hideItem ? null : "アイテム", "スケジューラ", "詳細", ""].filter(Boolean).map((h) => el("th", {}, h)))),
     el("tbody", {}, runs.map((r) =>
       el("tr", {},
         el("td", { style: { whiteSpace: "nowrap" } }, fmtDateTime(r.scheduled_at, true)),

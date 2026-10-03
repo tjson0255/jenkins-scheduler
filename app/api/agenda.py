@@ -17,7 +17,7 @@ from app.timeutil import iso_z, local_tz, to_utc_naive, utcnow
 
 router = APIRouter(tags=["agenda"])
 
-# run を作る前の予定（先の日付やドラフト）も、スケジュールから時刻を計算して見せる
+# run を作る前の予定（先の日付やドラフト）も、スケジューラから時刻を計算して見せる
 PLANNING_STATUSES = (DRAFT, ACTIVE, PAUSED)
 
 
@@ -58,7 +58,7 @@ def get_agenda(
     for s in schedules:
         if s.mode == MODE_MEMO or s.status not in PLANNING_STATUSES:
             continue
-        # スケジュールの期間（開始日〜終了日）と、表示する範囲の重なりだけを計算する
+        # スケジューラの期間（開始日〜終了日）と、表示する範囲の重なりだけを計算する
         win_start, win_end = schedule_window(s)
         a_, b_ = max(lo, now, win_start), min(hi, win_end) if win_end else hi
         if s.mode == MODE_CRON and s.cron_expr and a_ < b_:

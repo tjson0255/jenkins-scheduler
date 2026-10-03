@@ -176,7 +176,7 @@ def delete_target(tid: int, db: Session = Depends(get_db), actor: str = Depends(
     if not user.is_admin and not t.is_memo:
         raise HTTPException(403, "Jenkins アイテムの削除には管理者ログインが必要です")
     if any(s.status == ACTIVE for s in t.schedules):
-        raise HTTPException(409, "有効なスケジュールがあるため削除できません")
+        raise HTTPException(409, "有効なスケジューラがあるため削除できません")
     for r in db.scalars(select(Run).where(Run.target_id == t.id)):
         db.delete(r)
     audit.record(db, actor, "target.delete", "target", t.id, {"job_path": t.job_path})
@@ -213,7 +213,7 @@ def run_now(
     dispatcher: Dispatcher = Depends(get_dispatcher),
     actor: str = Depends(get_actor),
 ):
-    """即時キック。schedule_id を渡すとそのスケジュールのパラメータで実行する。"""
+    """即時キック。schedule_id を渡すとそのスケジューラのパラメータで実行する。"""
     t = db.get(Target, tid)
     if not t:
         raise not_found("アイテム")
@@ -224,7 +224,7 @@ def run_now(
     if body.schedule_id is not None:
         s = db.get(Schedule, body.schedule_id)
         if not s or s.target_id != t.id:
-            raise HTTPException(400, "スケジュールが見つかりません")
+            raise HTTPException(400, "スケジューラが見つかりません")
         try:
             state = fetch_schema(db, client, t)
         except JenkinsError as exc:
@@ -234,7 +234,7 @@ def run_now(
         params = rendered
     # 作った時点で確保済み（triggered_at）にして、dispatcher に拾われて二重キックにならないようにする
     run = Run(schedule_id=None, target_id=t.id, scheduled_at=now, status=R_SCHEDULED, params_json=params, triggered_at=now,
-              reason=f"スケジュール #{body.schedule_id} のパラメータで即時実行" if body.schedule_id else "即時実行")
+              reason=f"スケジューラ #{body.schedule_id} のパラメータで即時実行" if body.schedule_id else "即時実行")
     db.add(run)
     db.flush()
     audit.record(db, actor, "run.run_now", "run", run.id, {"target": t.job_path, "schedule_id": body.schedule_id, "params": params})
