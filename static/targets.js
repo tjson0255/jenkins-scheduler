@@ -170,8 +170,8 @@ function renderScheduleList() {
     scheduleFilter = filter.value;
     renderScheduleList();
   });
-  const editable = ordered.filter((t) => can.editItem(t));
-  const addBtn = editable.length ? el("button", { class: "btn primary", onclick: () => openAddSchedule(editable) }, "＋ 追加") : null;
+  const canAdd = ordered.some((t) => can.editItem(t));
+  const addBtn = canAdd ? el("button", { class: "btn primary", onclick: () => openAddSchedule(ordered) }, "＋ 追加") : null;
   const tools = document.getElementById("schedule-tools");
   tools.replaceChildren(filter, addBtn || "");
 
@@ -197,12 +197,23 @@ function renderScheduleList() {
     : el("p", { class: "muted" }, "スケジュールはありません。"));
 }
 
-/** 追加ダイアログ。アイテムを選ぶと、Jenkins ならスケジュール、予定のアイテムなら予定の入力欄にする */
-function openAddSchedule(editable) {
+/** 追加ダイアログ。アイテムを選ぶと、Jenkins ならスケジュール、予定のアイテムなら予定の入力欄にする。
+ *  追加できないアイテム（管理者ログインしていないときの Jenkins アイテム）も、選べない形で並べる */
+function openAddSchedule(ordered) {
+  const editable = ordered.filter((t) => can.editItem(t));
+  const first = editable.find((t) => String(t.id) === scheduleFilter) || editable[0];
   const pick = el("select", {}, categories.map((c) => {
-    const items = editable.filter((t) => t.category_id === c.id);
-    return items.length ? el("optgroup", { label: c.name }, items.map((t) => el("option", { value: t.id, selected: String(t.id) === scheduleFilter }, t.display_name))) : null;
+    const items = ordered.filter((t) => t.category_id === c.id);
+    return items.length
+      ? el("optgroup", { label: c.name }, items.map((t) => {
+          const ok = can.editItem(t);
+          return el("option", { value: t.id, disabled: !ok, selected: t === first }, ok ? t.display_name : `${t.display_name}（管理者のみ）`);
+        }))
+      : null;
   }));
+  const note = editable.length < ordered.length
+    ? readonlyNote("Jenkins のアイテムへのスケジュールの追加は管理者のみです")
+    : null;
   const area = el("div");
   const buttons = el("div", { class: "row" });
   let form = null;
@@ -236,7 +247,7 @@ function openAddSchedule(editable) {
   };
   pick.addEventListener("change", build);
   build();
-  openModal("スケジュール・予定の追加", el("div", { class: "form" }, el("label", { class: "field" }, el("span", {}, "アイテム"), pick), area), [buttons]);
+  openModal("スケジュール・予定の追加", el("div", { class: "form" }, note, el("label", { class: "field" }, el("span", {}, "アイテム"), pick), area), [buttons]);
 }
 
 async function runNow(t) {
