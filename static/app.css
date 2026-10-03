@@ -479,9 +479,11 @@ section.help { scroll-margin-top: 12px; }
 .day-head { flex-wrap: wrap; gap: 8px; }
 .day-head h2 { display: flex; align-items: center; gap: 8px; }
 .day-nav { gap: 6px; align-items: center; }
-.day-nav input[type="date"] { font-size: 14px; padding: 5px 8px; }
+.day-nav input[type="date"], .day-nav input[type="time"] { font-size: 14px; padding: 5px 8px; }
+.day-start { display: flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 13px; color: var(--muted, #5b6170); }
+.day-table .next-day { color: #8a5a00; font-size: 11px; font-weight: 700; }
 .page-day h3 { margin-top: 18px; }
-.day-table td:first-child { width: 4.5em; font-variant-numeric: tabular-nums; }
+.day-table td:first-child { width: 6em; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .day-table .swatch { display: inline-block; margin-right: 6px; vertical-align: -1px; }
 .day-table .legend-dot { vertical-align: -1px; }
 .day-table tr.planned.off td { color: #8a94a6; }

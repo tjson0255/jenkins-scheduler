@@ -1,21 +1,47 @@
-/* 1日の予定（日付を選んで、その日の Jenkins の実行と予定・メモを一覧にする） */
+/* 1日の予定（日付と開始時刻を選んで、そこから24時間の予定・メモと Jenkins の実行を一覧にする） */
 "use strict";
 
 const ready = renderHeader("/day");
 const input = document.getElementById("day-date");
+const startInput = document.getElementById("day-start");
 const PLANNED_LABEL = { draft: "ドラフト（キックされない）", active: "予定", paused: "一時停止中（キックされない）" };
+const DEFAULT_START = "17:00";
 let targets = new Map();
 
 function currentDay() {
-  return input.value || ymd(new Date());
+  return input.value || currentWindowDay();
+}
+
+function currentStart() {
+  return /^\d{2}:\d{2}$/.test(startInput.value) ? startInput.value : DEFAULT_START;
+}
+
+/** 選んだ日付の開始時刻（ブラウザの時刻） */
+function windowStart(day, start) {
+  const [h, m] = start.split(":").map(Number);
+  const d = parseYmd(day);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+/** 今の時刻を含む「1日」の日付（開始が 17:00 なら、17:00 より前は前の日） */
+function currentWindowDay() {
+  const now = new Date();
+  const today = ymd(now);
+  return now < windowStart(today, currentStart()) ? ymd(addDays(now, -1)) : today;
+}
+
+function updateUrl() {
+  const url = new URL(location.href);
+  if (currentDay() === currentWindowDay()) url.searchParams.delete("date");
+  else url.searchParams.set("date", currentDay());
+  url.searchParams.delete("start"); // 開始時刻はブラウザに保存する
+  history.replaceState(null, "", url);
 }
 
 function setDay(s) {
   input.value = s;
-  const url = new URL(location.href);
-  if (s === ymd(new Date())) url.searchParams.delete("date");
-  else url.searchParams.set("date", s);
-  history.replaceState(null, "", url);
+  updateUrl();
   load();
 }
 
@@ -32,13 +58,19 @@ function timeOf(iso) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** 時刻の欄。選んだ日付の翌日にかかる分は「翌」を付ける */
+function timeCell(iso) {
+  const nextDay = ymd(new Date(iso)) !== currentDay();
+  return el("td", { class: "mono" }, nextDay ? el("span", { class: "next-day" }, "翌 ") : null, timeOf(iso));
+}
+
 function runRow(r) {
   // ドラフト・一時停止中のスケジュールの未実行の run はキックされない
   if (r.status === "scheduled" && ["draft", "paused"].includes(r.schedule_status)) {
     return plannedRow(r);
   }
   return el("tr", { class: `rs-row-${r.status}` },
-    el("td", { class: "mono" }, timeOf(r.scheduled_at)),
+    timeCell(r.scheduled_at),
     itemCell(r.target_id, r.target_name),
     el("td", {}, r.schedule_title || (r.retry_of_id ? "再実行" : "即時実行")),
     el("td", {}, el("span", { class: `legend-dot rs-${r.status}` }), " ", RUN_STATUS_LABEL[r.status] || r.status),
@@ -49,7 +81,7 @@ function runRow(r) {
 function plannedRow(p) {
   const off = p.schedule_status !== "active";
   return el("tr", { class: off ? "planned off" : "planned" },
-    el("td", { class: "mono" }, timeOf(p.scheduled_at)),
+    timeCell(p.scheduled_at),
     itemCell(p.target_id, p.target_name),
     el("td", {}, p.schedule_title),
     el("td", {}, el("span", { class: "legend-dot rs-scheduled" }), " ", PLANNED_LABEL[p.schedule_status] || p.schedule_status),
@@ -57,21 +89,20 @@ function plannedRow(p) {
     el("td", { class: "small muted" }, ""));
 }
 
-function renderRuns(data) {
+function renderRuns(data, isCurrent) {
   const rows = [
     ...data.runs.map((r) => ({ at: r.scheduled_at, node: () => runRow(r) })),
     ...data.planned.map((p) => ({ at: p.scheduled_at, node: () => plannedRow(p) })),
   ].sort((a, b) => a.at.localeCompare(b.at));
   const box = document.getElementById("day-runs");
   if (!rows.length) {
-    box.replaceChildren(el("p", { class: "muted" }, "この日の Jenkins の実行はありません。"));
+    box.replaceChildren(el("p", { class: "muted" }, "この範囲の Jenkins の実行はありません。"));
     return;
   }
   const body = [];
-  // 今日なら、今の時刻の位置に線を入れる
-  const isToday = data.date === ymd(new Date());
+  // 今の時刻を含む範囲なら、今の時刻の位置に線を入れる
   const nowIso = new Date().toISOString();
-  let nowShown = !isToday;
+  let nowShown = !isCurrent;
   for (const row of rows) {
     if (!nowShown && row.at > nowIso) {
       body.push(el("tr", { class: "now-line" }, el("td", { colspan: 6 }, `現在 ${timeOf(nowIso)}`)));
@@ -88,46 +119,75 @@ function renderRuns(data) {
 function renderMemos(data) {
   const box = document.getElementById("day-memos");
   if (!data.memos.length) {
-    box.replaceChildren(el("p", { class: "muted" }, "この日の予定・メモはありません。"));
+    box.replaceChildren(el("p", { class: "muted" }, "この範囲の予定・メモはありません。"));
     return;
   }
   box.replaceChildren(el("ul", { class: "day-memos" }, data.memos.map((m) => {
-    const period = m.start_date === m.end_date ? "" : `${fmtDate(m.start_date)} 〜 ${m.end_date ? fmtDate(m.end_date) : ""}`;
+    const period = m.start_date === m.end_date ? fmtDate(m.start_date) : `${fmtDate(m.start_date)} 〜 ${m.end_date ? fmtDate(m.end_date) : ""}`;
     return el("li", {},
       el("div", { class: "day-memo-head" },
         el("span", { class: "swatch", style: `background:${targets.get(m.target_id)?.color || "#8a94a6"}` }),
         el("b", {}, m.label || "（見出しなし）"),
         el("span", { class: "muted small" }, ` ${m.target_name}`),
-        period ? el("span", { class: "muted small day-period" }, period) : null),
+        el("span", { class: "muted small day-period" }, period)),
       m.note ? el("div", { class: "day-memo-note" }, m.note) : null);
   })));
 }
 
+function fmtMd(d) {
+  return `${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）`;
+}
+
 async function load() {
   const day = currentDay();
-  const d = parseYmd(day);
-  const isToday = day === ymd(new Date());
+  const start = currentStart();
+  const from = windowStart(day, start);
+  const to = addDays(from, 1);
+  const now = new Date();
+  const isCurrent = from <= now && now < to;
   document.getElementById("day-title").replaceChildren(
-    `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）`,
-    isToday ? el("span", { class: "today-tag" }, "今日") : null);
-  document.title = `${isToday ? "今日" : `${d.getMonth() + 1}/${d.getDate()}`}の予定 - Jenkins Scheduler`;
+    `${from.getFullYear()}年${fmtMd(from)}`,
+    isCurrent ? el("span", { class: "today-tag" }, "今日") : null);
+  document.getElementById("day-range").textContent =
+    start === "00:00" ? "0:00 〜 24:00" : `${fmtMd(from)} ${start} 〜 ${fmtMd(to)} ${start}`;
+  document.title = `${isCurrent ? "今日" : `${from.getMonth() + 1}/${from.getDate()}`}の予定 - Jenkins Scheduler`;
   try {
-    const [ts, data] = await Promise.all([api("GET", "/api/targets"), api("GET", `/api/agenda?date=${day}`)]);
-    if (day !== currentDay()) return; // 読み込み中に日付が変わった
+    const [ts, data] = await Promise.all([
+      api("GET", "/api/targets"),
+      api("GET", `/api/agenda?date=${day}&start=${encodeURIComponent(start)}`),
+    ]);
+    if (day !== currentDay() || start !== currentStart()) return; // 読み込み中に条件が変わった
     targets = new Map(ts.map((t) => [t.id, t]));
-    renderRuns(data);
     renderMemos(data);
+    renderRuns(data, isCurrent);
   } catch (e) {
     toast(e.message, "error");
   }
 }
 
-const initial = new URLSearchParams(location.search).get("date");
-input.value = /^\d{4}-\d{2}-\d{2}$/.test(initial || "") ? initial : ymd(new Date());
+// 開始時刻はブラウザごとに保存する（他の人には影響しない）。URL の ?start= があればそれを使う
+const params = new URLSearchParams(location.search);
+let savedStart = null;
+try {
+  savedStart = localStorage.getItem("dayStart");
+} catch (_) {}
+const askedStart = params.get("start");
+startInput.value = [askedStart, savedStart].find((v) => /^\d{2}:\d{2}$/.test(v || "")) || DEFAULT_START;
+const askedDay = params.get("date");
+input.value = /^\d{4}-\d{2}-\d{2}$/.test(askedDay || "") ? askedDay : currentWindowDay();
+
 input.onchange = () => input.value && setDay(input.value);
+startInput.onchange = () => {
+  if (!startInput.value) startInput.value = DEFAULT_START;
+  try {
+    localStorage.setItem("dayStart", currentStart());
+  } catch (_) {}
+  updateUrl();
+  load();
+};
 document.getElementById("day-prev").onclick = () => setDay(ymd(addDays(parseYmd(currentDay()), -1)));
 document.getElementById("day-next").onclick = () => setDay(ymd(addDays(parseYmd(currentDay()), 1)));
-document.getElementById("day-today").onclick = () => setDay(ymd(new Date()));
+document.getElementById("day-today").onclick = () => setDay(currentWindowDay());
 ready.then(load);
 // 他の人の変更や実行結果を反映する
 setInterval(() => !document.hidden && load(), 15000);

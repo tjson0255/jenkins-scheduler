@@ -248,3 +248,31 @@ def test_agenda_lists_runs_planned_and_memos(app_client):
     assert a["planned"][0]["scheduled_at"].startswith((far - timedelta(days=1)).isoformat() + "T18:00")  # 03:00 JST
 
     assert c.get("/api/agenda?date=not-a-date").status_code == 422
+
+
+def test_agenda_start_time_window(app_client):
+    c = app_client
+    t = create_target(c)
+    today = local_today()
+    d1 = today + timedelta(days=30)  # run を作る範囲より先（スケジュールから計算する分）
+    # d1 の1日だけのスケジュール（03:00）と、d1+1 から始まるスケジュール（03:00）
+    s1 = create_schedule(c, t["id"], label="当日", start_date=d1.isoformat(), end_date=d1.isoformat())
+    s2 = create_schedule(c, t["id"], label="翌日から", start_date=(d1 + timedelta(days=1)).isoformat(), end_date=None)
+    memo_item = c.post("/api/targets", json={"kind": "memo", "display_name": "計画"}).json()
+    c.post("/api/schedules", json={"target_id": memo_item["id"], "label": "翌日のメモ",
+                                   "start_date": (d1 + timedelta(days=1)).isoformat(), "end_date": (d1 + timedelta(days=1)).isoformat()})
+
+    # 0:00 始まり: d1 の 03:00（当日）だけ。翌日のメモは出ない
+    a = c.get(f"/api/agenda?date={d1.isoformat()}").json()
+    assert [p["schedule_title"] for p in a["planned"]] == ["当日"] and a["memos"] == []
+
+    # 17:00 始まり: d1 17:00 〜 d1+1 17:00。当日の 03:00 は範囲外、翌日の 03:00 と翌日のメモが入る
+    a = c.get(f"/api/agenda?date={d1.isoformat()}&start=17:00").json()
+    assert a["start"] == "17:00" and a["from"].startswith(d1.isoformat() + "T08:00")  # 17:00 JST
+    # 翌日 03:00 JST = d1 の 18:00 UTC
+    assert [(p["schedule_id"], p["scheduled_at"][:16]) for p in a["planned"]] == [(s2["id"], d1.isoformat() + "T18:00")]
+    assert [m["label"] for m in a["memos"]] == ["翌日のメモ"]
+    assert s1["id"] not in [p["schedule_id"] for p in a["planned"]]
+
+    assert c.get(f"/api/agenda?date={d1.isoformat()}&start=25:00").status_code == 422
+    assert c.get(f"/api/agenda?date={d1.isoformat()}&start=abc").status_code == 422

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -12,7 +12,8 @@ from app.api.deps import get_db
 from app.api.serializers import run_out
 from app.models import ACTIVE, CANCELLED, DRAFT, MODE_CRON, MODE_MEMO, MODE_ONCE, PAUSED, Run, Schedule
 from app.scheduler.cronutil import CronError, iter_occurrences, summarize
-from app.timeutil import iso_z, local_midnight_utc, utcnow
+from app.scheduler.planner import schedule_window
+from app.timeutil import iso_z, local_tz, to_utc_naive, utcnow
 
 router = APIRouter(tags=["agenda"])
 
@@ -25,10 +26,21 @@ def _title(s: Schedule) -> str:
 
 
 @router.get("/api/agenda")
-def get_agenda(day: date = Query(alias="date"), db: Session = Depends(get_db)):
-    """その日（Asia/Tokyo）の run と、まだ run になっていない予定、予定・メモ。"""
-    lo = local_midnight_utc(day)
-    hi = local_midnight_utc(day + timedelta(days=1))
+def get_agenda(
+    day: date = Query(alias="date"),
+    start: str = Query(default="00:00", pattern=r"^\d{1,2}:\d{2}$"),
+    db: Session = Depends(get_db),
+):
+    """1日分（date の start 時刻から24時間。Asia/Tokyo）の run と、まだ run になっていない予定、予定・メモ。
+
+    start を 17:00 にすると、date の 17:00 から翌日の 17:00 まで（夜間の実行を前の日の夕方にまとめて見る）。
+    """
+    h, m = (int(x) for x in start.split(":"))
+    if not (0 <= h < 24 and 0 <= m < 60):
+        raise HTTPException(422, "start は 00:00〜23:59 で指定してください")
+    lo = to_utc_naive(datetime.combine(day, time(h, m), tzinfo=local_tz()))
+    hi = lo + timedelta(days=1)
+    last_day = day if (h, m) == (0, 0) else day + timedelta(days=1)  # 範囲にかかる最後の日付
     now = utcnow()
 
     runs = db.scalars(select(Run).where(Run.scheduled_at >= lo, Run.scheduled_at < hi).order_by(Run.scheduled_at, Run.id)).all()
@@ -37,7 +49,7 @@ def get_agenda(day: date = Query(alias="date"), db: Session = Depends(get_db)):
     schedules = db.scalars(
         select(Schedule).where(
             Schedule.status != CANCELLED,
-            Schedule.start_date <= day,
+            Schedule.start_date <= last_day,
             (Schedule.end_date.is_(None)) | (Schedule.end_date >= day),
         ).order_by(Schedule.start_date, Schedule.id)
     ).all()
@@ -46,12 +58,15 @@ def get_agenda(day: date = Query(alias="date"), db: Session = Depends(get_db)):
     for s in schedules:
         if s.mode == MODE_MEMO or s.status not in PLANNING_STATUSES:
             continue
-        if s.mode == MODE_CRON and s.cron_expr:
+        # スケジュールの期間（開始日〜終了日）と、表示する範囲の重なりだけを計算する
+        win_start, win_end = schedule_window(s)
+        a_, b_ = max(lo, now, win_start), min(hi, win_end) if win_end else hi
+        if s.mode == MODE_CRON and s.cron_expr and a_ < b_:
             try:
-                times = list(iter_occurrences(s.cron_expr, max(lo, now), hi))
+                times = list(iter_occurrences(s.cron_expr, a_, b_))
             except CronError:
                 times = []
-        elif s.mode == MODE_ONCE and s.once_at and max(lo, now) <= s.once_at < hi:
+        elif s.mode == MODE_ONCE and s.once_at and a_ <= s.once_at < b_:
             times = [s.once_at]
         else:
             times = []
@@ -86,4 +101,5 @@ def get_agenda(day: date = Query(alias="date"), db: Session = Depends(get_db)):
         o = run_out(r)
         o["schedule_status"] = r.schedule.status if r.schedule else None
         out_runs.append(o)
-    return {"date": day.isoformat(), "runs": out_runs, "planned": planned, "memos": memos}
+    return {"date": day.isoformat(), "start": f"{h:02d}:{m:02d}", "from": iso_z(lo), "to": iso_z(hi),
+            "runs": out_runs, "planned": planned, "memos": memos}
