@@ -136,8 +136,8 @@ function init() {
   toggle.onchange = () => setLayout(toggle.checked ? "vertical" : "horizontal");
   applyLayout();
   renderLegend();
-  loadData();
-  openFromHash();
+  // アイテムの一覧を読み込んでから開く（パネルにアイテム名を出すため）
+  loadData().finally(openFromHash);
   window.addEventListener("hashchange", openFromHash);
   setInterval(() => !state.dragging && loadData(true), 15000);
 }
@@ -902,7 +902,7 @@ async function renderRunsTab(body, s, focusRunId) {
     return pa === 0 ? new Date(a.scheduled_at) - new Date(b.scheduled_at) : new Date(b.scheduled_at) - new Date(a.scheduled_at);
   });
   const table = el("table", { class: "table runs" },
-    el("thead", {}, el("tr", {}, el("th", {}, "予定日時"), el("th", {}, "状態"), el("th", {}, "理由 / ビルド"), el("th", {}, ""))),
+    el("thead", {}, el("tr", {}, el("th", {}, "予定日時"), el("th", {}, "状態"), el("th", {}, "詳細 / ビルド"), el("th", {}, ""))),
     el("tbody", {}, sorted.map((r) => runRow(r, () => renderRunsTab(body, s)))));
   body.replaceChildren(runs.length ? table : el("p", { class: "muted" }, "run はまだありません。"));
   if (focusRunId) {
@@ -953,7 +953,7 @@ function showRunModal(r) {
     el("dl", { class: "kv" },
       el("dt", {}, "予定日時"), el("dd", {}, fmtDateTime(r.scheduled_at, true)),
       el("dt", {}, "状態"), el("dd", {}, runChip(r.status)),
-      el("dt", {}, "理由"), el("dd", { class: "pre" }, r.reason || "—"),
+      el("dt", {}, "詳細"), el("dd", { class: "pre" }, r.reason || "—"),
       el("dt", {}, "キック"), el("dd", {}, r.triggered_at ? fmtDateTime(r.triggered_at, true) : "—"),
       el("dt", {}, "終了"), el("dd", {}, r.finished_at ? fmtDateTime(r.finished_at, true) : "—"),
       el("dt", {}, "ビルド"), el("dd", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener" }, `#${r.build_number}`) : "—"),
@@ -995,7 +995,7 @@ function firstLine(text) {
 }
 
 function scheduleTitle(s) {
-  if (s.mode === "memo") return s.label || firstLine(s.note) || "メモ";
+  if (s.mode === "memo") return s.label || firstLine(s.note) || "予定";
   return s.label || (s.mode === "cron" ? s.cron_summary || s.cron_expr : "1回");
 }
 
@@ -1152,7 +1152,7 @@ function renderMemoPanel(s, t) {
     el("div", { class: "panel-header" },
       el("div", {},
         el("a", { class: "small back-link", href: "#", onclick: (e) => { e.preventDefault(); openItemPanel(s.target_id); } }, `← ${t.display_name || ""} の予定一覧`),
-        el("h2", {}, scheduleTitle(s), " ", el("span", { class: "kind-tag memo" }, "メモ"))),
+        el("h2", {}, scheduleTitle(s), " ", el("span", { class: "kind-tag memo" }, "予定"))),
       el("button", { class: "icon-btn", title: "閉じる", onclick: closePanel }, "×")),
     el("p", { class: "muted small" }, `作成 ${fmtDateTime(s.created_at, true)} ／ 更新 ${fmtDateTime(s.updated_at, true)}`),
     editable ? null : readonlyNote("この予定は閲覧のみです"),
@@ -1192,11 +1192,23 @@ function renderMemoPanel(s, t) {
   );
 }
 
-/** `/#schedule=ID` で開かれたら、そのスケジュールの実行履歴を開く（保留一覧のリンク用） */
+/** URL の # で開くパネルを指定する（保留一覧・1日の予定からのリンク用）
+ *   #schedule=ID          そのスケジュールの実行履歴
+ *   #schedule=ID&run=ID   実行履歴の、その run の行
+ *   #schedule=ID&tab=basic など  そのタブ
+ *   #item=ID              そのアイテムの予定一覧 */
 function openFromHash() {
-  const m = location.hash.match(/^#schedule=(\d+)$/);
-  if (!m) return;
+  const h = new URLSearchParams(location.hash.slice(1));
+  const sid = Number(h.get("schedule"));
+  const item = Number(h.get("item"));
+  if (!sid && !item) return;
   closeModal();
-  openPanel(Number(m[1]), "runs");
+  if (sid) {
+    const run = Number(h.get("run")) || undefined;
+    const tab = ["basic", "params", "runs"].includes(h.get("tab")) ? h.get("tab") : "runs";
+    openPanel(sid, run ? "runs" : tab, run);
+  } else {
+    openItemPanel(item);
+  }
   history.replaceState(null, "", location.pathname + location.search);
 }

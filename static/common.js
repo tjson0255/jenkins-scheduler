@@ -478,7 +478,7 @@ function holdingTable(runs, onChanged, opts) {
     return b;
   };
   return el("table", { class: "table small holding-table" },
-    el("thead", {}, el("tr", {}, ["予定日時", opts.hideItem ? null : "アイテム", "スケジュール", "理由", ""].filter(Boolean).map((h) => el("th", {}, h)))),
+    el("thead", {}, el("tr", {}, ["予定日時", opts.hideItem ? null : "アイテム", "スケジュール", "詳細", ""].filter(Boolean).map((h) => el("th", {}, h)))),
     el("tbody", {}, runs.map((r) =>
       el("tr", {},
         el("td", { style: { whiteSpace: "nowrap" } }, fmtDateTime(r.scheduled_at, true)),
@@ -497,7 +497,7 @@ async function openHoldingModal() {
       const runs = await api("GET", "/api/runs?status=holding&order=desc&limit=500");
       body.replaceChildren(
         el("p", { class: "muted small" },
-          "予定時刻にキックしようとしたが、問題があって止めた run です。原因（理由欄）を直してから「保留解除」を押すと、その場でキックします（予定時刻からどれだけ遅れていても実行されます）。実行しない場合は「スキップ」します。"),
+          "予定時刻にキックしようとしたが、問題があって止めた run です。原因（詳細欄）を直してから「保留解除」を押すと、その場でキックします（予定時刻からどれだけ遅れていても実行されます）。実行しない場合は「スキップ」します。"),
         holdingTable(runs, load)
       );
     } catch (e) {

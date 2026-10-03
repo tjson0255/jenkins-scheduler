@@ -45,11 +45,16 @@ function setDay(s) {
   load();
 }
 
-function itemCell(targetId, name) {
+/** タイムラインを開いて、スケジュール（またはアイテム）の詳細を出すリンク先 */
+function detailHref(hash) {
+  return `/?date=${currentDay()}#${hash}`;
+}
+
+function itemCell(targetId, name, hash) {
   const t = targets.get(targetId);
   return el("td", {},
     el("span", { class: "swatch", style: `background:${t?.color || "#8a94a6"}` }),
-    el("a", { href: `/?date=${currentDay()}`, title: "タイムラインで見る" }, name || t?.display_name || `#${targetId}`),
+    el("a", { href: detailHref(hash), title: "スケジュールの詳細を開く" }, name || t?.display_name || `#${targetId}`),
     t?.category_name ? el("span", { class: "muted small" }, ` ${t.category_name}`) : null);
 }
 
@@ -71,7 +76,8 @@ function runRow(r) {
   }
   return el("tr", { class: `rs-row-${r.status}` },
     timeCell(r.scheduled_at),
-    itemCell(r.target_id, r.target_name),
+    // スケジュールの run はその実行履歴の行へ、即時実行など（スケジュールなし）はアイテムの予定一覧へ
+    itemCell(r.target_id, r.target_name, r.schedule_id ? `schedule=${r.schedule_id}&run=${r.id}` : `item=${r.target_id}`),
     el("td", {}, r.schedule_title || (r.retry_of_id ? "再実行" : "即時実行")),
     el("td", {}, el("span", { class: `legend-dot rs-${r.status}` }), " ", RUN_STATUS_LABEL[r.status] || r.status),
     el("td", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener" }, `#${r.build_number}`) : r.build_number ? `#${r.build_number}` : ""),
@@ -82,7 +88,7 @@ function plannedRow(p) {
   const off = p.schedule_status !== "active";
   return el("tr", { class: off ? "planned off" : "planned" },
     timeCell(p.scheduled_at),
-    itemCell(p.target_id, p.target_name),
+    itemCell(p.target_id, p.target_name, p.id ? `schedule=${p.schedule_id}&run=${p.id}` : `schedule=${p.schedule_id}&tab=basic`),
     el("td", {}, p.schedule_title),
     el("td", {}, el("span", { class: "legend-dot rs-scheduled" }), " ", PLANNED_LABEL[p.schedule_status] || p.schedule_status),
     el("td", {}, ""),
@@ -127,7 +133,7 @@ function renderMemos(data) {
     return el("li", {},
       el("div", { class: "day-memo-head" },
         el("span", { class: "swatch", style: `background:${targets.get(m.target_id)?.color || "#8a94a6"}` }),
-        el("b", {}, m.label || "（見出しなし）"),
+        el("a", { href: detailHref(`schedule=${m.schedule_id}`), class: "day-memo-title", title: "予定の詳細を開く" }, m.label || "（見出しなし）"),
         el("span", { class: "muted small" }, ` ${m.target_name}`),
         el("span", { class: "muted small day-period" }, period)),
       m.note ? el("div", { class: "day-memo-note" }, m.note) : null);

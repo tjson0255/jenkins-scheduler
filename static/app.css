@@ -493,5 +493,7 @@ section.help { scroll-margin-top: 12px; }
 .day-memos li { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
 .day-memo-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .day-memo-head .swatch { display: inline-block; }
+.day-memo-title { font-weight: 700; color: inherit; }
+.day-memo-title:hover { color: var(--accent); }
 .day-period { margin-left: auto; }
 .day-memo-note { margin-top: 4px; white-space: pre-wrap; color: #3a4150; font-size: 13px; }
