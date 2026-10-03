@@ -2,16 +2,34 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
-from zoneinfo import ZoneInfo
+from datetime import date, datetime, time, timedelta, timezone, tzinfo
+from functools import lru_cache
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.config import get_settings
 
 UTC = timezone.utc
 
 
-def local_tz() -> ZoneInfo:
-    return ZoneInfo(get_settings().app_tz)
+# 夏時間が無い（1951年以降）ので、固定のオフセットで正確に表せるタイムゾーン
+FIXED_OFFSET_ZONES = {"Asia/Tokyo": 9, "Japan": 9}
+
+
+@lru_cache(maxsize=8)
+def _zone(name: str) -> tzinfo:
+    try:
+        return ZoneInfo(name)
+    except ZoneInfoNotFoundError:
+        # Windows にはタイムゾーンのデータが無い（tzdata パッケージを入れていない）ので、日本時間は固定の +09:00 で扱う
+        if name in FIXED_OFFSET_ZONES:
+            return timezone(timedelta(hours=FIXED_OFFSET_ZONES[name]), "JST")
+        raise ValueError(
+            f"タイムゾーン {name} のデータがありません。APP_TZ を Asia/Tokyo にするか、pip install tzdata を実行してください"
+        ) from None
+
+
+def local_tz() -> tzinfo:
+    return _zone(get_settings().app_tz)
 
 
 def utcnow() -> datetime:

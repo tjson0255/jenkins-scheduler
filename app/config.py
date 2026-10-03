@@ -1,14 +1,18 @@
-"""アプリケーション設定（.env / 環境変数）。"""
+"""アプリケーション設定（.env / 環境変数）。
+
+優先順位: Settings(...) に渡した値 > 環境変数 > .env > 既定値。名前の大文字・小文字は区別しない（APP_PORT → app_port）。
+"""
 
 from __future__ import annotations
 
 import os
 import sys
+import typing
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
-from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -20,12 +24,40 @@ def _default_data_dir() -> Path:
     return PROJECT_ROOT / "var"
 
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=PROJECT_ROOT / ".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
+_DEFAULT_ENV_FILE: Any = object()
+
+
+def _accepts_str(annotation: Any) -> bool:
+    return annotation is str or str in typing.get_args(annotation)
+
+
+def _load_env(fields: dict[str, Any], env_file: Path | None) -> dict[str, str]:
+    """.env と環境変数から、設定の項目に当たるものだけを取り出す。"""
+    from app import envfile
+
+    found: dict[str, str] = {}
+    if env_file is not None and Path(env_file).is_file():
+        found.update({k.lower(): v for k, v in envfile.read_values(Path(env_file)).items()})
+    found.update({k.lower(): v for k, v in os.environ.items() if k.lower() in fields})
+    out = {}
+    for name, value in found.items():
+        field = fields.get(name)
+        if field is None:
+            continue
+        # 数値・真偽値などの項目の空の値（例: APP_PORT=）は「未設定」として既定値を使う
+        if value == "" and not _accepts_str(field.annotation):
+            continue
+        out[name] = value
+    return out
+
+
+class Settings(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    def __init__(self, _env_file: Path | None = _DEFAULT_ENV_FILE, **values: Any):
+        """_env_file: 読み込む .env（省略時はツールのフォルダの .env。None なら読まない）。"""
+        env_file = PROJECT_ROOT / ".env" if _env_file is _DEFAULT_ENV_FILE else _env_file
+        super().__init__(**{**_load_env(type(self).model_fields, env_file), **values})
 
     # --- アプリ ---
     app_host: str = "127.0.0.1"
@@ -80,7 +112,7 @@ class Settings(BaseSettings):
     jenkins_url: str = "http://localhost:8080"
     jenkins_user: str = ""
     jenkins_token: str = ""
-    jenkins_token_source: str = "env"  # env | keyring
+    jenkins_token_source: str = "env"  # env | wincred（Windows 資格情報マネージャー。以前の名前 keyring も可）
     jenkins_keyring_service: str = "jenkins-scheduler"
     jenkins_ca_bundle: Path | None = None
     jenkins_mock: bool = False
@@ -175,10 +207,10 @@ class Settings(BaseSettings):
         return bool(self.app_tls_cert and self.app_tls_key)
 
     def resolve_jenkins_token(self) -> str:
-        if self.jenkins_token_source == "keyring":
-            import keyring
+        if self.jenkins_token_source.strip().lower() in ("wincred", "keyring"):
+            from app import wincred
 
-            token = keyring.get_password(self.jenkins_keyring_service, self.jenkins_user)
+            token = wincred.get_password(self.jenkins_keyring_service, self.jenkins_user)
             if not token:
                 raise RuntimeError(
                     f"資格情報マネージャーにトークンがありません (service={self.jenkins_keyring_service}, user={self.jenkins_user})"

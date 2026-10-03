@@ -10,8 +10,6 @@ import secrets
 from urllib.parse import quote, urlparse
 from contextlib import asynccontextmanager
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
@@ -33,9 +31,9 @@ from app.jenkins.health import JenkinsHealth
 from app.locking import ProcessLock
 from app.logging_setup import setup_logging
 from app.scheduler.dispatcher import Dispatcher
+from app.scheduler.jobs import JobRunner
 from app.scheduler.poller import poll_all
 from app.seed import ensure_default_categories, load_seed
-from app.timeutil import local_tz, utcnow
 
 log = logging.getLogger(__name__)
 STATIC_DIR = PROJECT_ROOT / "static"
@@ -79,7 +77,7 @@ def create_app(
         lock = ProcessLock(settings.lock_file)
         if settings.app_lock_enabled:
             lock.acquire()
-        scheduler: BackgroundScheduler | None = None
+        scheduler: JobRunner | None = None
         try:
             dbmod.init_engine(settings.db_url)
             if migrate:
@@ -109,39 +107,27 @@ def create_app(
             )
 
             if start_scheduler:
-                scheduler = BackgroundScheduler(timezone="UTC")
-                scheduler.add_job(
-                    dispatcher.tick, "interval", seconds=settings.dispatch_interval_seconds,
-                    id="dispatcher", next_run_time=utcnow_aware(), max_instances=1, coalesce=True,
-                )
-                scheduler.add_job(
-                    poll_all, "interval", minutes=settings.schema_poll_minutes,
-                    args=[dbmod.SessionLocal, app.state.client, settings],
-                    id="schema_poll", max_instances=1, coalesce=True,
-                    next_run_time=utcnow_aware(seconds=5),
+                scheduler = JobRunner()
+                scheduler.add_interval("dispatcher", dispatcher.tick, settings.dispatch_interval_seconds, first_delay=0)
+                scheduler.add_interval(
+                    "schema_poll", poll_all, settings.schema_poll_minutes * 60,
+                    args=(dbmod.SessionLocal, app.state.client, settings), first_delay=5,
                 )
                 # 1日1回、run の先行生成を補充する（tick でも不足分は補充される）
-                scheduler.add_job(
-                    _daily_fill, CronTrigger(hour=0, minute=5, timezone=local_tz()), args=[dispatcher],
-                    id="daily_fill", max_instances=1, coalesce=True,
-                )
+                scheduler.add_daily("daily_fill", _daily_fill, 0, 5, args=(dispatcher,))
                 if settings.demo_mode:
-                    scheduler.add_job(
-                        _demo_reset, "interval", hours=settings.demo_reset_hours, args=[dispatcher, settings, app.state.client],
-                        id="demo_reset", max_instances=1, coalesce=True,
+                    scheduler.add_interval(
+                        "demo_reset", _demo_reset, settings.demo_reset_hours * 3600, args=(dispatcher, settings, app.state.client),
                     )
                 if settings.backup_enabled and not settings.demo_mode:
                     hour, minute = settings.backup_hour_minute
-                    scheduler.add_job(
-                        scheduled_backup, CronTrigger(hour=hour, minute=minute, timezone=local_tz()),
-                        args=[settings, dbmod.SessionLocal], id="backup", max_instances=1, coalesce=True,
-                    )
+                    scheduler.add_daily("backup", scheduled_backup, hour, minute, args=(settings, dbmod.SessionLocal))
                 scheduler.start()
             yield
         finally:
             if scheduler is not None:
                 # 実行中の tick の完了を待ってから終了する
-                scheduler.shutdown(wait=True)
+                scheduler.shutdown()
             if dbmod.engine is not None:
                 dbmod.engine.dispose()
             lock.release()
@@ -250,12 +236,6 @@ class NoCacheStaticFiles(StaticFiles):
         resp = super().file_response(*args, **kwargs)
         resp.headers["Cache-Control"] = "no-cache"
         return resp
-
-
-def utcnow_aware(seconds: int = 0):
-    from datetime import timedelta, timezone
-
-    return (utcnow() + timedelta(seconds=seconds)).replace(tzinfo=timezone.utc)
 
 
 def _demo_reset(dispatcher: Dispatcher, settings: Settings, client) -> None:

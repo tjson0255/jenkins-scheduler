@@ -1,18 +1,24 @@
-"""パラメータ値の展開（Jinja2 SandboxedEnvironment）と検証（仕様書 8.4）。"""
+"""パラメータ値の展開と検証（仕様書 8.4）。
+
+値に書けるのは {{ schedule.label }} のような変数だけ（フィルターや {% %} などの構文は使えない）。
+テンプレートエンジンを使わず変数を置き換えるだけなので、値の中に書いた式やコードが実行されることはない。
+"""
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Any
-
-from jinja2 import StrictUndefined, TemplateError
-from jinja2.sandbox import SandboxedEnvironment
 
 from app.schema.diff import ERROR, WARNING, issue
 from app.schema.normalize import default_as_str, kind_of
 from app.timeutil import to_local
 
-_env = SandboxedEnvironment(undefined=StrictUndefined, autoescape=False)
+_VAR = re.compile(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*\}\}")
+
+
+class TemplateError(ValueError):
+    pass
 
 
 def build_context(
@@ -41,7 +47,21 @@ def build_context(
 def render(template: str, context: dict[str, Any]) -> str:
     if "{{" not in template and "{%" not in template:
         return template
-    return _env.from_string(template).render(**context)
+    leftover = _VAR.sub("", template)
+    if "{{" in leftover or "{%" in leftover:
+        raise TemplateError("{{ }} の中には変数名（例: schedule.label）だけを書けます")
+
+    def value_of(m: re.Match) -> str:
+        value: Any = context
+        for part in m.group(1).split("."):
+            if not isinstance(value, dict) or part not in value:
+                raise TemplateError(f"変数 {m.group(1)} はありません")
+            value = value[part]
+        if isinstance(value, dict):
+            raise TemplateError(f"変数 {m.group(1)} はありません")
+        return str(value)
+
+    return _VAR.sub(value_of, template)
 
 
 def resolve_params(

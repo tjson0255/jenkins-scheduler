@@ -21,7 +21,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--host")
     parser.add_argument("--port", type=int)
     parser.add_argument("--migrate-only", action="store_true", help="DB マイグレーションだけ実行して終了する")
-    parser.add_argument("--seed", help="seed.yaml を読み込んで終了する")
+    parser.add_argument("--seed", help="seed.toml を読み込んで終了する")
     parser.add_argument("--backup", action="store_true", help="バックアップを今すぐ作成して終了する（サービス稼働中でも可）")
     parser.add_argument("--hash-password", action="store_true", help="管理者パスワードのハッシュ（ADMIN_PASSWORD_HASH に書く値）を作る")
     # インストーラ用

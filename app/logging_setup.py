@@ -64,4 +64,3 @@ def setup_logging(settings: Settings) -> None:
         root.addHandler(h)
     # httpx は URL をログに出すので WARNING 以上に絞る
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("apscheduler").setLevel(logging.WARNING)

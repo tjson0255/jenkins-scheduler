@@ -7,6 +7,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 seed.yaml
+seed.toml
 deploy/winsw/*.exe
 deploy/winsw/*.log
 

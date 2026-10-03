@@ -45,14 +45,14 @@ Jenkins に接続せず、`tests/fixtures/jenkins/jobs.json` の定義で動か�
 **Windows（PowerShell）**
 
 ```powershell
-copy seed.yaml.example seed.yaml
+copy seed.toml.example seed.toml
 .\scripts\dev.ps1
 ```
 
 **macOS / Linux**
 
 ```bash
-cp seed.yaml.example seed.yaml
+cp seed.toml.example seed.toml
 ./scripts/dev.sh
 ```
 
@@ -73,7 +73,8 @@ cp seed.yaml.example seed.yaml
 |---|---|
 | `/` タイムライン | カテゴリ（折りたたみ可）ごとに、登録したすべてのアイテムの行を表示（予定が無くても表示）。土日は背景色。表示範囲が31日を超えると run の点は描かず、バーに件数サマリーを出します |
 | 縦表示 | ツールバーの「縦表示」スイッチで、行=日付・列=アイテムの表に切り替え（選択はブラウザに記憶）。スケジュールは縦の帯、run は時刻で表示。空きセルを縦にドラッグで作成、ダブルクリックでその日だけ作成、カテゴリ見出しのクリックで列を折りたたみ。左上の「⊟ 折りたたむ／⊞ 展開」でまとめて開閉（横表示も同じ位置）。期間の変更（バーの移動・リサイズ）は横表示か詳細パネルで行う |
-| 詳細パネル | 基本情報（cron プリセットと次回5回のプレビュー）、パラメータ編集（Jenkins の最新のパラメータ定義からフォームを動的生成、Jinja2 変数の展開プレビュー、差分警告）、実行履歴（保留解除・スキップ・再実行・ビルドへのリンク）、ドライラン、今すぐ実行 |
+| 詳細パネル | 基本情報（cron プリセットと次回5回のプレビュー）、パラメータ編集（Jenkins の最新のパラメータ定義からフォームを動的生成、変数（`{{run.date}}` など）の展開プレビュー、差分警告）、実行履歴（保留解除・スキップ・再実行・ビルドへのリンク）、ドライラン、今すぐ実行 |
+| `/day` 1日の予定 | 日付を選んで（カレンダー）、その日の Jenkins の実行（時刻・状態・ビルド）と自由記入の予定・メモを一覧表示。run を作る前の先の日付も、スケジュールから計算した予定を表示 |
 | `/targets` | アイテム一覧・登録（Jenkins ジョブ検索）・編集・並び替え・カテゴリ管理・Jenkins から再取得（パラメータ定義と cron 残存） |
 | `/audit` | ログ（操作の記録。種別・対象・操作・期間で絞り込み） |
 | `/api/docs` | API ドキュメント（OpenAPI） |
@@ -116,13 +117,13 @@ cp seed.yaml.example seed.yaml
 ```
 app/
   __main__.py        python -m app（単一プロセスの Uvicorn。多重起動ロック）
-  main.py            FastAPI、APScheduler（dispatcher 30秒 / スキーマ取得 5分 / 日次補充）
-  config.py          設定（.env, pydantic-settings, UTF-8）
+  main.py            FastAPI、定期処理の登録（dispatcher 30秒 / スキーマ取得 5分 / 日次補充 / バックアップ）
+  config.py          設定（.env と環境変数、UTF-8）
   models.py, db.py   SQLAlchemy 2.x（SQLite WAL。PostgreSQL へ切替可能な書き方）
-  seed.py            seed.yaml の冪等な読み込み
+  seed.py            seed.toml の冪等な読み込み
   jenkins/           client.py（実 Jenkins）, mock.py（モック）
   schema/            normalize（正規化・SHA-256）, diff（差分分類）, validate（展開・検証）, service
-  scheduler/         planner（run 生成）, dispatcher（状態機械）, poller（スキーマ・cron 残存）, cronutil
+  scheduler/         planner（run 生成）, dispatcher（状態機械）, poller（スキーマ・cron 残存）, cron（cron 式の解釈）, jobs（定期処理の実行）
   api/               ルーター
 static/              素の HTML/JS（ビルド工程なし）。vis-timeline 8.5.4 を vendor/ に同梱
 alembic/             マイグレーション
@@ -175,23 +176,25 @@ scheduled ──(時刻到来)──▶ 遅延判定 ──▶ キック直前�
 | `APP_AUTH_EXEMPT_MONITORING` | `true` | `/metrics` と `/api/health` を認証対象外にする |
 | `APP_TLS_CERT` / `APP_TLS_KEY` | なし | 指定すると HTTPS で待ち受け |
 | `JENKINS_URL` / `JENKINS_USER` / `JENKINS_TOKEN` | | API トークンで Basic 認証 |
-| `JENKINS_TOKEN_SOURCE` | `env` | `keyring` で Windows 資格情報マネージャーから読む |
-| `JENKINS_CA_BUNDLE` | なし | 社内 CA の PEM。未指定なら Windows の証明書ストア（truststore）を使う |
+| `JENKINS_TOKEN_SOURCE` | `env` | `wincred` で Windows 資格情報マネージャーから読む（以前の `keyring` も可） |
+| `JENKINS_CA_BUNDLE` | なし | 社内 CA の PEM。未指定なら OS の証明書（Windows では証明書ストア）を使う |
 | `JENKINS_MOCK` | `false` | `true` でモック |
 | `RUN_HORIZON_DAYS` | `14` | cron の先行生成日数 |
 | `SCHEMA_POLL_MINUTES` | `5` | スキーマ・cron 残存のポーリング間隔 |
 | `DEFAULT_OVERLAP_POLICY` | `skip` | 前回ビルド実行中/キュー中のときの既定 |
 | `DEFAULT_MISSED_POLICY` / `DEFAULT_GRACE_MINUTES` | `run_late` / `10` | 遅延時の既定 |
-| `SEED_FILE` | なし | 起動時に読み込む seed.yaml |
+| `SEED_FILE` | なし | 起動時に読み込む seed.toml（初期データ。書き方は `seed.toml.example`） |
 | `BACKUP_ENABLED` / `BACKUP_TIME` / `BACKUP_KEEP` / `BACKUP_DIR` | `true` / `01:30` / `14` / `<データ>\backups` | 自動バックアップ（5.8） |
 
 ### トークンを資格情報マネージャーに置く（任意）
 
+Windows 標準の `cmdkey` で登録します（`/pass` の後ろを空にすると、トークンを画面に出さずに入力できます）。
+
 ```powershell
-.\.venv\Scripts\python.exe -c "import keyring, getpass; keyring.set_password('jenkins-scheduler', 'scheduler-bot', getpass.getpass('token: '))"
+cmdkey /generic:jenkins-scheduler /user:scheduler-bot /pass
 ```
 
-`.env` に `JENKINS_TOKEN_SOURCE=keyring` を設定し、`JENKINS_TOKEN` は空にします。**サービス実行アカウントでログオンして登録してください**（資格情報はユーザーごと）。
+`.env` に `JENKINS_TOKEN_SOURCE=wincred` を設定し、`JENKINS_TOKEN` は空にします。`/generic:` の名前は `JENKINS_KEYRING_SERVICE`（既定 `jenkins-scheduler`）、`/user:` は `JENKINS_USER` に合わせます。**サービス実行アカウントでログオンして登録してください**（資格情報はユーザーごと）。以前の版で keyring を使って登録したトークンも、そのまま読めます。
 
 ### アプリ用 Jenkins アカウントの権限
 
@@ -477,7 +480,7 @@ py -3.11 -m venv .venv
 ```
 
 - Jenkins API は respx でモック、時刻依存は Dispatcher/planner に `now` を渡して固定しています
-- 主なテスト：スキーマ正規化・ハッシュの安定性、差分分類の全パターン、cron の Asia/Tokyo 評価・期間境界・無期限の先行生成・変更時の再生成、dispatcher（holding / missed / 重複 / 状態遷移 / 再起動時の再開 / キック失敗時に再試行しない）、`/build` と `/buildWithParameters` の使い分け、Location ヘッダのパース、キャンセルされたキューアイテム、TimerTrigger 検出、UTF-8 の YAML・.env 読み込み、ロックファイルによる二重起動検出
+- 主なテスト：スキーマ正規化・ハッシュの安定性、差分分類の全パターン、cron の Asia/Tokyo 評価・期間境界・無期限の先行生成・変更時の再生成、dispatcher（holding / missed / 重複 / 状態遷移 / 再起動時の再開 / キック失敗時に再試行しない）、`/build` と `/buildWithParameters` の使い分け、Location ヘッダのパース、キャンセルされたキューアイテム、TimerTrigger 検出、UTF-8 の seed.toml・.env 読み込み、ロックファイルによる二重起動検出、cron 式の解釈（範囲・間隔・英字名・日と曜日の組み合わせ）、定期処理の実行
 - マイグレーションの追加：モデルを変更したら
 
   ```powershell
@@ -500,6 +503,23 @@ py -3.11 -m venv .venv
 | Jenkins | REST API（`/api/json`、`/buildWithParameters`）が使えること。アプリ用アカウントの API トークン |
 | ネットワーク | このツールから Jenkins へ HTTP(S) で接続できること。利用者のブラウザからこのツールのポート（既定 8080）へ接続できること |
 
+### 外部ライブラリを最小限にしている理由
+
+社内のセキュリティ審査の手間を減らすため、Python の標準ライブラリで実装できるものは外部ライブラリを使っていません。外部ライブラリは、Web サーバー・データベース・HTTP 通信という、自分で作るとかえって危険な土台の部分だけです。
+
+| 標準ライブラリなどで置き換えたもの | 置き換え先 |
+|---|---|
+| cron 式の計算（croniter） | `app/scheduler/cron.py`（自前の実装。croniter と同じ結果になることを確認済み） |
+| 定期処理（APScheduler） | `app/scheduler/jobs.py`（標準の `threading`） |
+| 監視用メトリクス（prometheus-client） | `app/metrics.py`（Prometheus のテキスト形式を自前で出力） |
+| `.env` の読み込み（pydantic-settings） | `app/envfile.py`・`app/config.py` |
+| パラメータの変数の展開（Jinja2） | `app/schema/validate.py`（変数の置き換えだけ。式やコードは実行しない） |
+| 初期データの読み込み（PyYAML） | 標準の `tomllib`（初期データは `seed.toml`） |
+| 二重起動の防止（portalocker） | 標準の `msvcrt`（Windows）／`fcntl` |
+| 資格情報マネージャー（keyring） | `app/wincred.py`（標準の `ctypes` で Windows の API を呼ぶ。登録は Windows 標準の `cmdkey`） |
+| 社内 CA の証明書（truststore） | 標準の `ssl`（Windows では証明書ストアを読み込む） |
+| タイムゾーンのデータ（tzdata） | 日本時間は固定の +09:00 で扱う（日本には夏時間が無いので結果は同じ） |
+
 ### 実行に使うライブラリ（`requirements.txt`）
 
 バージョンは動作確認した時点のものです。`requirements.txt` には下限だけを書いているので、インストールした時期によって新しい版が入ります。
@@ -508,43 +528,26 @@ py -3.11 -m venv .venv
 |---|---|---|---|
 | [FastAPI](https://fastapi.tiangolo.com/) | 0.142.2 | MIT | Web API のフレームワーク。画面から呼ぶ API をすべてこれで作っている |
 | [Uvicorn](https://www.uvicorn.org/) | 0.54.0 | BSD-3-Clause | FastAPI を動かす Web サーバー（ASGI サーバー） |
-| [SQLAlchemy](https://www.sqlalchemy.org/) | 2.1.2 | MIT | データベース（SQLite）を Python から扱うためのライブラリ（ORM） |
-| [Alembic](https://alembic.sqlalchemy.org/) | 1.20.0 | MIT | データベースの表の構造をバージョンアップに合わせて更新する（マイグレーション） |
-| [APScheduler](https://apscheduler.readthedocs.io/en/3.x/) | 3.11.3 | MIT | 定期処理の実行。30秒ごとのキック判定、5分ごとのパラメータ定義の取得、毎日のバックアップなど |
-| [croniter](https://github.com/pallets-eco/croniter) | 6.2.4 | MIT | cron 式（例：`0 3 * * 1-5`）から次の実行日時を計算する |
+| [SQLAlchemy](https://www.sqlalchemy.org/) | 2.1.3 | MIT | データベース（SQLite）を Python から扱うためのライブラリ（ORM） |
+| [Alembic](https://alembic.sqlalchemy.org/) | 1.20.0 | MIT | データベースの表の構造をバージョンアップに合わせて更新する（マイグレーション）。SQLAlchemy と同じ作者 |
 | [HTTPX](https://www.python-httpx.org/) | 0.28.1 | BSD-3-Clause | Jenkins の REST API を呼ぶための HTTP クライアント |
-| [Jinja2](https://jinja.palletsprojects.com/) | 3.1.6 | BSD-3-Clause | パラメータの値に書く変数（`{{run.date}}` など）を展開するテンプレートエンジン |
-| [prometheus-client](https://github.com/prometheus/client_python) | 0.26.0 | Apache-2.0 | 監視用の `/metrics`（Prometheus 形式）を出す |
-| [Pydantic](https://docs.pydantic.dev/) | 2.13.5 | MIT | API で受け取るデータの型チェックと変換 |
-| [pydantic-settings](https://github.com/pydantic/pydantic-settings) | 2.15.0 | MIT | `.env` から設定を読み込む |
-| [PyYAML](https://pyyaml.org/) | 6.0.3 | MIT | 初期データ（`seed.yaml`）を読み込む |
-| [tzdata](https://github.com/python/tzdata) | 2026.4 | Apache-2.0 | タイムゾーンのデータ。Windows で Asia/Tokyo の時刻計算をするために必要 |
-| [truststore](https://github.com/sethmlarson/truststore) | 0.10.4 | MIT | Jenkins に HTTPS で接続するとき、OS（Windows）の証明書ストアを使う。社内 CA の証明書もそのまま使える |
-| [portalocker](https://github.com/wolph/portalocker) | 4.4.0 | BSD-3-Clause | ファイルロック。ツールが二重に起動して同じジョブを二度キックするのを防ぐ |
-| [keyring](https://github.com/jaraco/keyring) | 25.7.0 | MIT | Jenkins の API トークンを Windows の資格情報マネージャーに保存して読み出す（任意） |
 
 #### 上のライブラリが内部で使うライブラリ（自動でインストールされる）
 
 | ライブラリ | ライセンス | 概要 |
 |---|---|---|
 | [Starlette](https://www.starlette.io/) | BSD-3-Clause | FastAPI の土台の Web フレームワーク |
-| [pydantic-core](https://github.com/pydantic/pydantic-core) | MIT | Pydantic の中核部分（Rust 製） |
+| [Pydantic](https://docs.pydantic.dev/) / [pydantic-core](https://github.com/pydantic/pydantic-core) | MIT | FastAPI が使うデータの型チェックと変換（このツールでは設定の読み込みにも使う） |
 | [AnyIO](https://github.com/agronholm/anyio) | MIT | 非同期処理の共通基盤 |
-| [httpcore](https://github.com/encode/httpcore) / [h11](https://github.com/python-hyper/h11) | BSD-3-Clause / MIT | HTTPX が使う HTTP 通信の下回り |
+| [httpcore](https://github.com/encode/httpcore) / [h11](https://github.com/python-hyper/h11) | BSD-3-Clause / MIT | HTTPX・Uvicorn が使う HTTP 通信の下回り |
 | [idna](https://github.com/kjd/idna) | BSD-3-Clause | 国際化ドメイン名の処理 |
-| [certifi](https://github.com/certifi/python-certifi) | MPL-2.0 | Mozilla の CA 証明書の一覧（truststore を使うときは OS の証明書が優先） |
+| [certifi](https://github.com/certifi/python-certifi) | MPL-2.0 | Mozilla の CA 証明書の一覧（HTTPX が依存。このツールは OS の証明書を使うよう指定している） |
 | [click](https://click.palletsprojects.com/) | BSD-3-Clause | Uvicorn・Alembic のコマンドライン処理 |
-| [Mako](https://www.makotemplates.org/) | MIT | Alembic のマイグレーションファイルのひな形 |
-| [MarkupSafe](https://github.com/pallets/markupsafe) | BSD-3-Clause | Jinja2 の文字列の安全な扱い |
-| [tzlocal](https://github.com/regebro/tzlocal) | MIT | APScheduler が OS のタイムゾーンを調べる |
-| [python-dotenv](https://github.com/theskumar/python-dotenv) | BSD-3-Clause | pydantic-settings が `.env` を読む |
-| [python-dateutil](https://github.com/dateutil/dateutil) / [six](https://github.com/benjaminp/six) | Apache-2.0 または BSD / MIT | croniter が使う日付の計算 |
-| [jaraco.classes](https://github.com/jaraco/jaraco.classes) / [jaraco.context](https://github.com/jaraco/jaraco.context) / [jaraco.functools](https://github.com/jaraco/jaraco.functools) / [more-itertools](https://github.com/more-itertools/more-itertools) | MIT | keyring が使う小さな補助ライブラリ |
-| [pywin32-ctypes](https://github.com/enthought/pywin32-ctypes) | BSD-3-Clause | Windows だけ。keyring が資格情報マネージャーを呼ぶ |
+| [Mako](https://www.makotemplates.org/) / [MarkupSafe](https://github.com/pallets/markupsafe) | MIT / BSD-3-Clause | Alembic がマイグレーションファイルのひな形を作るのに使う |
 | [opentelemetry-api](https://github.com/open-telemetry/opentelemetry-python) | Apache-2.0 | FastAPI が依存する計測用 API（このツールでは計測を有効にしていない） |
 | [typing-extensions](https://github.com/python/typing_extensions) / [typing-inspection](https://github.com/pydantic/typing-inspection) / [annotated-types](https://github.com/annotated-types/annotated-types) / [annotated-doc](https://github.com/fastapi/annotated-doc) | PSF-2.0 / MIT | 型ヒントの補助 |
 
-正確な一覧は、インストールした環境で `pip list` または `pip-licenses` で確認できます。
+合計 21 個（直接 5 個 + 内部 16 個）です。正確な一覧は、インストールした環境で `pip list` で確認できます。
 
 ### 任意のライブラリ（`requirements-ldap.txt`、AD 認証を使うときだけ）
 
@@ -561,7 +564,7 @@ py -3.11 -m venv .venv
 |---|---|---|---|
 | [vis-timeline](https://visjs.github.io/vis-timeline/) | 8.5.4 | Apache-2.0 または MIT | タイムライン（横表示）の描画、ドラッグでの作成・移動、拡大・縮小 |
 
-`static/vendor/vis-timeline/` に同梱しているので、インターネットにつながらない環境でも動きます。ほかの画面部分はライブラリを使わない素の HTML / CSS / JavaScript で、ビルドの工程はありません。
+`static/vendor/vis-timeline/` に同梱しているので、インターネットにつながらない環境でも動きます。ほかの画面部分はライブラリを使わない素の HTML / CSS / JavaScript で、ビルドの工程はありません（日付の選択もブラウザ標準のカレンダーを使っています）。
 
 ### テストに使うライブラリ（`requirements-dev.txt`、開発するときだけ）
 
@@ -569,7 +572,8 @@ py -3.11 -m venv .venv
 |---|---|---|---|
 | [pytest](https://docs.pytest.org/) | 9.1.1 | MIT | テストの実行 |
 | [RESPX](https://lundberg.github.io/respx/) | 0.23.1 | BSD-3-Clause | HTTPX の通信を差し替え、本物の Jenkins なしで Jenkins API のテストをする |
-| [time-machine](https://time-machine.readthedocs.io/) | 3.5.1 | MIT | テストの中で現在時刻を固定する |
+
+配布物（インストーラ）には含まれません。
 
 ### インストーラ・配布の作成に使うツール
 

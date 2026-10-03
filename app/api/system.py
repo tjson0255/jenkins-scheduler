@@ -4,11 +4,11 @@ from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, Response
-from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.metrics import CONTENT_TYPE_LATEST, generate_latest
 from app.models import AuditLog
 from app.timeutil import iso_z, local_midnight_utc, utcnow
 

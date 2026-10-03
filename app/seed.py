@@ -1,11 +1,14 @@
-"""初期データ投入（仕様書 5.2 / 5.3）。seed.yaml は job_path で突合して冪等に反映する。"""
+"""初期データ投入（仕様書 5.2 / 5.3）。seed.toml は job_path で突合して冪等に反映する。
+
+TOML は Python の標準ライブラリ（tomllib）で読む。
+"""
 
 from __future__ import annotations
 
 import logging
+import tomllib
 from pathlib import Path
 
-import yaml
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -26,8 +29,13 @@ def ensure_default_categories(db: Session) -> None:
 
 
 def load_seed(db: Session, path: Path, default_overlap_policy: str = "skip") -> dict[str, int]:
-    with Path(path).open(encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
+    path = Path(path)
+    if path.suffix.lower() in (".yaml", ".yml"):
+        raise ValueError(
+            f"初期データは TOML で書いてください（{path.name} → seed.toml）。書き方は seed.toml.example を参照してください"
+        )
+    # TOML の仕様で UTF-8 として読む（Windows の既定の文字コードに左右されない）
+    data = tomllib.loads(path.read_text(encoding="utf-8-sig")) or {}
     created = {"categories": 0, "targets": 0, "updated_targets": 0}
 
     cats = {c.name: c for c in db.scalars(select(Category))}

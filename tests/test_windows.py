@@ -1,7 +1,6 @@
 """Windows 固有の注意点（18章）: UTF-8 の読み込み、tzdata、ロックファイルによる二重起動検出。"""
 
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import select
@@ -12,23 +11,28 @@ from app.models import Category, Target
 from app.seed import ensure_default_categories, load_seed
 
 SEED = """\
-categories:
-  - name: ビルドセット
-  - name: リリース関連
-targets:
-  - job_path: buildset/core-pipeline
-    display_name: コア（日本語）
-    category: ビルドセット
-    pinned: true
-    color: "#4e79a7"
-  - job_path: release/store-submit
-    display_name: ストア申請
-    category: 新しいカテゴリ
+[[categories]]
+name = "ビルドセット"
+
+[[categories]]
+name = "リリース関連"
+
+[[targets]]
+job_path = "buildset/core-pipeline"
+display_name = "コア（日本語）"
+category = "ビルドセット"
+pinned = true
+color = "#4e79a7"
+
+[[targets]]
+job_path = "release/store-submit"
+display_name = "ストア申請"
+category = "新しいカテゴリ"
 """
 
 
-def test_seed_yaml_utf8_and_idempotent(db, tmp_path):
-    path = tmp_path / "seed.yaml"
+def test_seed_toml_utf8_and_idempotent(db, tmp_path):
+    path = tmp_path / "seed.toml"
     path.write_bytes(SEED.encode("utf-8"))  # cp932 環境でも UTF-8 として読むこと
     ensure_default_categories(db)
     first = load_seed(db, path)
@@ -40,6 +44,20 @@ def test_seed_yaml_utf8_and_idempotent(db, tmp_path):
     assert {"ビルドセット", "リリース関連", "その他", "新しいカテゴリ"} <= names
 
 
+def test_seed_yaml_is_rejected_with_guidance(db, tmp_path):
+    path = tmp_path / "seed.yaml"
+    path.write_text("targets: []\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="TOML"):
+        load_seed(db, path)
+
+
+def test_seed_example_loads(db):
+    from app.config import PROJECT_ROOT
+
+    ensure_default_categories(db)
+    assert load_seed(db, PROJECT_ROOT / "seed.toml.example")["targets"] == 10
+
+
 def test_env_file_utf8(tmp_path):
     env = tmp_path / ".env"
     env.write_bytes("APP_BASIC_AUTH_USER=管理者\nAPP_PORT=9999\n".encode("utf-8"))
@@ -47,11 +65,23 @@ def test_env_file_utf8(tmp_path):
     assert s.app_basic_auth_user == "管理者" and s.app_port == 9999
 
 
-def test_tzdata_available_for_tokyo():
-    import tzdata  # noqa: F401  Windows では zoneinfo のために必須
+def test_tokyo_works_without_timezone_data(monkeypatch):
+    """Windows には tzdata が無いので、日本時間は固定の +09:00 で扱う（夏時間が無いので結果は同じ）。"""
+    from app import timeutil
 
-    tokyo = ZoneInfo("Asia/Tokyo")
-    assert datetime(2027, 1, 1, tzinfo=tokyo).utcoffset().total_seconds() == 9 * 3600
+    def missing(name):
+        raise timeutil.ZoneInfoNotFoundError(name)
+
+    monkeypatch.setattr(timeutil, "ZoneInfo", missing)
+    timeutil._zone.cache_clear()
+    try:
+        tokyo = timeutil._zone("Asia/Tokyo")
+        for d in (datetime(2027, 1, 1), datetime(2027, 7, 1)):
+            assert d.replace(tzinfo=tokyo).utcoffset().total_seconds() == 9 * 3600
+        with pytest.raises(ValueError, match="tzdata"):
+            timeutil._zone("Europe/London")
+    finally:
+        timeutil._zone.cache_clear()
 
 
 def test_lock_prevents_double_start(tmp_path):

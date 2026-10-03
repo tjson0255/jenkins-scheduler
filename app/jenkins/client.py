@@ -32,15 +32,16 @@ FOLDER_CLASSES = ("Folder", "OrganizationFolder", "WorkflowMultiBranchProject")
 SEARCH_CACHE_SECONDS = 60
 
 
-def _ssl_context(ca_bundle) -> ssl.SSLContext | bool:
+def _ssl_context(ca_bundle) -> ssl.SSLContext:
+    """HTTPS の証明書の検証に使う設定。
+
+    JENKINS_CA_BUNDLE を指定すればその CA 証明書（PEM）で検証する。
+    指定しなければ OS の証明書を使う（Windows では証明書ストアの「信頼されたルート証明機関」などを
+    Python の標準ライブラリが読み込むので、社内 CA が配布済みならそのまま使える）。
+    """
     if ca_bundle:
         return ssl.create_default_context(cafile=str(ca_bundle))
-    try:
-        import truststore
-
-        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    except Exception:  # pragma: no cover - truststore が使えない環境
-        return True
+    return ssl.create_default_context()
 
 
 class JenkinsClient:

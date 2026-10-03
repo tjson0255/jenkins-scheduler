@@ -20,7 +20,7 @@ if (-not (Test-Path $VenvPy)) {
 }
 $env:PYTHONUTF8 = "1"
 if (-not $Real) { $env:JENKINS_MOCK = "true" }
-if (-not $env:SEED_FILE -and (Test-Path "seed.yaml")) { $env:SEED_FILE = "seed.yaml" }
+if (-not $env:SEED_FILE -and (Test-Path "seed.toml")) { $env:SEED_FILE = "seed.toml" }
 if (-not $env:APP_DATA_DIR) { $env:APP_DATA_DIR = Join-Path $Root "var" }
 
 & $VenvPy -m app --migrate-only

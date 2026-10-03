@@ -2,6 +2,8 @@
 
 from datetime import date, datetime
 
+import pytest
+
 from app.schema.diff import classify, job_status_issues
 from app.schema.normalize import normalize, schema_hash
 from app.schema.validate import build_context, resolve_params, validate_explicit
@@ -127,3 +129,14 @@ def test_validate_explicit_fills_defaults():
 def test_scheduled_at_variable_is_tokyo_without_offset():
     params, _d, _i = resolve_params(normalize(RAW), {"BRANCH": "{{run.scheduled_at}}"}, ctx())
     assert params["BRANCH"] == "2027-01-05 03:00"
+
+
+def test_render_variables_only():
+    from app.schema.validate import TemplateError, render
+
+    c = ctx()
+    assert render("plain text", c) == "plain text"
+    assert render("{{schedule.label}}/{{ run.date }}", c) == f"{c['schedule']['label']}/{c['run']['date']}"
+    for bad in ("{{ run }}", "{{ run.date | upper }}", "{% if 1 %}x{% endif %}", "{{ run.nope }}", "{{ 1 + 1 }}", "{{"):
+        with pytest.raises(TemplateError):
+            render(bad, c)

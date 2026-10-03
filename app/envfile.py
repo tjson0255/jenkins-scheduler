@@ -1,4 +1,7 @@
-""".env の読み書き（インストーラ・CLI から設定を書き込むため）。コメントや他の行はそのまま残す。"""
+""".env の読み書き。
+
+読み込みは設定（app/config.py）から、書き込みはインストーラ・CLI から使う。書き込むときはコメントや他の行をそのまま残す。
+"""
 
 from __future__ import annotations
 
@@ -6,6 +9,32 @@ import re
 from pathlib import Path
 
 _KEY = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=")
+
+
+def read_values(path: Path) -> dict[str, str]:
+    """.env を {KEY: VALUE} にする（UTF-8）。
+
+    書き方: KEY=VALUE（前後の空白は無視）、# で始まる行はコメント、export KEY=VALUE も可。
+    値を '…' か "…" で囲むと、中の # や前後の空白もそのまま値になる（"…" の中では \\n が改行）。
+    囲まない値は、空白の後ろの # 以降をコメントとして捨てる。
+    """
+    values: dict[str, str] = {}
+    for raw in Path(path).read_text(encoding="utf-8-sig").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        m = _KEY.match(line)
+        if not m:
+            continue
+        value = line[m.end():].strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+            quote, value = value[0], value[1:-1]
+            if quote == '"':
+                value = value.replace("\\n", "\n").replace('\\"', '"')
+        else:
+            value = re.split(r"\s+#", value, maxsplit=1)[0].rstrip()
+        values[m.group(1)] = value
+    return values
 
 
 def set_values(path: Path, values: dict[str, str | None]) -> None:

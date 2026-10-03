@@ -55,7 +55,7 @@ def populate(db: Session, settings: Settings, client) -> None:
     rng = random.Random(42)
     today = local_today()
     now = utcnow()
-    load_seed(db, PROJECT_ROOT / "seed.yaml.example", settings.default_overlap_policy)
+    load_seed(db, PROJECT_ROOT / "seed.toml.example", settings.default_overlap_policy)
     targets = {t.job_path: t for t in db.query(Target).all()}
     for t in targets.values():
         sync_target(db, client, t, settings.timer_trigger_lookback_days)
