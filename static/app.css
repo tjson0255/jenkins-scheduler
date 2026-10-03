@@ -526,3 +526,4 @@ section.help { scroll-margin-top: 12px; }
 /* アイテム画面: スケジュール一覧 */
 .schedule-table .swatch.inline { display: inline-block; margin-right: 6px; vertical-align: -1px; }
 .schedule-table td { white-space: nowrap; }
+.schedule-table .warn-list { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; }

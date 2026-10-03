@@ -182,7 +182,6 @@ function renderScheduleList() {
         el("td", {}, scheduleRule(s)),
         el("td", {}, `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`),
         el("td", {}, memo ? "" : statusChip(s.status)),
-        el("td", { class: "small" }, memo ? "" : paramCheck(s)),
         el("td", { class: "small" }, memo ? "" : scheduleWarnings(s, t)),
         el("td", {}, !memo && can.admin() && ["draft", "active", "paused"].includes(s.status)
           ? el("button", { class: "btn small", title: "このスケジュールのパラメータで今すぐキックする", onclick: () => runNowSchedule(t, s) }, "今すぐ実行")
@@ -191,31 +190,32 @@ function renderScheduleList() {
   }
   box.replaceChildren(rows.length
     ? el("div", { class: "table-wrap" }, el("table", { class: "table schedule-table" },
-        el("thead", {}, el("tr", {}, ["カテゴリ", "アイテム", "タイトル", "実行規則", "期間", "状態", "パラメータ定義", "警告", ""].map((h) => el("th", {}, h)))),
+        el("thead", {}, el("tr", {}, ["カテゴリ", "アイテム", "タイトル", "実行規則", "期間", "状態", "警告", ""].map((h) => el("th", {}, h)))),
         el("tbody", {}, rows)))
     : el("p", { class: "muted" }, "スケジュールはありません。"));
 }
 
-/** そのスケジュールのパラメータの確認結果（Jenkins の最新のパラメータ定義と照らし合わせたもの） */
-function paramCheck(s) {
-  if (!["draft", "active", "paused"].includes(s.status)) return el("span", { class: "muted" }, "—");
-  const issues = (s.issues || []).filter((i) => i.level !== "info");
-  if (!issues.length) return el("span", { class: "status-ok" }, "✔ OK");
-  const err = issues.filter((i) => i.level === "error").length;
-  const warn = issues.length - err;
-  return el("span", { title: issues.map((i) => i.message).join("\n") },
-    err ? el("span", { class: "status-err" }, `⛔ エラー${err} `) : null,
-    warn ? el("span", { class: "status-warn" }, `⚠ 警告${warn}`) : null);
-}
-
-/** そのスケジュールが予定どおり動かない原因になること（ジョブ・アイテム側のものも含む） */
+/** そのスケジュールの警告をまとめて出す。
+ *  パラメータの確認結果（Jenkins の最新のパラメータ定義と照らし合わせたもの）と、
+ *  予定どおり動かない原因（保留・ジョブ・Jenkins 側の cron・アイテムが無効）。何も無ければ「なし」 */
 function scheduleWarnings(s, t) {
   const out = [];
-  if (s.holding_count) out.push(el("span", { class: "status-err", title: "キックされずに止まっている run があります" }, `保留${s.holding_count} `));
-  if (t.schema_error) out.push(el("span", { class: "status-err", title: t.schema_error }, "⛔ ジョブ "));
-  if (t.timer_trigger_detected) out.push(el("span", { class: "status-warn", title: "Jenkins 側の cron が残っています（二重実行の恐れ）" }, "⏰ cron 残存 "));
+  const issues = ["draft", "active", "paused"].includes(s.status) ? (s.issues || []).filter((i) => i.level !== "info") : [];
+  if (issues.length) {
+    const err = issues.filter((i) => i.level === "error").length;
+    const warn = issues.length - err;
+    const label = [err ? `エラー${err}` : null, warn ? `警告${warn}` : null].filter(Boolean).join("・");
+    out.push(el("a", {
+      class: err ? "status-err" : "status-warn",
+      href: `/?date=${s.start_date}#schedule=${s.id}&tab=params`,
+      title: issues.map((i) => i.message).join("\n") + "\n\n押すとパラメータの画面を開きます（確かめて保存すると警告が消えます）",
+    }, `${err ? "⛔" : "⚠"} パラメータ ${label}`));
+  }
+  if (s.holding_count) out.push(el("span", { class: "status-err", title: "キックされずに止まっている run があります" }, `⛔ 保留${s.holding_count}`));
+  if (t.schema_error) out.push(el("span", { class: "status-err", title: t.schema_error }, "⛔ ジョブ"));
+  if (t.timer_trigger_detected) out.push(el("span", { class: "status-warn", title: "Jenkins 側の cron が残っています（二重実行の恐れ）" }, "⏰ cron 残存"));
   if (!t.enabled) out.push(el("span", { class: "muted", title: "アイテムが無効なので run はスキップされます" }, "アイテム無効"));
-  return out.length ? out : el("span", { class: "muted" }, "—");
+  return out.length ? el("span", { class: "warn-list" }, out) : el("span", { class: "status-ok" }, "✔ なし");
 }
 
 async function runNowSchedule(t, s) {
