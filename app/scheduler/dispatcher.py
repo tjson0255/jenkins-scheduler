@@ -326,10 +326,10 @@ class Dispatcher:
             try:
                 item = self.client.get_queue_item(run.queue_id)
             except NotFound:
-                # キューレーンは一定時間で消えるので、ビルド一覧から queueId で探す
+                # キューアイテムは一定時間で消えるので、ビルド一覧から queueId で探す
                 build = self.client.find_build_by_queue_id(job, run.queue_id)
                 if build is None:
-                    set_status(run, R_FAILURE, "キューレーンもビルドも見つからず追跡できません")
+                    set_status(run, R_FAILURE, "キューアイテムもビルドも見つからず追跡できません")
                     return
                 run.build_number = build.get("number")
                 run.build_url = build.get("url")

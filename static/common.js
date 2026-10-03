@@ -376,6 +376,7 @@ function renderHeader(active) {
   const nav = [
     ["/day", "1日の予定"],
     ["/", "タイムライン"],
+    ["/history", "実行結果"],
     ["/targets", "アイテム"],
     ["/audit", "ログ"],
     ["/help", "ヘルプ"],

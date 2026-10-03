@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>実行結果 - Jenkins Scheduler</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="page-history">
+  <main>
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>実行結果</h2>
+          <div class="muted small" id="hist-range"></div>
+        </div>
+        <div class="row wrap">
+          <button class="btn" id="hist-prev" title="前の期間">◀</button>
+          <button class="btn" id="hist-next" title="次の期間">▶</button>
+          <button class="btn" id="hist-today">今日</button>
+          <select id="hist-days" aria-label="表示する期間">
+            <option value="14">2週</option>
+            <option value="28" selected>4週</option>
+            <option value="56">8週</option>
+          </select>
+          <select id="hist-cat" aria-label="カテゴリで絞り込む"></select>
+        </div>
+      </div>
+      <div class="hist-legend" id="hist-legend"></div>
+      <div id="hist-grid"></div>
+    </section>
+  </main>
+  <script src="/static/common.js"></script>
+  <script src="/static/history.js"></script>
+</body>
+</html>

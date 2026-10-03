@@ -739,15 +739,13 @@ function actionBar(s, t) {
       },
     }, "今すぐ実行")
   );
-  if (["draft", "active", "paused"].includes(s.status)) {
-    bar.append(act("キャンセル", `/api/schedules/${s.id}/cancel`, { cls: "danger", confirm: "スケジューラをキャンセルします。未実行の run はすべてキャンセルされます（元に戻せません）。" }));
-  }
+  // 止めるときは「一時停止」、要らなくなったら「削除」（取り消しのできない「キャンセル」はボタンを出さない）
   bar.append(act("削除", `/api/schedules/${s.id}`, {
     cls: "danger",
     method: "DELETE",
     confirm: s.status === "draft"
       ? "ドラフトを削除します。"
-      : "スケジューラを削除します。これまでの実行履歴も一緒に削除されます（元に戻せません。削除したことはログに残ります）。\n\n実行履歴を残したい場合は「キャンセル」を使ってください。",
+      : "スケジューラを削除します。これまでの実行履歴も一緒に削除されます（元に戻せません。削除したことはログに残ります）。\n\n実行履歴を残して止めたい場合は「一時停止」を使ってください。",
   }));
   return bar;
 }
