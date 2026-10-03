@@ -34,6 +34,7 @@ Jenkins ジョブを **決まった時刻にパラメータ付きでキックす
 8. [監視とアラート](#8-監視とアラート)
 9. [運用上の注意](#9-運用上の注意)
 10. [開発・テスト](#10-開発テスト)
+11. [動作環境と使用ライブラリ](#11-動作環境と使用ライブラリ)
 
 ---
 
@@ -482,6 +483,103 @@ py -3.11 -m venv .venv
   ```powershell
   .\.venv\Scripts\alembic revision --autogenerate -m "変更内容"
   ```
+
+---
+
+## 11. 動作環境と使用ライブラリ
+
+### 動作環境
+
+| 項目 | 内容 |
+|---|---|
+| OS（本番） | Windows 10 / 11、Windows Server 2019 以降（Windows サービスとして常駐） |
+| OS（開発・デモ） | macOS / Linux でも動作（デモサイトは Docker の `python:3.13-slim`） |
+| Python | 3.11 以上（インストーラには 3.13 の埋め込み版を同梱するので、別途のインストールは不要） |
+| データベース | SQLite（Python に標準で含まれる。別途のインストールは不要） |
+| ブラウザ | Microsoft Edge / Google Chrome / Firefox などの最新版 |
+| Jenkins | REST API（`/api/json`、`/buildWithParameters`）が使えること。アプリ用アカウントの API トークン |
+| ネットワーク | このツールから Jenkins へ HTTP(S) で接続できること。利用者のブラウザからこのツールのポート（既定 8080）へ接続できること |
+
+### 実行に使うライブラリ（`requirements.txt`）
+
+バージョンは動作確認した時点のものです。`requirements.txt` には下限だけを書いているので、インストールした時期によって新しい版が入ります。
+
+| ライブラリ | 確認した版 | ライセンス | 概要（このツールでの用途） |
+|---|---|---|---|
+| [FastAPI](https://fastapi.tiangolo.com/) | 0.142.2 | MIT | Web API のフレームワーク。画面から呼ぶ API をすべてこれで作っている |
+| [Uvicorn](https://www.uvicorn.org/) | 0.54.0 | BSD-3-Clause | FastAPI を動かす Web サーバー（ASGI サーバー） |
+| [SQLAlchemy](https://www.sqlalchemy.org/) | 2.1.2 | MIT | データベース（SQLite）を Python から扱うためのライブラリ（ORM） |
+| [Alembic](https://alembic.sqlalchemy.org/) | 1.20.0 | MIT | データベースの表の構造をバージョンアップに合わせて更新する（マイグレーション） |
+| [APScheduler](https://apscheduler.readthedocs.io/en/3.x/) | 3.11.3 | MIT | 定期処理の実行。30秒ごとのキック判定、5分ごとのパラメータ定義の取得、毎日のバックアップなど |
+| [croniter](https://github.com/pallets-eco/croniter) | 6.2.4 | MIT | cron 式（例：`0 3 * * 1-5`）から次の実行日時を計算する |
+| [HTTPX](https://www.python-httpx.org/) | 0.28.1 | BSD-3-Clause | Jenkins の REST API を呼ぶための HTTP クライアント |
+| [Jinja2](https://jinja.palletsprojects.com/) | 3.1.6 | BSD-3-Clause | パラメータの値に書く変数（`{{run.date}}` など）を展開するテンプレートエンジン |
+| [prometheus-client](https://github.com/prometheus/client_python) | 0.26.0 | Apache-2.0 | 監視用の `/metrics`（Prometheus 形式）を出す |
+| [Pydantic](https://docs.pydantic.dev/) | 2.13.5 | MIT | API で受け取るデータの型チェックと変換 |
+| [pydantic-settings](https://github.com/pydantic/pydantic-settings) | 2.15.0 | MIT | `.env` から設定を読み込む |
+| [PyYAML](https://pyyaml.org/) | 6.0.3 | MIT | 初期データ（`seed.yaml`）を読み込む |
+| [tzdata](https://github.com/python/tzdata) | 2026.4 | Apache-2.0 | タイムゾーンのデータ。Windows で Asia/Tokyo の時刻計算をするために必要 |
+| [truststore](https://github.com/sethmlarson/truststore) | 0.10.4 | MIT | Jenkins に HTTPS で接続するとき、OS（Windows）の証明書ストアを使う。社内 CA の証明書もそのまま使える |
+| [portalocker](https://github.com/wolph/portalocker) | 4.4.0 | BSD-3-Clause | ファイルロック。ツールが二重に起動して同じジョブを二度キックするのを防ぐ |
+| [keyring](https://github.com/jaraco/keyring) | 25.7.0 | MIT | Jenkins の API トークンを Windows の資格情報マネージャーに保存して読み出す（任意） |
+
+#### 上のライブラリが内部で使うライブラリ（自動でインストールされる）
+
+| ライブラリ | ライセンス | 概要 |
+|---|---|---|
+| [Starlette](https://www.starlette.io/) | BSD-3-Clause | FastAPI の土台の Web フレームワーク |
+| [pydantic-core](https://github.com/pydantic/pydantic-core) | MIT | Pydantic の中核部分（Rust 製） |
+| [AnyIO](https://github.com/agronholm/anyio) | MIT | 非同期処理の共通基盤 |
+| [httpcore](https://github.com/encode/httpcore) / [h11](https://github.com/python-hyper/h11) | BSD-3-Clause / MIT | HTTPX が使う HTTP 通信の下回り |
+| [idna](https://github.com/kjd/idna) | BSD-3-Clause | 国際化ドメイン名の処理 |
+| [certifi](https://github.com/certifi/python-certifi) | MPL-2.0 | Mozilla の CA 証明書の一覧（truststore を使うときは OS の証明書が優先） |
+| [click](https://click.palletsprojects.com/) | BSD-3-Clause | Uvicorn・Alembic のコマンドライン処理 |
+| [Mako](https://www.makotemplates.org/) | MIT | Alembic のマイグレーションファイルのひな形 |
+| [MarkupSafe](https://github.com/pallets/markupsafe) | BSD-3-Clause | Jinja2 の文字列の安全な扱い |
+| [tzlocal](https://github.com/regebro/tzlocal) | MIT | APScheduler が OS のタイムゾーンを調べる |
+| [python-dotenv](https://github.com/theskumar/python-dotenv) | BSD-3-Clause | pydantic-settings が `.env` を読む |
+| [python-dateutil](https://github.com/dateutil/dateutil) / [six](https://github.com/benjaminp/six) | Apache-2.0 または BSD / MIT | croniter が使う日付の計算 |
+| [jaraco.classes](https://github.com/jaraco/jaraco.classes) / [jaraco.context](https://github.com/jaraco/jaraco.context) / [jaraco.functools](https://github.com/jaraco/jaraco.functools) / [more-itertools](https://github.com/more-itertools/more-itertools) | MIT | keyring が使う小さな補助ライブラリ |
+| [pywin32-ctypes](https://github.com/enthought/pywin32-ctypes) | BSD-3-Clause | Windows だけ。keyring が資格情報マネージャーを呼ぶ |
+| [opentelemetry-api](https://github.com/open-telemetry/opentelemetry-python) | Apache-2.0 | FastAPI が依存する計測用 API（このツールでは計測を有効にしていない） |
+| [typing-extensions](https://github.com/python/typing_extensions) / [typing-inspection](https://github.com/pydantic/typing-inspection) / [annotated-types](https://github.com/annotated-types/annotated-types) / [annotated-doc](https://github.com/fastapi/annotated-doc) | PSF-2.0 / MIT | 型ヒントの補助 |
+
+正確な一覧は、インストールした環境で `pip list` または `pip-licenses` で確認できます。
+
+### 任意のライブラリ（`requirements-ldap.txt`、AD 認証を使うときだけ）
+
+| ライブラリ | 確認した版 | ライセンス | 概要 |
+|---|---|---|---|
+| [ldap3](https://github.com/cannatag/ldap3) | 2.9.1 | LGPL-3.0 | Active Directory（LDAP）でのログインと、グループによる権限の判定 |
+| [pyasn1](https://github.com/pyasn1/pyasn1) | 0.6.4 | BSD-2-Clause | ldap3 が使う LDAP の通信データの変換 |
+
+標準の構成（共有の管理者アカウント）では使いません。
+
+### 画面（ブラウザ）で使うライブラリ
+
+| ライブラリ | 版 | ライセンス | 概要 |
+|---|---|---|---|
+| [vis-timeline](https://visjs.github.io/vis-timeline/) | 8.5.4 | Apache-2.0 または MIT | タイムライン（横表示）の描画、ドラッグでの作成・移動、拡大・縮小 |
+
+`static/vendor/vis-timeline/` に同梱しているので、インターネットにつながらない環境でも動きます。ほかの画面部分はライブラリを使わない素の HTML / CSS / JavaScript で、ビルドの工程はありません。
+
+### テストに使うライブラリ（`requirements-dev.txt`、開発するときだけ）
+
+| ライブラリ | 確認した版 | ライセンス | 概要 |
+|---|---|---|---|
+| [pytest](https://docs.pytest.org/) | 9.1.1 | MIT | テストの実行 |
+| [RESPX](https://lundberg.github.io/respx/) | 0.23.1 | BSD-3-Clause | HTTPX の通信を差し替え、本物の Jenkins なしで Jenkins API のテストをする |
+| [time-machine](https://time-machine.readthedocs.io/) | 3.5.1 | MIT | テストの中で現在時刻を固定する |
+
+### インストーラ・配布の作成に使うツール
+
+| ツール | ライセンス | 概要 |
+|---|---|---|
+| [Python 埋め込み版（embeddable package）](https://www.python.org/downloads/windows/) | PSF-2.0 | インストーラに同梱する Python 本体（3.13） |
+| [WinSW](https://github.com/winsw/winsw) v2.12.0 | MIT | Python のプログラムを Windows サービスとして動かす |
+| [Inno Setup](https://jrsoftware.org/isinfo.php) | Inno Setup License（無償） | Windows のインストーラ（Setup.exe）を作る。作成時だけ使い、配布物には含まれない |
+| [GitHub Actions](https://docs.github.com/actions) | — | テスト、インストーラの作成、GitHub Releases への公開を自動で行う |
+| [Docker](https://www.docker.com/) / [Render](https://render.com/) | — | デモサイトの実行環境（本番の社内運用では使わない） |
 
 ---
 
