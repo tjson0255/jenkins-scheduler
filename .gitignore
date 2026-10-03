@@ -14,3 +14,7 @@ deploy/winsw/*.log
 .DS_Store
 .claude/
 *.tmp
+
+# インストーラのビルド成果物
+build/
+dist/

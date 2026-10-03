@@ -191,6 +191,22 @@ Overall/Read、Job/Read、Job/Build のみ。**Job/Configure は付与しない*
 
 前提：Windows 10/11 または Windows Server 2019 以降、Python 3.11 以上（`py` ランチャー）。
 
+### 5.0 インストーラで入れる（おすすめ）
+
+GitHub の Releases から `JenkinsScheduler-Setup-<バージョン>.exe` をダウンロードし、管理者として実行します。
+
+- Python を同梱しているので、インストール先に Python は不要です（オフラインの PC にもそのまま入れられます）
+- 途中で管理者パスワード（12文字以上）と待ち受けポート（既定 8090）を入力します。完了すると Windows サービスとして起動します
+- スタートメニューに「Jenkins Scheduler を開く」「設定ファイル（.env）を開く」「管理者パスワードを変更」「サービスを再起動（設定の反映）」を作ります
+- Jenkins の URL・ユーザー・API トークンは、インストール後に `.env` に書いて、サービスを再起動します
+- 上書きインストールで更新できます（設定とデータは引き継ぎます）。アンインストールしても設定（.env）とデータ（`%ProgramData%\jenkins-scheduler`）は残ります
+- 署名していないため、初回は SmartScreen の警告が出ることがあります
+- 自動化用のサイレントインストール：`JenkinsScheduler-Setup-x.y.z.exe /VERYSILENT /ADMINPASSWORD=<パスワード> /PORT=8090`
+
+インストーラは GitHub Actions（`.github/workflows/windows-installer.yml`）が Windows 上で作り、実際にインストールして、サービスの起動・管理者ログイン・二重起動の防止・再起動後の復帰・アンインストールまで確かめてから Releases に載せます。`v` で始まるタグ（例：`v0.1.0`）を送ると動きます。
+
+以下の 5.1〜5.2 は、インストーラを使わずにソースから入れる方法です。
+
 ### 5.1 オフライン用の事前取得（インターネットに出られる端末）
 
 ```powershell

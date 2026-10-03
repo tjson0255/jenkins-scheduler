@@ -1,0 +1,50 @@
+name: Windows インストーラ
+
+# v で始まるタグ（例: v0.1.0）を送ると、ビルド → Windows 上でテスト・インストール確認 → Releases にアップロード
+# Actions 画面の「Run workflow」からは、アップロードせずにビルドと確認だけ行う
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: テスト（Windows 上）
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+          python -m pytest -q
+
+      - name: Inno Setup を入れる
+        run: choco install innosetup -y --no-progress
+
+      - name: インストーラを作る
+        shell: pwsh
+        run: ./packaging/windows/build.ps1
+
+      - name: インストールして動作を確かめる
+        shell: pwsh
+        run: ./packaging/windows/smoke-test.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/*
+
+      - name: Releases にアップロード
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" (Get-ChildItem dist/*).FullName --title "Jenkins Scheduler ${{ github.ref_name }}" --notes-file packaging/windows/RELEASE_NOTES.md

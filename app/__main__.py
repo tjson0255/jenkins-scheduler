@@ -24,7 +24,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seed", help="seed.yaml を読み込んで終了する")
     parser.add_argument("--backup", action="store_true", help="バックアップを今すぐ作成して終了する（サービス稼働中でも可）")
     parser.add_argument("--hash-password", action="store_true", help="管理者パスワードのハッシュ（ADMIN_PASSWORD_HASH に書く値）を作る")
+    # インストーラ用
+    parser.add_argument("--init-env", action="store_true", help=".env が無ければ .env.example から作る")
+    parser.add_argument("--set-admin-password-file", metavar="PATH", help="ファイルの1行目を管理者パスワードとして .env に（ハッシュで）書き込む")
+    parser.add_argument("--set-env", metavar="KEY=VALUE", action="append", default=[], help=".env に設定を書き込む（複数指定可）")
+    parser.add_argument("--version", action="store_true", help="バージョンを表示する")
     args = parser.parse_args(argv)
+
+    if args.version:
+        from app import __version__
+
+        print(__version__)
+        return 0
+
+    if args.init_env or args.set_admin_password_file or args.set_env:
+        return _edit_env(args)
 
     if args.hash_password:
         import getpass
@@ -94,6 +108,40 @@ def main(argv: list[str] | None = None) -> int:
     server = uvicorn.Server(config)
     server.run()
     return 0 if server.started else 1
+
+
+def _edit_env(args) -> int:
+    from app import envfile
+    from app.config import PROJECT_ROOT
+
+    env_path = PROJECT_ROOT / ".env"
+    if args.init_env and envfile.init_from_example(env_path, PROJECT_ROOT / ".env.example"):
+        print(f".env を作成しました: {env_path}")
+    values: dict[str, str | None] = {}
+    for item in args.set_env:
+        key, sep, value = item.partition("=")
+        if not sep or not key.strip():
+            print(f"エラー: KEY=VALUE の形で指定してください: {item}", file=sys.stderr)
+            return 1
+        values[key.strip()] = value
+    if args.set_admin_password_file:
+        from pathlib import Path
+
+        from app.auth.passwords import hash_password
+
+        pw_path = Path(args.set_admin_password_file)
+        # インストーラ（Inno Setup）は BOM 付き UTF-8 で書くので utf-8-sig で読む
+        lines = pw_path.read_text(encoding="utf-8-sig").splitlines() if pw_path.exists() else []
+        pw = lines[0] if lines else ""
+        if len(pw) < 12:
+            print("エラー: 管理者パスワードは12文字以上にしてください", file=sys.stderr)
+            return 1
+        values["ADMIN_PASSWORD_HASH"] = hash_password(pw)
+        values["ADMIN_PASSWORD"] = None  # 平文は残さない
+    if values:
+        envfile.set_values(env_path, values)
+        print(f".env を更新しました: {', '.join(k for k in values)}")
+    return 0
 
 
 if __name__ == "__main__":
