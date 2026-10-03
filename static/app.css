@@ -541,3 +541,16 @@ body.embed .panel { position: static; width: auto; border: none; box-shadow: non
 .modal.modal-wide .modal-header { display: none; } /* 見出しと × は中のパネルのものを使う */
 .modal.modal-wide { overflow: hidden; }
 .schedule-frame { display: block; width: 100%; height: calc(100vh - 120px); border: 0; }
+
+/* アイテム画面: カテゴリ › アイテム › スケジューラ の構成 */
+.tree-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; font-size: 13px; }
+.tree-steps a { font-weight: 600; text-decoration: none; }
+.tree-steps a:hover { text-decoration: underline; }
+.tree-sep { color: var(--muted); }
+.tree-level { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-right: 8px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; vertical-align: 2px; }
+.link-btn { border: none; background: none; padding: 0; color: var(--accent); cursor: pointer; font: inherit; white-space: nowrap; }
+.link-btn:hover { text-decoration: underline; }
+.link-btn.small { font-size: 12px; }
+.schedule-table tr.cat-start > td { border-top: 2px solid var(--line); }
+.schedule-table tr.item-start > td { border-top: 1px solid var(--line); }
+.schedule-table tr:not(.cat-start):not(.item-start) > td:nth-child(-n+2) { border-top-color: transparent; }
