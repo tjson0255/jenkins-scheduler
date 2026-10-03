@@ -33,7 +33,7 @@ def build_context(
     return {
         "schedule": {
             "label": label or "",
-            "title": label or "",  # 画面での呼び名（タイトル）に合わせた別名。中身は label と同じ
+            "title": label or "",  # 画面での呼び名（件名）に合わせた別名。中身は label と同じ
             "start_date": start_date.isoformat() if start_date else "",
             "end_date": end_date.isoformat() if end_date else "",
         },

@@ -432,7 +432,7 @@ function scheduleTooltip(s) {
     return esc(memo.filter(Boolean).join("\n")).replace(/\n/g, "<br>");
   }
   const lines = [
-    `${s.label || "(タイトルなし)"} [${SCHEDULE_STATUS_LABEL[s.status]}]`,
+    `${s.label || "(件名なし)"} [${SCHEDULE_STATUS_LABEL[s.status]}]`,
     `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`,
     s.mode === "cron" ? `${s.cron_summary}（${s.cron_expr}）` : `1回: ${fmtDateTime(s.once_at, true)}`,
     s.next_run_at ? `次回: ${fmtDateTime(s.next_run_at, true)}` : "",

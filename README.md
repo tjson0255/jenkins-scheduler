@@ -84,7 +84,7 @@ cp seed.toml.example seed.toml
 | 種類 | 内容 |
 |---|---|
 | Jenkins ジョブ | Jenkins のジョブを定時にキックする行。登録時にジョブの存在とパラメータ定義を確認する |
-| テキスト | Jenkins には接続しない行。予定（タイトル・期間・本文）を書き込むだけで、cron・パラメータ・run・有効化は無い。作るとすぐ表示され、いつでも編集・削除できる。終了日を過ぎた予定は薄く表示する |
+| テキスト | Jenkins には接続しない行。予定（件名・期間・本文）を書き込むだけで、cron・パラメータ・run・有効化は無い。作るとすぐ表示され、いつでも編集・削除できる。終了日を過ぎた予定は薄く表示する |
 
 ### スケジューラの状態
 
@@ -95,7 +95,7 @@ cp seed.toml.example seed.toml
 
 ### パラメータの変数
 
-`{{schedule.title}}`（スケジューラのタイトル。以前の書き方 `{{schedule.label}}` も可） `{{schedule.start_date}}` `{{schedule.end_date}}` `{{run.scheduled_at}}` `{{run.date}}` `{{target.job_path}}`
+`{{schedule.title}}`（スケジューラの件名。以前の書き方 `{{schedule.label}}` も可） `{{schedule.start_date}}` `{{schedule.end_date}}` `{{run.scheduled_at}}` `{{run.date}}` `{{target.job_path}}`
 
 例：`VERSION = {{schedule.title}}-{{run.date}}` → `v2.3.0-2026-10-05`。日時は Asia/Tokyo（`{{run.scheduled_at}}` は `2026-10-05 03:00` の形式）。上書きした項目だけを保存し、それ以外は Jenkins のデフォルト値を使います。「JenkinsJobパラメータのデフォルト値変更に追従しない」をオンにすると、有効化した時点（以降はパラメータを保存した時点）のデフォルト値で実行し続けます。
 

@@ -172,7 +172,7 @@ function scheduleRule(s) {
 
 function scheduleTitleOf(s) {
   if (s.label) return s.label;
-  if (s.mode === "memo") return (s.note || "").split("\n")[0].trim() || "（タイトルなし）";
+  if (s.mode === "memo") return (s.note || "").split("\n")[0].trim() || "（件名なし）";
   return scheduleRule(s);
 }
 
@@ -223,7 +223,7 @@ function renderScheduleList() {
   }
   box.replaceChildren(rows.length
     ? el("div", { class: "table-wrap" }, el("table", { class: "table schedule-table" },
-        el("thead", {}, el("tr", {}, ["アイテム", "タイトル", "実行規則", "期間", "状態", "警告", ""].map((h) => el("th", {}, h)))),
+        el("thead", {}, el("tr", {}, ["アイテム", "件名", "実行規則", "期間", "状態", "警告", ""].map((h) => el("th", {}, h)))),
         el("tbody", {}, rows)))
     : el("p", { class: "muted" }, "スケジューラはありません。"));
 }

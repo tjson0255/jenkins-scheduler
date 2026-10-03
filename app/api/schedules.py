@@ -235,7 +235,7 @@ def create_schedule(
     _require_editable(user, memo=t.is_memo)
     st = dispatcher.settings
     if t.is_memo:
-        # 予定: タイトル・期間・メモだけ。run は作らず、作った時点でタイムラインに出す
+        # 予定: 件名・期間・メモだけ。run は作らず、作った時点でタイムラインに出す
         s = Schedule(target=t, label=body.label or None, start_date=body.start_date, end_date=body.end_date,
                      mode="memo", status=ACTIVE, note=body.note)
         _validate(s)
@@ -288,7 +288,7 @@ def update_schedule(
     before = _snapshot(s)
     changes = body.model_dump(exclude_unset=True, exclude={"revision"})
     if s.is_memo:
-        # 予定はタイトル・期間・メモだけ変更できる
+        # 予定は件名・期間・メモだけ変更できる
         changes = {k: v for k, v in changes.items() if k in ("label", "start_date", "end_date", "note")}
     timing_changed = False
     for k, v in changes.items():
