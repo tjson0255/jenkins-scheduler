@@ -446,7 +446,7 @@ function runVisible(r) {
 }
 
 function runNote(withinRange) {
-  if (!state.runsOn) return "実行状況を非表示にしています。";
+  if (!state.runsOn) return "";
   if (!withinRange) return `表示範囲が ${RUN_POINT_MAX_DAYS} 日を超えているため、run は件数サマリーのみ表示しています。`;
   if (state.hiddenRunGroups.size) {
     const names = RUN_GROUPS.filter(([k]) => state.hiddenRunGroups.has(k)).map(([, label]) => label);
