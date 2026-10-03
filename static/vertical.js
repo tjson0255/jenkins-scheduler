@@ -107,9 +107,9 @@ function vItemHead(t) {
   if (ic.error) warn.push(`<span class="warn-icon err" title="パラメータ定義のエラー ${ic.error} 件">●</span>`);
   else if (ic.warning) warn.push(`<span class="warn-icon warn" title="パラメータ定義の警告 ${ic.warning} 件">●</span>`);
   const lvl = itemAlertLevel(t);
-  const tip = [t.kind === "memo" ? "予定" : t.job_path, ...itemAlertMessages(t), "クリックで予定一覧"].join("\n");
+  const tip = [t.kind === "memo" ? "テキスト" : t.job_path, ...itemAlertMessages(t), "クリックで予定一覧"].join("\n");
   return `<th class="v-item-head${t.enabled ? "" : " disabled"}${lvl ? " alert-" + lvl : ""}" data-item="${t.id}" title="${esc(tip)}">
-    <span class="swatch" style="background:${esc(t.color || "#8a94a6")}"></span><span class="v-item-name">${esc(t.display_name)}</span>${t.kind === "memo" ? '<span class="memo-icon" title="予定">📝</span>' : ""}${warn.join("")}
+    <span class="swatch" style="background:${esc(t.color || "#8a94a6")}"></span><span class="v-item-name">${esc(t.display_name)}</span>${t.kind === "memo" ? '<span class="memo-icon" title="テキスト">📝</span>' : ""}${warn.join("")}
   </th>`;
 }
 

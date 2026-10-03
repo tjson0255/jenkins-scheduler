@@ -93,7 +93,7 @@ function targetRow(t, siblings, index) {
   const row = el("tr", {},
     el("td", {}, color),
     el("td", {}, name),
-    el("td", { class: "mono small" }, memo ? el("span", { class: "kind-tag memo" }, "予定") : t.job_path),
+    el("td", { class: "mono small" }, memo ? el("span", { class: "kind-tag memo" }, "テキスト") : t.job_path),
     el("td", {}, cat),
     el("td", {}, memo ? na() : enabled),
     el("td", {}, memo ? na() : overlap),
@@ -103,7 +103,7 @@ function targetRow(t, siblings, index) {
       !can.editItem(t) ? null : el("button", {
         class: "btn small danger",
         onclick: async () => {
-          if (!(await confirmDialog("アイテムの削除", memo ? `${t.display_name}（予定）を削除します。\nこのアイテムの予定もすべて削除されます。` : `${t.display_name}（${t.job_path}）を削除します。\nこのアイテムのスケジュールと run 履歴も削除されます。`, "削除", true))) return;
+          if (!(await confirmDialog("アイテムの削除", memo ? `${t.display_name}（テキスト）を削除します。\nこのアイテムの予定もすべて削除されます。` : `${t.display_name}（${t.job_path}）を削除します。\nこのアイテムのスケジュールと run 履歴も削除されます。`, "削除", true))) return;
           try {
             await api("DELETE", `/api/targets/${t.id}`);
             toast("削除しました");
@@ -255,7 +255,7 @@ async function runNowSchedule(t, s) {
   }
 }
 
-/** 追加ダイアログ。アイテムを選ぶと、Jenkins ならスケジュール、予定のアイテムなら予定の入力欄にする。
+/** 追加ダイアログ。アイテムを選ぶと、Jenkins ならスケジュール、テキストのアイテムなら予定の入力欄にする。
  *  追加できないアイテム（管理者ログインしていないときの Jenkins アイテム）も、選べない形で並べる */
 function openAddSchedule(ordered) {
   const editable = ordered.filter((t) => can.editItem(t));
@@ -398,7 +398,7 @@ function renderRegisterForm() {
   box.append(
     el("div", { class: "row wrap" },
       el("span", { class: "muted small" }, "種類"),
-      el("label", { class: "check" }, kindMemo, " 予定"),
+      el("label", { class: "check" }, kindMemo, " テキスト"),
       el("label", { class: "check", title: can.admin() ? "" : "Jenkins アイテムの登録には管理者ログインが必要です" }, kindJenkins, " Jenkins ジョブ")),
     kindHint,
     searchField,
@@ -519,7 +519,7 @@ ready.then(() => {
     // Jenkins アイテムの設定・再取得は管理者だけ
     document.getElementById("btn-sync").hidden = true;
     if (can.memo()) {
-      document.getElementById("target-list").before(readonlyNote("予定のアイテムとカテゴリは編集できます。Jenkins アイテムの設定は閲覧と並び替えのみです"));
+      document.getElementById("target-list").before(readonlyNote("テキストのアイテムとカテゴリは編集できます。Jenkins アイテムの設定は閲覧と並び替えのみです"));
     } else {
       for (const id of ["register-form", "category-list"]) document.getElementById(id).closest("section").hidden = true;
       document.getElementById("target-list").before(readonlyNote("アイテムの設定は閲覧のみです"));

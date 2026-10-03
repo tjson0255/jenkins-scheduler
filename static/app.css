@@ -362,7 +362,7 @@ td.v-collapsed-cell:hover { background: var(--accent-weak); }
 .v-run:hover { outline: 1px solid var(--c); }
 .v-more { font-size: 11px; color: var(--accent); cursor: pointer; padding: 0 3px; }
 
-/* 予定のアイテム */
+/* テキストのアイテム */
 .kind-tag { display: inline-block; font-family: inherit; font-size: 11px; padding: 0 6px; border-radius: 4px; background: #eef0f4; color: var(--muted); }
 .kind-tag.memo { background: #f3eefb; color: #6b4fa0; }
 .memo-icon { font-size: 11px; margin-left: 2px; }

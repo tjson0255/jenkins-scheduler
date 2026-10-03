@@ -31,7 +31,7 @@ def get_agenda(
     start: str = Query(default="00:00", pattern=r"^\d{1,2}:\d{2}$"),
     db: Session = Depends(get_db),
 ):
-    """1日分（date の start 時刻から24時間。Asia/Tokyo）の run と、まだ run になっていない実行予定、予定のアイテムに書いた予定。
+    """1日分（date の start 時刻から24時間。Asia/Tokyo）の run と、まだ run になっていない実行予定、テキストのアイテムに書いた予定。
 
     start を 17:00 にすると、date の 17:00 から翌日の 17:00 まで（夜間の実行を前の日の夕方にまとめて見る）。
     """

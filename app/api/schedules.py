@@ -96,7 +96,7 @@ def _get(db: Session, sid: int) -> Schedule:
 
 
 def _require_editable(user: User, *, memo: bool) -> None:
-    """2. 予定のみ編集の人は、予定のアイテムに書いた予定だけ変更できる（3. 読み取り専用はミドルウェアで拒否済み）。"""
+    """2. 予定のみ編集の人は、テキストのアイテムに書いた予定だけ変更できる（3. 読み取り専用はミドルウェアで拒否済み）。"""
     if not user.is_admin and not (memo and user.can_edit_memo):
         raise HTTPException(403, "予定以外の変更には管理者ログインが必要です")
 

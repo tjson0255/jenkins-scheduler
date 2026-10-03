@@ -164,7 +164,7 @@ function startOfMonth(d) {
 
 let memoDaysCache = { key: "", days: new Set() };
 
-/** その月で予定（予定のアイテムに書いたもの）がある日 */
+/** その月で予定（テキストのアイテムに書いたもの）がある日 */
 async function memoDays(first, last) {
   const key = `${ymd(first)}|${ymd(last)}`;
   if (memoDaysCache.key === key) return memoDaysCache.days;

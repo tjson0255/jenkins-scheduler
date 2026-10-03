@@ -379,7 +379,7 @@ function groupTemplate(g) {
   if (g.kind === "category") return `<span class="grp-cat-name">${esc(g.name)}</span>`;
   const t = g.target;
   if (t.kind === "memo") {
-    return `<div class="grp-target-inner" title="予定">
+    return `<div class="grp-target-inner" title="テキスト">
       <span class="swatch" style="background:${esc(t.color || "#8a94a6")}"></span>
       <span class="grp-name">${esc(t.display_name)}</span><span class="memo-icon">📝</span>
     </div>`;
@@ -1099,7 +1099,7 @@ async function openItemPanel(targetId) {
   panel.replaceChildren(
     el("div", { class: "panel-header" },
       el("div", {},
-        el("div", { class: "muted small mono" }, memo ? "予定" : t.job_path),
+        el("div", { class: "muted small mono" }, memo ? "テキスト" : t.job_path),
         el("h2", {}, el("span", { class: "swatch", style: { background: t.color || "#8a94a6", display: "inline-block", marginRight: "6px" } }), t.display_name)),
       el("button", { class: "icon-btn", title: "閉じる", onclick: closePanel }, "×")),
     el("div", { class: "actions" },

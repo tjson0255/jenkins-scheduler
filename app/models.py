@@ -107,7 +107,7 @@ class Schedule(Base):
     label: Mapped[str | None] = mapped_column(String(200), nullable=True)
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    mode: Mapped[str] = mapped_column(String(10))  # cron | once | memo（予定のアイテムに書いた予定）
+    mode: Mapped[str] = mapped_column(String(10))  # cron | once | memo（テキストのアイテムに書いた予定）
     cron_expr: Mapped[str | None] = mapped_column(String(100), nullable=True)
     once_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(10), default=DRAFT)
