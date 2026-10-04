@@ -109,8 +109,10 @@ def create_target(
         job_path = (body.job_path or "").strip().strip("/")
         if not job_path:
             raise HTTPException(400, "ジョブのパスを入力してください")
-        if db.scalars(select(Target).where(Target.job_path == job_path)).first():
-            raise HTTPException(409, "このジョブは登録済みです")
+        existing = db.scalars(select(Target).where(Target.job_path == job_path)).first()
+        if existing:
+            # Jenkins のジョブ1つにつき、レーンは1つ
+            raise HTTPException(409, f"このジョブのレーンはすでにあります（「{existing.display_name}」）。Jenkins のジョブ1つにつきレーンは1つです。日によって件名やパラメータを変えるときは、そのレーンにスケジューラを追加してください")
     if body.category_id is None:
         cat = db.scalars(select(Category).order_by(Category.sort_order.desc())).first()
     else:

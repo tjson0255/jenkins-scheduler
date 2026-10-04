@@ -71,7 +71,8 @@ function renderTargets() {
   box.replaceChildren(
     el("div", { class: "table-wrap" }, el("table", { class: "table targets-table" },
       el("thead", {}, el("tr", {},
-        ["カテゴリ", "色", "表示名", "種類", "ジョブ", "有効", "前回ビルド実行中", "スケジューラ", ""].map((h) => el("th", {}, h)))),
+        ["カテゴリ", "色", "表示名", "種類", "ジョブ", "有効", "前回ビルド実行中", "スケジューラ", ""].map((h) =>
+          el("th", h === "ジョブ" ? { title: "Jenkins のジョブ1つにつき、レーンは1つです" } : {}, h)))),
       tbody))
   );
 }
@@ -436,8 +437,19 @@ function openRegisterDialog() {
     submit.textContent = memo ? "登録" : "登録（Jenkins で存在とパラメータを確認）";
     kindHint.textContent = memo
       ? "Jenkins には接続しません。タイムラインにメモや計画を書き込むための行です。"
-      : "Jenkins のジョブを定時にキックする行です。登録時に Jenkins でジョブの存在とパラメータを確認します。";
+      : "Jenkins のジョブを定時にキックする行です。Jenkins のジョブ1つにつき、レーンは1つです（日によって件名やパラメータを変えるときは、そのレーンにスケジューラを追加します）。登録時に Jenkins でジョブの存在とパラメータを確認します。";
+    checkDuplicate();
   };
+  // すでにレーンがあるジョブなら、その場で知らせて登録できないようにする
+  const dupNote = el("p", { class: "dup-note", hidden: true });
+  const checkDuplicate = () => {
+    const path = jobPath.value.trim().replace(/^\/+|\/+$/g, "");
+    const dup = !isMemo() && path ? targets.find((t) => t.job_path === path) : null;
+    dupNote.hidden = !dup;
+    if (dup) dupNote.textContent = `このジョブのレーンはすでにあります（「${dup.display_name}」）。Jenkins のジョブ1つにつきレーンは1つです。日によって件名やパラメータを変えるときは、そのレーンにスケジューラを追加してください。`;
+    submit.disabled = !!dup;
+  };
+  jobPath.addEventListener("input", checkDuplicate);
   kindJenkins.addEventListener("change", renderKind);
   kindMemo.addEventListener("change", renderKind);
   box.append(
@@ -449,6 +461,7 @@ function openRegisterDialog() {
     searchField,
     results,
     el("div", { class: "row wrap" }, jobField, el("label", { class: "field" }, nameLabel, displayName), field("カテゴリ", cat), field("色", color)),
+    dupNote,
     overlapRow
   );
   renderKind();
@@ -466,7 +479,7 @@ function renderResults() {
     ...registerState.results.map((j) =>
       el("div", {
         class: registered.has(j.path) ? "registered" : "",
-        title: registered.has(j.path) ? "登録済み" : j.url || "",
+        title: registered.has(j.path) ? "このジョブのレーンはすでにあります（ジョブ1つにつきレーンは1つ）" : j.url || "",
         onclick: () => {
           if (registered.has(j.path)) return;
           form._jobPath.value = j.path;
@@ -474,7 +487,7 @@ function renderResults() {
           closeResults();
           form._jobPath.focus();
         },
-      }, j.path, registered.has(j.path) ? "（登録済み）" : "")
+      }, j.path, registered.has(j.path) ? `　レーンあり「${targets.find((t) => t.job_path === j.path)?.display_name || ""}」` : "")
     )
   );
   box.hidden = !registerState.open || !registerState.results.length;
