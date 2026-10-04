@@ -19,11 +19,11 @@
         <button class="btn" id="btn-prev" title="前へ">◀</button>
         <button class="btn" id="btn-next" title="次へ">▶</button>
       </div>
-      <div class="btn-group">
-        <button class="btn" data-range="7">1週</button>
-        <button class="btn" data-range="28">4週</button>
-        <button class="btn" data-range="91">3か月</button>
-      </div>
+      <select id="range-days" aria-label="表示する期間">
+        <option value="14">2週</option>
+        <option value="28" selected>4週</option>
+        <option value="56">8週</option>
+      </select>
       <div class="btn-group">
         <button class="btn" id="btn-zoom-in" title="拡大">＋</button>
         <button class="btn" id="btn-zoom-out" title="縮小">－</button>

@@ -551,19 +551,6 @@ body.embed .panel { position: static; width: auto; border: none; box-shadow: non
 .replace-tag.inline { margin: 0 0 0 6px; }
 
 /* 実行結果 */
-.hist-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 4px 0 10px; font-size: 12px; }
-.hist-legend-item { display: inline-flex; align-items: center; gap: 4px; }
-.hist-mark { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: none; border-radius: 4px; padding: 0; cursor: pointer; color: #fff; font-size: 10px; font-weight: 700; }
-.hist-mark.small { width: 12px; height: 12px; cursor: default; }
-.hist-mark.rs-success { background: var(--rs-success); }
-.hist-mark.rs-unstable { background: var(--rs-unstable); }
-.hist-mark.rs-failure { background: var(--rs-failure); }
-.hist-mark.rs-aborted { background: var(--rs-aborted); }
-.hist-mark.rs-holding { background: var(--rs-holding); }
-.hist-mark.rs-missed { background: var(--rs-missed); }
-.hist-mark.rs-running, .hist-mark.rs-queued { background: var(--rs-running); }
-.hist-mark.rs-skipped, .hist-mark.rs-cancelled { background: var(--rs-cancelled); color: #555b66; }
-.hist-mark.rs-scheduled { background: #fff; box-shadow: inset 0 0 0 2px var(--rs-scheduled); color: var(--rs-scheduled); }
 td.v-cell.locked { cursor: not-allowed; }
 
 /* タイムライン: 日付へ移動（ボタンの下にブラウザ標準の日付選択を開く） */

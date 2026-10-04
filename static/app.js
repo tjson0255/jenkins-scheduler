@@ -122,15 +122,13 @@ function init() {
   document.getElementById("btn-next").onclick = () => (vertical() ? vShift(0.5) : shiftWindow(0.5));
   document.getElementById("btn-zoom-in").onclick = () => (vertical() ? vSetDays(Math.round(state.v.days / 2)) : timeline.zoomIn(0.4));
   document.getElementById("btn-zoom-out").onclick = () => (vertical() ? vSetDays(state.v.days * 2) : timeline.zoomOut(0.4));
-  document.querySelectorAll("[data-range]").forEach((b) => {
-    b.onclick = () => {
-      const days = Number(b.dataset.range);
-      if (vertical()) return vSetDays(days);
-      const w = timeline.getWindow();
-      const center = new Date((w.start.getTime() + w.end.getTime()) / 2);
-      timeline.setWindow(addDays(startOfDay(center), -Math.floor(days / 2)), addDays(startOfDay(center), Math.ceil(days / 2)));
-    };
-  });
+  // 表示する期間（実行結果の画面と同じ選び方）。横表示は左端の日付を保ったまま幅を変える
+  document.getElementById("range-days").onchange = (e) => {
+    const days = Number(e.target.value);
+    if (vertical()) return vSetDays(days);
+    const start = startOfDay(timeline.getWindow().start);
+    timeline.setWindow(start, addDays(start, days));
+  };
   // カテゴリをまとめて開閉するボタンは、名前の列の上（タイムラインの左上）に置く
   document.getElementById("timeline").append(el("button", { type: "button", class: "collapse-toggle tl-corner", onclick: toggleAllCollapsed }));
   // 凡例の表示・非表示

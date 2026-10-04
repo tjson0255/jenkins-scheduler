@@ -5,10 +5,6 @@
 const ready = renderHeader("/history");
 
 const EXECUTED = ["success", "unstable", "failure", "aborted"];
-const LEGEND = [
-  ["scheduled", "予定"], ["holding", "保留"], ["skipped", "スキップ"], ["missed", "見逃し"],
-  ["running", "キュー/実行中"], ["success", "成功"], ["unstable", "不安定"], ["failure", "失敗"], ["aborted", "中断"],
-];
 
 const st = { end: startOfToday(), days: 28, lane: "", q: "", doneOnly: false, categories: [], targets: [], runs: [] };
 
@@ -130,14 +126,6 @@ function render() {
 function renderControls() {
   const lane = document.getElementById("hist-lane");
   lane.replaceChildren(el("option", { value: "" }, "すべてのレーン"), lanes().map((t) => el("option", { value: t.id, selected: String(t.id) === st.lane }, t.display_name)));
-  // 問題がこのツール側にあるか、Jenkins 側にあるかで分けて並べる
-  const item = ([k, label]) => el("span", { class: "hist-legend-item", title: runStatusHint(k) }, el("span", { class: `hist-mark small rs-${k}` }), label);
-  document.getElementById("hist-legend").replaceChildren(
-    el("span", { class: "legend-side", title: SIDE_HINT.tool }, "ツール側"),
-    ...LEGEND.filter(([k]) => RUN_SIDE[k] === "tool").map(item),
-    el("span", { class: "legend-sep" }),
-    el("span", { class: "legend-side", title: SIDE_HINT.jenkins }, "Jenkins 側"),
-    ...LEGEND.filter(([k]) => RUN_SIDE[k] === "jenkins").map(item));
 }
 
 async function load() {
