@@ -219,11 +219,18 @@ function renderVertical() {
     if (row) box.scrollTop = row.offsetTop - vState.anchor.offset;
     vState.anchor = null;
   } else if (vState.scrollToToday) {
-    vState.scrollToToday = false;
     const row = box.querySelector("tr.focus");
     const headH = box.querySelector("thead") ? box.querySelector("thead").offsetHeight : 0;
-    // 選んだ日（既定は今日）をいちばん上に出す。前の日は上にスクロールすると見られる
-    box.scrollTop = row ? Math.max(0, row.offsetTop - headH) : 0;
+    const need = row ? Math.max(0, row.offsetTop - headH) : 0;
+    // 画面が縦に長くて、その日をいちばん上まで動かせないときは、先の日付を読み足してからにする
+    if (row && need > box.scrollHeight - box.clientHeight && state.v.days < V_MAX_DAYS) {
+      state.v.days = Math.min(state.v.days + V_STEP_DAYS, V_MAX_DAYS);
+      loadData(true); // 読み終えたら、もう一度この処理でその日をいちばん上に出す
+    } else {
+      vState.scrollToToday = false;
+      // 選んだ日（既定は今日）をいちばん上に出す。前の日は上にスクロールすると見られる
+      box.scrollTop = need;
+    }
   } else {
     box.scrollTop = scrollTop;
   }
@@ -253,7 +260,8 @@ function vCollapsedCell(cat, items, day, runsByDay, showRuns) {
 const V_STEP_DAYS = 28;
 const V_MAX_DAYS = 182;
 async function vMaybeExtend(box) {
-  if (vState.extending || state.layout !== "vertical" || vState.drag) return;
+  // 今日・選んだ日をいちばん上に出す処理が終わるまでは読み足さない（位置の基準がずれるため）
+  if (vState.extending || vState.scrollToToday || state.layout !== "vertical" || vState.drag) return;
   const nearTop = box.scrollTop < 120;
   const nearBottom = box.scrollTop + box.clientHeight > box.scrollHeight - 120;
   if (!nearTop && !nearBottom) return;
