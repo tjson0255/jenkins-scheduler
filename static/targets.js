@@ -210,13 +210,20 @@ function renderScheduleList() {
   });
   const canAdd = ordered.some((t) => can.editItem(t));
   const addBtn = canAdd ? el("button", { class: "btn primary", onclick: () => openAddSchedule(ordered) }, "＋ 追加") : null;
+  const ended = el("input", { type: "checkbox", checked: showEndedSchedules() });
+  ended.onchange = () => {
+    setShowEndedSchedules(ended.checked);
+    renderScheduleList();
+  };
   const tools = document.getElementById("schedule-tools");
-  tools.replaceChildren(filter, addBtn || "");
+  tools.replaceChildren(filter, el("label", { class: "check small" }, ended, " 終了したものも表示"), addBtn || "");
 
   const rows = [];
   for (const t of ordered) {
     if (!matchesScheduleFilter(t)) continue;
-    const list = (schedulesByTarget.get(t.id) || []).slice().sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id - b.id);
+    const list = (schedulesByTarget.get(t.id) || [])
+      .filter((s) => showEndedSchedules() || !isEndedSchedule(s))
+      .sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id - b.id);
     list.forEach((s) => {
       const memo = s.mode === "memo";
       const lvl = scheduleAlertLevel(s) || (memo ? null : t.schema_error ? "error" : t.timer_trigger_detected ? "warning" : null);
@@ -596,7 +603,7 @@ async function restoreBackup(f) {
     `${fmtDateTime(f.modified_at, true)} のバックアップ（${f.name}）の時点に、すべてのデータを戻します。\n\n` +
       "・レーン、スケジューラ、パラメータ、実行履歴、ログがこの時点の内容に置き換わります\n" +
       "・戻す直前に今の状態を自動でバックアップするので、間違えた場合はそこから戻せます\n" +
-      "・戻したあと、予定時刻を過ぎている未実行の run は、遅延時の扱い（missed_policy）に従って処理されます\n" +
+      "・戻したあと、予定時刻を過ぎている未実行の run は、各スケジューラの「予定時刻にキックできなかったとき」の設定に従って処理されます\n" +
       "・他の人が開いている画面は、再読み込みで新しい内容になります",
     "戻す",
     true

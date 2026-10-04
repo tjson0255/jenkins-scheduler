@@ -64,8 +64,8 @@ function scheduleForm(s, opts) {
   f.custom = el("input", { type: "text", value: cp.custom || s.cron_expr || "", placeholder: "分 時 日 月 曜日（例: 30 2 * * 1-5）", class: "mono" });
   f.onceAt = el("input", { type: "datetime-local", value: toLocalInput(s.once_at) || `${s.start_date || ymd(new Date())}T03:00` });
   f.missed = el("select", {},
-    el("option", { value: "run_late", selected: (s.missed_policy || "run_late") === "run_late" }, "猶予内なら遅れて実行（run_late）"),
-    el("option", { value: "skip", selected: s.missed_policy === "skip" }, "遅れたら実行しない（skip）"));
+    el("option", { value: "run_late", selected: (s.missed_policy || "run_late") === "run_late" }, "予定時刻を過ぎても、猶予の分数以内ならキックする"),
+    el("option", { value: "skip", selected: s.missed_policy === "skip" }, "予定時刻を過ぎたらキックしない（見逃し）"));
   f.grace = el("input", { type: "number", min: 0, max: 1440, value: s.grace_minutes ?? 10, style: { width: "6em" } });
   f.pinned = el("input", { type: "checkbox", checked: !!s.params_pinned });
   f.note = el("textarea", { rows: 2 }, s.note || "");
@@ -146,7 +146,7 @@ function scheduleForm(s, opts) {
     field("モード", f.mode),
     cronSection,
     onceSection,
-    el("div", { class: "row wrap" }, field("遅延時の扱い", f.missed), field("猶予（分）", f.grace)),
+    el("div", { class: "row wrap" }, field("予定時刻にキックできなかったとき", f.missed), field("猶予（分）", f.grace)),
     el("label", { class: "check" }, f.pinned, " JenkinsJobパラメータのデフォルト値変更に追従しない"),
     field("メモ", f.note)
   );

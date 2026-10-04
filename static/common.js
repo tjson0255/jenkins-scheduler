@@ -55,6 +55,25 @@ function runStatusHint(status) {
   return `${side}: ${RUN_STATUS_HINT[status] || ""}`;
 }
 
+/** 終了したスケジューラ・過ぎた予定も表示するか（ブラウザに記憶する。既定は隠す） */
+function showEndedSchedules() {
+  try {
+    return localStorage.getItem("showEnded") === "1";
+  } catch (_) {
+    return false;
+  }
+}
+function setShowEndedSchedules(on) {
+  try {
+    localStorage.setItem("showEnded", on ? "1" : "0");
+  } catch (_) {}
+}
+/** 終了したスケジューラか（終了・キャンセル済み。予定は終了日を過ぎたもの） */
+function isEndedSchedule(s) {
+  if (s.mode === "memo") return !!s.end_date && s.end_date < ymd(new Date());
+  return s.status === "ended" || s.status === "cancelled";
+}
+
 const SCHEDULE_STATUS_LABEL = {
   draft: "ドラフト",
   active: "有効",

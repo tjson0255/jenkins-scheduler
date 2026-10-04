@@ -764,7 +764,7 @@ function actionBar(s, t) {
     bar.append(act("有効化", `/api/schedules/${s.id}/activate`, { cls: "primary", confirm: "有効化すると、以降の run は予定時刻に自動でキックされます。よろしいですか？" }));
   }
   if (s.status === "active") bar.append(act("一時停止", `/api/schedules/${s.id}/pause`));
-  if (s.status === "paused") bar.append(act("再開", `/api/schedules/${s.id}/resume`, { cls: "primary", confirm: "再開します。一時停止中に予定時刻を過ぎた run は遅延時の扱い（missed_policy）に従います。" }));
+  if (s.status === "paused") bar.append(act("再開", `/api/schedules/${s.id}/resume`, { cls: "primary", confirm: "再開します。一時停止中に予定時刻を過ぎた run は「予定時刻にキックできなかったとき」の設定に従います。" }));
   bar.append(
     el("button", { class: "btn", onclick: () => doDryRun(s) }, "ドライラン"),
     el("button", {
@@ -1139,6 +1139,7 @@ async function openItemPanel(targetId) {
   render();
 
   const holdingBox = el("div", { class: "holding-section", hidden: true });
+  const schedHead = el("div", { class: "sched-head" }, el("h3", {}, memo ? "予定" : "スケジューラ"));
   const scheduleBox = el("div", {}, el("p", { class: "muted" }, "読み込み中…"));
   const upcomingBox = el("div");
   const recentBox = el("div");
@@ -1170,11 +1171,20 @@ async function openItemPanel(targetId) {
     } else {
       schedules.sort((a, b) => rank[a.status] - rank[b.status] || (a.start_date < b.start_date ? 1 : -1));
     }
-    const byId = Object.fromEntries(schedules.map((s) => [s.id, s]));
+    // 終了したスケジューラ（過ぎた予定）は、チェックを入れたときだけ出す
+    const endedCount = schedules.filter(isEndedSchedule).length;
+    const shown = showEndedSchedules() ? schedules : schedules.filter((s) => !isEndedSchedule(s));
+    const endedToggle = el("input", { type: "checkbox", checked: showEndedSchedules() });
+    endedToggle.onchange = () => {
+      setShowEndedSchedules(endedToggle.checked);
+      load();
+    };
+    schedHead.replaceChildren(el("h3", {}, memo ? "予定" : "スケジューラ"),
+      endedCount ? el("label", { class: "check small muted" }, endedToggle, ` ${memo ? "過ぎた予定" : "終了したもの"}も表示（${endedCount}件）`) : null);
 
     scheduleBox.replaceChildren(
-      schedules.length
-        ? el("div", { class: "sched-list" }, schedules.map((s) =>
+      shown.length
+        ? el("div", { class: "sched-list" }, shown.map((s) =>
             el("button", { class: `sched-row st-${s.status}${memo && isPast(s) ? " past" : ""}`, onclick: () => openPanel(s.id, "basic"), style: t.color ? `--c:${t.color}` : "" },
               el("div", { class: "sched-row-head" },
                 scheduleAlertLevel(s) ? el("span", { class: `badge-dot ${scheduleAlertLevel(s)}`, title: scheduleAlertMessages(s).join("\n") }, "!") : null,
@@ -1184,17 +1194,25 @@ async function openItemPanel(targetId) {
               el("div", { class: "muted small" },
                 `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`, scheduleRule(s) ? " ／ " : "", scheduleRule(s)),
               s.next_run_at ? el("div", { class: "small" }, "次回: ", fmtDateTime(s.next_run_at, true)) : null)))
-        : el("p", { class: "muted" }, memo ? "予定はありません。タイムラインの行の空き部分をドラッグするか、上のボタンで追加できます。" : "スケジューラはありません。タイムラインの行の空き部分をドラッグするか、上のボタンで作成できます。")
+        : el("p", { class: "muted" }, schedules.length
+          ? (memo ? "これからの予定はありません。" : "動いているスケジューラはありません。")
+          : memo ? "予定はありません。タイムラインの行の空き部分をドラッグするか、上のボタンで追加できます。" : "スケジューラはありません。タイムラインの行の空き部分をドラッグするか、上のボタンで作成できます。")
     );
 
+    // どのスケジューラの回かを、件名で分かるようにする（実行した時点の件名。削除済みのスケジューラの回も分かる）
     const runTable = (runs, empty) =>
       runs.length
-        ? el("table", { class: "table small" }, el("tbody", {}, runs.map((r) =>
-            el("tr", { class: "clickable", onclick: () => (r.schedule_id ? openPanel(r.schedule_id, "runs", r.id) : showRunModal(r)) },
-              el("td", { style: { whiteSpace: "nowrap" } }, fmtDateTime(r.scheduled_at, true)),
-              el("td", {}, runChip(r.status)),
-              el("td", { class: "muted" }, r.schedule_id ? scheduleTitle(byId[r.schedule_id] || { label: `#${r.schedule_id}` }) : r.reason || "即時実行"),
-              el("td", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, `#${r.build_number}`) : null)))))
+        ? el("table", { class: "table small lane-runs" },
+            el("thead", {}, el("tr", {}, ["日時", "スケジューラ", "状態", "ビルド"].map((h) => el("th", {}, h)))),
+            el("tbody", {}, runs.map((r) =>
+              el("tr", { class: "clickable", onclick: () => (r.schedule_id ? openPanel(r.schedule_id, "runs", r.id) : showRunModal(r)) },
+                el("td", { style: { whiteSpace: "nowrap" } }, fmtDateTime(r.scheduled_at, true)),
+                el("td", { class: "lane-run-title" },
+                  el("b", {}, r.schedule_title || (r.retry_of_id ? "再実行" : "即時実行")),
+                  r.schedule_deleted ? el("span", { class: "replace-tag inline", title: "スケジューラは削除済み（履歴として残しています）" }, "削除済み") : null,
+                  r.replaces_run_id ? el("span", { class: "replace-tag inline" }, "この回だけ変更") : null),
+                el("td", {}, runChip(r.status)),
+                el("td", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, `#${r.build_number}`) : null)))))
         : el("p", { class: "muted" }, empty);
     upcomingBox.replaceChildren(runTable(upcoming, "予定されている run はありません。"));
     recentBox.replaceChildren(runTable(recent, "まだ実行していません。"));
@@ -1236,7 +1254,7 @@ async function openItemPanel(targetId) {
       el("a", { class: "btn", href: `/audit?type=target&target=${t.id}` }, "ログ")),
     issueList(warn),
     holdingBox,
-    el("h3", {}, memo ? "予定" : "スケジューラ"),
+    schedHead,
     scheduleBox,
     memo ? null : el("h3", {}, "今後の run（直近10件）"),
     memo ? null : upcomingBox,

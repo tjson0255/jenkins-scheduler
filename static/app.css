@@ -582,3 +582,5 @@ td.v-cell.locked { cursor: not-allowed; }
 .run-detail dd { margin: 0; }
 .btn-group .btn.active { background: var(--accent-weak); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .hist-list .swatch.inline { display: inline-block; margin-right: 6px; vertical-align: -1px; }
+.sched-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.lane-run-title b { font-weight: 600; }
