@@ -1,6 +1,6 @@
 name: Windows インストーラ
 
-# v で始まるタグ（例: v0.1.0）を送ると、ビルド → Windows 上でテスト・インストール確認 → Releases にアップロード
+# v で始まるタグ（例: v1.0.0）を送ると、ビルド → Windows 上でテスト・インストール確認 → Releases にアップロード
 # Actions 画面の「Run workflow」からは、アップロードせずにビルドと確認だけ行う
 on:
   push:

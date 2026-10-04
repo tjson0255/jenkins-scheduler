@@ -220,7 +220,7 @@ GitHub の Releases から `JenkinsScheduler-Setup-<バージョン>.exe` をダ
 - 署名していないため、初回は SmartScreen の警告が出ることがあります
 - 自動化用のサイレントインストール：`JenkinsScheduler-Setup-x.y.z.exe /VERYSILENT /ADMINPASSWORD=<パスワード> /PORT=8090`
 
-インストーラは GitHub Actions（`.github/workflows/windows-installer.yml`）が Windows 上で作り、実際にインストールして、サービスの起動・管理者ログイン・二重起動の防止・再起動後の復帰・アンインストールまで確かめてから Releases に載せます。`v` で始まるタグ（例：`v0.1.0`）を送ると動きます。
+インストーラは GitHub Actions（`.github/workflows/windows-installer.yml`）が Windows 上で作り、実際にインストールして、サービスの起動・管理者ログイン・二重起動の防止・再起動後の復帰・アンインストールまで確かめてから Releases に載せます。`v` で始まるタグ（例：`v1.0.0`）を送ると動きます。
 
 以下の 5.1〜5.2 は、インストーラを使わずにソースから入れる方法です。
 
