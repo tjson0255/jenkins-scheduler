@@ -588,3 +588,4 @@ td.v-cell.locked { cursor: not-allowed; }
 /* タイムライン: 日付へ移動（ボタンの下にブラウザ標準の日付選択を開く） */
 .date-jump { position: relative; display: inline-block; }
 .date-jump input[type="date"] { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+.legend-side { font-size: 11px; font-weight: 700; color: var(--fg); background: #eef1f6; border-radius: 4px; padding: 1px 6px; cursor: help; }

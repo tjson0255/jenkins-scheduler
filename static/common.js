@@ -27,6 +27,34 @@ const RUN_STATUS_LABEL = {
   cancelled: "キャンセル",
 };
 
+// 状態が「このツール側」と「Jenkins 側」のどちらのものか（問題がどちらにあるかを見分けるため）
+const RUN_SIDE = {
+  scheduled: "tool", holding: "tool", skipped: "tool", missed: "tool", cancelled: "tool",
+  queued: "jenkins", running: "jenkins", success: "jenkins", unstable: "jenkins", failure: "jenkins", aborted: "jenkins",
+};
+const SIDE_HINT = {
+  tool: "ツール側: まだキックしていない、またはこのツールがキックしなかった・止めたもの。原因はこのツールの設定やパラメータ（保留・エラーは Jenkins のパラメータ定義の変更が原因のこともあります）",
+  jenkins: "Jenkins 側: Jenkins がキックを受け付けた後の、ビルドそのものの状態・結果。原因はジョブやビルドの中身",
+};
+const RUN_STATUS_HINT = {
+  scheduled: "まだキックしていない",
+  holding: "予定時刻にキックしようとしたが、問題があってこのツールが止めた",
+  skipped: "このツールがキックしなかった（前回のビルドが実行中・手動でスキップ・この回だけ変更 など）",
+  missed: "ツールが止まっていたなどで、猶予時間内にキックできなかった",
+  cancelled: "キックせずに取りやめた",
+  queued: "Jenkins がキックを受け付け、キューで待っている",
+  running: "Jenkins でビルド中",
+  success: "Jenkins のビルドが成功した",
+  unstable: "Jenkins のビルドは最後まで通ったが、テストの一部失敗などがある",
+  failure: "Jenkins のビルドが失敗した",
+  aborted: "Jenkins のビルドが途中で止められた",
+};
+/** 状態の説明（ツール側か Jenkins 側かを先頭に付ける） */
+function runStatusHint(status) {
+  const side = RUN_SIDE[status] === "jenkins" ? "Jenkins 側" : "ツール側";
+  return `${side}: ${RUN_STATUS_HINT[status] || ""}`;
+}
+
 const SCHEDULE_STATUS_LABEL = {
   draft: "ドラフト",
   active: "有効",
@@ -170,7 +198,7 @@ function statusChip(status, map) {
 }
 
 function runChip(status) {
-  return el("span", { class: `chip rs-${status}` }, RUN_STATUS_LABEL[status] || status);
+  return el("span", { class: `chip rs-${status}`, title: runStatusHint(status) }, RUN_STATUS_LABEL[status] || status);
 }
 
 /** レーンの警告レベル（行の網掛けに使う）: "error" | "warning" | null */

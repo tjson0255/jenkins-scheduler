@@ -3,14 +3,15 @@
 
 const RUN_POINT_MAX_DAYS = 31; // これより広い表示範囲では run の点を描かず件数サマリーにする
 // 凡例の項目ごとに、run の丸を表示・非表示できる
+// 凡例の丸の区分。tool: このツール側（まだキックしていない・このツールがキックを止めた）、jenkins: Jenkins 側（ビルドの結果）
 const RUN_GROUPS = [
-  ["scheduled", "予定", ["scheduled"]],
-  ["holding", "保留", ["holding"]],
-  ["running", "キュー/実行中", ["queued", "running"]],
-  ["success", "成功", ["success"]],
-  ["unstable", "不安定", ["unstable"]],
-  ["failure", "失敗/中断", ["failure", "aborted"]],
-  ["missed", "スキップ/見逃し", ["skipped", "missed", "cancelled"]],
+  ["scheduled", "予定", ["scheduled"], "tool"],
+  ["holding", "保留", ["holding"], "tool"],
+  ["missed", "スキップ/見逃し", ["skipped", "missed", "cancelled"], "tool"],
+  ["running", "キュー/実行中", ["queued", "running"], "jenkins"],
+  ["success", "成功", ["success"], "jenkins"],
+  ["unstable", "不安定", ["unstable"], "jenkins"],
+  ["failure", "失敗/中断", ["failure", "aborted"], "jenkins"],
 ];
 const state = {
   categories: [],
@@ -53,8 +54,9 @@ function init() {
   state.v.start = addDays(today, -7);
   const options = {
     locale: "ja",
-    start: addDays(today, -14),
-    end: addDays(today, 14),
+    // 今日（?date= で開いたときはその日）を左端に出す。前の日は日付の軸のドラッグや Shift+ドラッグで見られる
+    start: today,
+    end: addDays(today, 28),
     orientation: { axis: "top", item: "top" },
     stack: true,
     stackSubgroups: true,
@@ -97,7 +99,7 @@ function init() {
 
   // ツールバーは横表示・縦表示で共通。縦表示のときは vertical.js 側の表示範囲を動かす
   const vertical = () => state.layout === "vertical";
-  document.getElementById("btn-today").onclick = () => (vertical() ? vGoToday() : timeline.moveTo(new Date()));
+  document.getElementById("btn-today").onclick = () => (vertical() ? vGoToday() : goToDate(ymd(new Date())));
   // カレンダーで日付を選んで、その日に移動する（ブラウザ標準の日付選択を使う）
   const jump = document.getElementById("jump-date");
   document.getElementById("btn-jump").onclick = () => {
@@ -161,7 +163,7 @@ function init() {
 }
 
 /* ------------------------------------------------------------------ 時刻ヘルパ */
-/** 指定した日に移動する。縦表示ではその日を選んだ状態にし（見出しを出す）、横表示では表示幅を保ったままその日を中央にする */
+/** 指定した日に移動する。縦表示ではその日をいちばん上にして選んだ状態にし（見出しを出す）、横表示では表示幅を保ったままその日を左端にする */
 function goToDate(dayStr) {
   const day = parseYmd(dayStr);
   if (state.layout === "vertical") {
@@ -170,10 +172,9 @@ function goToDate(dayStr) {
     vState.scrollToToday = true; // 選んだ日の行までスクロールする
     loadData();
   } else {
+    // 表示幅はそのままで、その日を左端にする
     const w = timeline.getWindow();
-    const half = (w.end - w.start) / 2;
-    const center = day.getTime() + 12 * 3600 * 1000;
-    timeline.setWindow(new Date(center - half), new Date(center + half));
+    timeline.setWindow(day, new Date(day.getTime() + (w.end - w.start)));
   }
 }
 
@@ -470,7 +471,7 @@ function scheduleTooltip(s) {
 }
 
 function runTooltip(r) {
-  const lines = [`${fmtDateTime(r.scheduled_at, true)} ${RUN_STATUS_LABEL[r.status]}`, r.build_number ? `#${r.build_number}` : "", r.reason || ""];
+  const lines = [`${fmtDateTime(r.scheduled_at, true)} ${RUN_STATUS_LABEL[r.status]}`, runStatusHint(r.status), r.build_number ? `#${r.build_number}` : "", r.reason || ""];
   return esc(lines.filter(Boolean).join("\n")).replace(/\n/g, "<br>");
 }
 
@@ -499,12 +500,7 @@ function saveRunPrefs() {
 }
 
 function renderLegend() {
-  document.getElementById("legend").replaceChildren(
-    el("span", { class: "legend-item" }, el("span", { class: "legend-bar draft" }), "ドラフト"),
-    el("span", { class: "legend-item", title: "要確認（パラメータ定義の変更、Jenkins 側の cron の残存など）" }, el("span", { class: "legend-bar hatch-warning" }), "警告"),
-    el("span", { class: "legend-item", title: "キックされない（パラメータ定義のエラー、ジョブが無い、保留中の run がある）" }, el("span", { class: "legend-bar hatch-error" }), "エラー"),
-    el("span", { class: "legend-sep" }),
-    ...RUN_GROUPS.map(([key, label]) => {
+  const runToggle = ([key, label]) => {
       const off = state.hiddenRunGroups.has(key);
       return el("button", {
         type: "button",
@@ -519,7 +515,17 @@ function renderLegend() {
           render();
         },
       }, el("span", { class: `legend-dot rs-${key}` }), label);
-    })
+  };
+  // 問題がこのツール側にあるか、Jenkins 側にあるかで分けて並べる
+  document.getElementById("legend").replaceChildren(
+    el("span", { class: "legend-side", title: SIDE_HINT.tool }, "ツール側"),
+    el("span", { class: "legend-item", title: "まだ有効化していない。キックされない" }, el("span", { class: "legend-bar draft" }), "ドラフト"),
+    el("span", { class: "legend-item", title: "要確認。パラメータ定義の変更、Jenkins 側の cron の残存など。キックはされる" }, el("span", { class: "legend-bar hatch-warning" }), "警告"),
+    el("span", { class: "legend-item", title: "キックされない。パラメータの値が Jenkins の定義と合わない、ジョブが無い、保留中の回がある など" }, el("span", { class: "legend-bar hatch-error" }), "エラー"),
+    ...RUN_GROUPS.filter((g) => g[3] === "tool").map(runToggle),
+    el("span", { class: "legend-sep" }),
+    el("span", { class: "legend-side", title: SIDE_HINT.jenkins }, "Jenkins 側"),
+    ...RUN_GROUPS.filter((g) => g[3] === "jenkins").map(runToggle)
   );
 }
 

@@ -91,7 +91,7 @@ function runRow(r) {
     // スケジューラの run はその実行履歴の行へ、即時実行など（スケジューラなし）はレーンの予定一覧へ
     itemCell(r.target_id, r.target_name, r.schedule_id ? `schedule=${r.schedule_id}&run=${r.id}` : `item=${r.target_id}`),
     scheduleCell(r.schedule_id, r.schedule_title || (r.retry_of_id ? "再実行" : "即時実行")),
-    el("td", {}, el("span", { class: `legend-dot rs-${r.status}` }), " ", RUN_STATUS_LABEL[r.status] || r.status),
+    el("td", { title: runStatusHint(r.status) }, el("span", { class: `legend-dot rs-${r.status}` }), " ", RUN_STATUS_LABEL[r.status] || r.status),
     el("td", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener" }, `#${r.build_number}`) : r.build_number ? `#${r.build_number}` : ""),
     el("td", { class: "small muted" }, r.reason || ""));
 }

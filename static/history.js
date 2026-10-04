@@ -7,8 +7,8 @@ const ready = renderHeader("/history");
 const SEVERITY = ["failure", "aborted", "holding", "missed", "unstable", "running", "queued", "success", "skipped", "cancelled", "scheduled"];
 const EXECUTED = ["success", "unstable", "failure", "aborted"];
 const LEGEND = [
-  ["success", "成功"], ["unstable", "不安定"], ["failure", "失敗"], ["aborted", "中断"], ["holding", "保留"],
-  ["missed", "見逃し"], ["running", "キュー/実行中"], ["skipped", "スキップ"], ["scheduled", "予定"],
+  ["scheduled", "予定"], ["holding", "保留"], ["skipped", "スキップ"], ["missed", "見逃し"],
+  ["running", "キュー/実行中"], ["success", "成功"], ["unstable", "不安定"], ["failure", "失敗"], ["aborted", "中断"],
 ];
 
 const st = { end: startOfToday(), days: 28, cat: "", categories: [], targets: [], runs: [] };
@@ -33,7 +33,7 @@ function timeOf(iso) {
 }
 
 function cellTooltip(t, day, runs) {
-  return [`${t.display_name} ${fmtDate(day)}`, ...runs.map((r) => `${timeOf(r.scheduled_at)} ${RUN_STATUS_LABEL[r.status] || r.status}${r.build_number ? ` #${r.build_number}` : ""}`)].join("\n");
+  return [`${t.display_name} ${fmtDate(day)}`, ...runs.map((r) => `${timeOf(r.scheduled_at)} ${RUN_STATUS_LABEL[r.status] || r.status}・${RUN_SIDE[r.status] === "jenkins" ? "Jenkins 側" : "ツール側"}${r.build_number ? ` #${r.build_number}` : ""}`)].join("\n");
 }
 
 function openDayModal(t, day, runs) {
@@ -42,7 +42,7 @@ function openDayModal(t, day, runs) {
     el("td", {}, r.schedule_id
       ? el("a", { href: `/?date=${day}#schedule=${r.schedule_id}&run=${r.id}`, title: "タイムラインで実行履歴を開く" }, r.schedule_title || "スケジューラ")
       : r.retry_of_id ? "再実行" : "即時実行"),
-    el("td", {}, el("span", { class: `legend-dot rs-${r.status}` }), " ", RUN_STATUS_LABEL[r.status] || r.status),
+    el("td", { title: runStatusHint(r.status) }, el("span", { class: `legend-dot rs-${r.status}` }), " ", RUN_STATUS_LABEL[r.status] || r.status),
     el("td", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener" }, `#${r.build_number}`) : ""),
     el("td", { class: "small muted" }, r.reason || "")));
   openModal(`${t.display_name}　${fmtDate(day)}`, el("table", { class: "table small" },
@@ -127,8 +127,14 @@ function renderControls() {
   cat.replaceChildren(
     el("option", { value: "" }, "すべてのカテゴリ"),
     st.categories.map((c) => el("option", { value: c.id, selected: String(c.id) === st.cat }, c.name)));
+  // 問題がこのツール側にあるか、Jenkins 側にあるかで分けて並べる
+  const item = ([k, label]) => el("span", { class: "hist-legend-item", title: runStatusHint(k) }, el("span", { class: `hist-mark small rs-${k}` }), label);
   document.getElementById("hist-legend").replaceChildren(
-    ...LEGEND.map(([k, label]) => el("span", { class: "hist-legend-item" }, el("span", { class: `hist-mark small rs-${k}` }), label)),
+    el("span", { class: "legend-side", title: SIDE_HINT.tool }, "ツール側"),
+    ...LEGEND.filter(([k]) => RUN_SIDE[k] === "tool").map(item),
+    el("span", { class: "legend-sep" }),
+    el("span", { class: "legend-side", title: SIDE_HINT.jenkins }, "Jenkins 側"),
+    ...LEGEND.filter(([k]) => RUN_SIDE[k] === "jenkins").map(item),
     el("span", { class: "muted small" }, "1日に複数回あるときは、いちばん気にすべき結果の色と回数を出します"));
 }
 

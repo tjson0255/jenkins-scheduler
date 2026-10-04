@@ -53,7 +53,7 @@
       <table class="table">
         <tbody>
           <tr><th>行の空き部分をドラッグ</th><td>その期間でスケジューラ（予定の行なら予定）を作成</td></tr>
-          <tr><th>Shift を押しながらドラッグ</th><td>表示する期間を左右に動かす</td></tr>
+          <tr><th>Shift を押しながらドラッグ</th><td>表示する期間を左右に動かす（はじめは今日・選んだ日を左端に出すので、前の日を見るときは右へドラッグ）</td></tr>
           <tr><th>日付の目盛りをドラッグ</th><td>表示する期間を左右に動かす</td></tr>
           <tr><th>Ctrl を押しながらホイール</th><td>拡大・縮小</td></tr>
           <tr><th>バーをクリック</th><td>スケジューラ（または予定）の詳細を開く</td></tr>
@@ -82,24 +82,27 @@
 
     <section class="card help" id="colors">
       <h2>色と模様の意味</h2>
-      <h3>実行（丸）の状態</h3>
-      <table class="table">
-        <tbody>
-          <tr><th><span class="legend-dot rs-scheduled"></span> 予定</th><td>まだキックしていない</td></tr>
-          <tr><th><span class="legend-dot rs-holding"></span> 保留</th><td>予定時刻にキックしようとしたが、問題があって止めた（<a href="#holding">保留と保留解除</a>）</td></tr>
-          <tr><th><span class="legend-dot rs-running"></span> キュー／実行中</th><td>Jenkins がキックを受け付けた（キュー）、またはビルドが動いている（実行中）</td></tr>
-          <tr><th><span class="legend-dot rs-success"></span> 成功</th><td>ビルドが成功して終わった（Jenkins の SUCCESS）</td></tr>
-          <tr><th><span class="legend-dot rs-unstable"></span> 不安定</th><td>ビルドは最後まで通ったが、テストの一部失敗などの問題がある（Jenkins の UNSTABLE）</td></tr>
-          <tr><th><span class="legend-dot rs-failure"></span> 失敗／中断</th><td>ビルドが失敗した、または途中で止められた（Jenkins の FAILURE / ABORTED）</td></tr>
-          <tr><th><span class="legend-dot rs-missed"></span> スキップ／見逃し</th><td>前回のビルドが実行中だった・手動でスキップした（スキップ）、ツールが止まっていたなどで猶予時間内にキックできなかった（見逃し）</td></tr>
-        </tbody>
-      </table>
-      <h3>バー・行の模様</h3>
+      <p>色と模様は、<b>問題がこのツール側にあるか、Jenkins 側にあるか</b>で分けています。凡例も「ツール側」「Jenkins 側」に分けて並べています。</p>
+      <h3>ツール側（まだキックしていない・このツールがキックしなかった・止めたもの）</h3>
+      <p class="muted small">原因はこのツールの設定やパラメータです。保留・エラーは、Jenkins でパラメータの定義が変わったことが原因のこともあります（その場合も、直すのはこのツールのパラメータです）。</p>
       <table class="table">
         <tbody>
           <tr><th><span class="legend-bar draft"></span> ドラフト</th><td>作成しただけで、まだ有効化していないスケジューラ。キックされない</td></tr>
           <tr><th><span class="legend-bar hatch-warning"></span> 警告</th><td>要確認。Jenkins でパラメータが追加・削除された、Jenkins 側に cron が残っている など。キックは行われる</td></tr>
           <tr><th><span class="legend-bar hatch-error"></span> エラー</th><td>キックされない。パラメータの値が Jenkins の選択肢に無い、型が変わった、ジョブが無い、保留中の実行がある など</td></tr>
+          <tr><th><span class="legend-dot rs-scheduled"></span> 予定</th><td>まだキックしていない</td></tr>
+          <tr><th><span class="legend-dot rs-holding"></span> 保留</th><td>予定時刻にキックしようとしたが、問題があってこのツールが止めた（<a href="#holding">保留と保留解除</a>）</td></tr>
+          <tr><th><span class="legend-dot rs-missed"></span> スキップ／見逃し</th><td>このツールがキックしなかった。前回のビルドが実行中だった・手動でスキップした・この回だけ変更した（スキップ）、ツールが止まっていたなどで猶予時間内にキックできなかった（見逃し）</td></tr>
+        </tbody>
+      </table>
+      <h3>Jenkins 側（キックを受け付けた後の、ビルドそのものの状態・結果）</h3>
+      <p class="muted small">原因はジョブやビルドの中身です。Jenkins のビルド画面（ビルド番号のリンク）で確かめてください。</p>
+      <table class="table">
+        <tbody>
+          <tr><th><span class="legend-dot rs-running"></span> キュー／実行中</th><td>Jenkins がキックを受け付けた（キュー）、またはビルドが動いている（実行中）</td></tr>
+          <tr><th><span class="legend-dot rs-success"></span> 成功</th><td>ビルドが成功して終わった（Jenkins の SUCCESS）</td></tr>
+          <tr><th><span class="legend-dot rs-unstable"></span> 不安定</th><td>ビルドは最後まで通ったが、テストの一部失敗などの問題がある（Jenkins の UNSTABLE）</td></tr>
+          <tr><th><span class="legend-dot rs-failure"></span> 失敗／中断</th><td>ビルドが失敗した、または途中で止められた（Jenkins の FAILURE / ABORTED）</td></tr>
         </tbody>
       </table>
       <h3>マーク</h3>
