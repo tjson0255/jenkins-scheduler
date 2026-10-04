@@ -216,7 +216,8 @@ function renderVertical() {
     vState.scrollToToday = false;
     const row = box.querySelector("tr.focus");
     const headH = box.querySelector("thead") ? box.querySelector("thead").offsetHeight : 0;
-    box.scrollTop = row ? Math.max(0, row.offsetTop - headH - 40) : 0;
+    // 選んだ日（既定は今日）をいちばん上に出す。前の日は上にスクロールすると見られる
+    box.scrollTop = row ? Math.max(0, row.offsetTop - headH) : 0;
   } else {
     box.scrollTop = scrollTop;
   }
@@ -279,6 +280,27 @@ function vWire(box) {
     if (!can.editItem(target)) return explainCannotAdd(target);
     const day = ymd(addDays(state.v.start, Number(cell.dataset.i)));
     openCreateDialog(Number(cell.dataset.t), day, day);
+  });
+
+  // 日付の列を上下にドラッグすると、表を上下にスクロールする（空きセルのドラッグは作成なので、日付の列で行う）
+  box.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || !e.target.closest("th.v-date")) return;
+    const y0 = e.clientY;
+    const top0 = box.scrollTop;
+    let moved = false;
+    const move = (ev) => {
+      if (Math.abs(ev.clientY - y0) > 4) moved = true;
+      if (moved) box.scrollTop = top0 - (ev.clientY - y0);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", () => {
+      window.removeEventListener("pointermove", move);
+      if (moved) {
+        // ドラッグした後の click（日付の選択）は無視する
+        vState.justDragged = true;
+        setTimeout(() => (vState.justDragged = false), 0);
+      }
+    }, { once: true });
   });
 
   // 空きセルを縦にドラッグして期間を選び、作成ダイアログを開く
