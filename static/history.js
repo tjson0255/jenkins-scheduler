@@ -1,22 +1,16 @@
 /* 実行結果: Jenkins のレーンで、いつ・どの件名（スケジューラ）を・どの内容で実行し、どうなったか。
- *  一覧: 件名で見分け、押すとパラメータ・メモなどの詳細を出す
- *  日付の表: 行=レーン、列=日付で、その日の結果の色でマスを塗る */
+ *  新しい順に日付ごとに並べ、件名で見分ける。行を押すと、送ったパラメータ・メモなどの詳細を出す */
 "use strict";
 
 const ready = renderHeader("/history");
 
-// 1日に複数の回があるときは、いちばん気にすべき結果の色にする（上ほど優先）
-const SEVERITY = ["failure", "aborted", "holding", "missed", "unstable", "running", "queued", "success", "skipped", "cancelled", "scheduled"];
 const EXECUTED = ["success", "unstable", "failure", "aborted"];
 const LEGEND = [
   ["scheduled", "予定"], ["holding", "保留"], ["skipped", "スキップ"], ["missed", "見逃し"],
   ["running", "キュー/実行中"], ["success", "成功"], ["unstable", "不安定"], ["failure", "失敗"], ["aborted", "中断"],
 ];
 
-const st = { view: "list", end: startOfToday(), days: 28, lane: "", q: "", doneOnly: false, categories: [], targets: [], runs: [] };
-try {
-  st.view = localStorage.getItem("historyView") === "grid" ? "grid" : "list";
-} catch (_) {}
+const st = { end: startOfToday(), days: 28, lane: "", q: "", doneOnly: false, categories: [], targets: [], runs: [] };
 
 function startOfToday() {
   const d = new Date();
@@ -26,10 +20,6 @@ function startOfToday() {
 
 function dayList() {
   return Array.from({ length: st.days }, (_, i) => addDays(st.end, i - st.days + 1));
-}
-
-function worst(runs) {
-  return runs.map((r) => r.status).sort((a, b) => SEVERITY.indexOf(a) - SEVERITY.indexOf(b))[0];
 }
 
 function timeOf(iso) {
@@ -130,76 +120,11 @@ function renderList() {
     el("tbody", {}, rows))));
 }
 
-/* ---- 日付の表 ---- */
-function openDayModal(t, day, runs) {
-  const rows = runs.map((r) => el("tr", { class: "hist-row", onclick: () => openRunDetail(r) },
-    el("td", { class: "mono" }, timeOf(r.scheduled_at)),
-    el("td", { class: "hist-title" }, titleOf(r)),
-    el("td", {}, statusCell(r.status)),
-    el("td", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, `#${r.build_number}`) : "")));
-  openModal(`${t.display_name}　${fmtDate(day)}`, el("div", {},
-    el("p", { class: "muted small" }, "行を押すと、パラメータやメモなどの詳細を出します。"),
-    el("table", { class: "table small" },
-      el("thead", {}, el("tr", {}, ["時刻", "件名", "状態", "ビルド"].map((h) => el("th", {}, h)))),
-      el("tbody", {}, rows))), [el("button", { class: "btn", onclick: closeModal }, "閉じる")]);
-}
-
-function renderGrid() {
-  const days = dayList();
-  const today = ymd(new Date());
-  const byCell = new Map();
-  for (const r of filteredRuns()) {
-    const k = `${r.target_id}|${ymd(new Date(r.scheduled_at))}`;
-    if (!byCell.has(k)) byCell.set(k, []);
-    byCell.get(k).push(r);
-  }
-  for (const list of byCell.values()) list.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
-  const shown = lanes().filter((t) => !st.lane || String(t.id) === st.lane);
-  const dayCls = (d, base) => [base, d.getDay() === 0 ? "sun" : d.getDay() === 6 ? "sat" : "", ymd(d) === today ? "today" : "", d.getDate() === 1 ? "month-start" : ""].filter(Boolean).join(" ");
-
-  const head = el("tr", {},
-    el("th", { class: "hist-lane" }, "レーン"),
-    days.map((d) => el("th", { class: dayCls(d, "hist-day"), title: fmtDate(ymd(d)) }, el("div", {}, `${d.getDate()}`), el("div", { class: "hist-wd" }, WD[d.getDay()]))),
-    el("th", { class: "hist-sum" }, "成功 / 実行"));
-  const body = shown.map((t) => {
-    let ok = 0;
-    let done = 0;
-    const cells = days.map((d) => {
-      const k = ymd(d);
-      const runs = byCell.get(`${t.id}|${k}`) || [];
-      for (const r of runs) {
-        if (EXECUTED.includes(r.status)) done++;
-        if (r.status === "success") ok++;
-      }
-      if (!runs.length) return el("td", { class: dayCls(d, "hist-cell") });
-      const tip = [`${t.display_name} ${fmtDate(k)}`, ...runs.map((r) => `${timeOf(r.scheduled_at)} ${titleOf(r)} ${RUN_STATUS_LABEL[r.status] || r.status}`)].join("\n");
-      return el("td", { class: dayCls(d, "hist-cell") },
-        el("button", { type: "button", class: `hist-mark rs-${worst(runs)}`, title: tip + "\n\n押すと詳細", onclick: () => openDayModal(t, k, runs) },
-          runs.length > 1 ? String(runs.length) : ""));
-    });
-    return el("tr", {},
-      el("th", { class: "hist-lane", scope: "row" }, el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }), t.display_name),
-      cells,
-      el("td", { class: `hist-sum${done && ok < done ? " has-fail" : ""}` }, done ? `${ok} / ${done}` : "—"));
-  });
-  const box = document.getElementById("hist-body");
-  const prev = box.querySelector(".hist-wrap");
-  const keep = prev && st.keepScroll ? prev.scrollLeft : null;
-  box.replaceChildren(shown.length
-    ? el("div", { class: "table-wrap hist-wrap" }, el("table", { class: "hist-table" }, el("thead", {}, head), el("tbody", {}, body)))
-    : el("p", { class: "muted" }, "Jenkins のレーンがありません。"));
-  // 新しい日付が右端なので、最初は右端（直近）を見せる。自動更新のときは見ていた位置のまま
-  const wrap = box.querySelector(".hist-wrap");
-  if (wrap) wrap.scrollLeft = keep ?? wrap.scrollWidth;
-}
-
 /* ---- 共通 ---- */
 function render() {
   const days = dayList();
   document.getElementById("hist-range").textContent = `${fmtDate(ymd(days[0]))} 〜 ${fmtDate(ymd(days[days.length - 1]))}`;
-  document.querySelectorAll("[data-view]").forEach((b) => b.classList.toggle("active", b.dataset.view === st.view));
-  st.view === "grid" ? renderGrid() : renderList();
-  st.keepScroll = false;
+  renderList();
 }
 
 function renderControls() {
@@ -231,15 +156,22 @@ async function load() {
   }
 }
 
-document.querySelectorAll("[data-view]").forEach((b) => {
-  b.onclick = () => {
-    st.view = b.dataset.view;
-    try {
-      localStorage.setItem("historyView", st.view);
-    } catch (_) {}
-    render();
-  };
-});
+// カレンダーで日付を選ぶと、その日を期間の終わりにする（一覧は新しい順なので、その日がいちばん上に来る）
+const jump = document.getElementById("hist-date");
+document.getElementById("hist-jump").onclick = () => {
+  jump.value = ymd(st.end);
+  try {
+    jump.showPicker();
+  } catch (_) {
+    jump.focus();
+    jump.click();
+  }
+};
+jump.onchange = () => {
+  if (!jump.value) return;
+  st.end = parseYmd(jump.value);
+  load();
+};
 document.getElementById("hist-prev").onclick = () => {
   st.end = addDays(st.end, -st.days);
   load();
@@ -271,6 +203,5 @@ document.getElementById("hist-done").onchange = (e) => {
 ready.then(load);
 setInterval(() => {
   if (document.hidden || document.getElementById("modal")) return; // 詳細を開いている間は読み直さない
-  st.keepScroll = true;
   load();
 }, 60000);

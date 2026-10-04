@@ -1,7 +1,13 @@
 /* タイムライン画面（仕様書 11.1 / 11.2） */
 "use strict";
 
-const RUN_POINT_MAX_DAYS = 31; // これより広い表示範囲では run の点を描かず件数サマリーにする
+const RUN_POINT_MAX_DAYS = 31; // 横表示: これより広い表示範囲では run の点を描かず件数サマリーにする
+const V_RUN_MAX_DAYS = 200; // 縦表示: 1マスに時刻を並べるだけなので、広い範囲でも run を出す（スクロールで期間が伸びるため）
+
+/** その表示範囲で run を出すか（横表示と縦表示で上限が違う） */
+function runsShown() {
+  return state.layout === "vertical" ? state.v.days <= V_RUN_MAX_DAYS : windowDays() <= RUN_POINT_MAX_DAYS;
+}
 // 凡例の項目ごとに、run の丸を表示・非表示できる
 // 凡例の丸の区分。tool: このツール側（まだキックしていない・このツールがキックを止めた）、jenkins: Jenkins 側（ビルドの結果）
 const RUN_GROUPS = [
@@ -23,7 +29,7 @@ const state = {
   panelScheduleId: null,
   panelTab: "basic",
   layout: "vertical", // vertical: 行=日付・列=レーン（vertical.js。既定） / horizontal: 横軸=日付
-  runsOn: true, // ビルド状況（run の丸）を表示するか
+  runsOn: false, // ビルド状況（run の丸）を表示するか（既定はオフ。ブラウザに記憶する）
   hiddenRunGroups: new Set(), // 凡例で非表示にした状態
   v: { start: null, days: 28 }, // 縦表示の表示範囲
 };
@@ -43,7 +49,7 @@ function init() {
   try {
     // 既定は縦表示。横表示を選んだ人はブラウザに記憶する
     state.layout = localStorage.getItem("layout") === "horizontal" ? "horizontal" : "vertical";
-    state.runsOn = localStorage.getItem("runsOn") !== "0";
+    state.runsOn = localStorage.getItem("runsOn") === "1";
     state.hiddenRunGroups = new Set(JSON.parse(localStorage.getItem("hiddenRunGroups") || "[]"));
   } catch (_) {}
 
@@ -129,9 +135,9 @@ function init() {
   document.getElementById("timeline").append(el("button", { type: "button", class: "collapse-toggle tl-corner", onclick: toggleAllCollapsed }));
   // 凡例の表示・非表示
   const legendToggle = document.getElementById("legend-toggle");
-  let legendOn = true;
+  let legendOn = false; // 既定はオフ（ブラウザに記憶する）
   try {
-    legendOn = localStorage.getItem("legendOn") !== "0";
+    legendOn = localStorage.getItem("legendOn") === "1";
   } catch (_) {}
   const applyLegend = () => (document.getElementById("legend").hidden = !legendOn);
   legendToggle.checked = legendOn;
@@ -278,7 +284,7 @@ async function loadData(quiet) {
   const to = new Date(w.end.getTime() + span * 0.5);
   const q = `from=${ymd(from)}&to=${ymd(to)}`;
   try {
-    const wantRuns = state.runsOn && windowDays() <= RUN_POINT_MAX_DAYS;
+    const wantRuns = state.runsOn && runsShown();
     const [categories, targets, schedules, runs] = await Promise.all([
       api("GET", "/api/categories"),
       api("GET", "/api/targets"),
@@ -484,7 +490,7 @@ function runVisible(r) {
 
 function runNote(withinRange) {
   if (!state.runsOn) return "";
-  if (!withinRange) return `表示範囲が ${RUN_POINT_MAX_DAYS} 日を超えているため、run は件数サマリーのみ表示しています。`;
+  if (!withinRange) return `表示範囲が ${state.layout === "vertical" ? V_RUN_MAX_DAYS : RUN_POINT_MAX_DAYS} 日を超えているため、run は件数サマリーのみ表示しています。`;
   if (state.hiddenRunGroups.size) {
     const names = RUN_GROUPS.filter(([k]) => state.hiddenRunGroups.has(k)).map(([, label]) => label);
     return `凡例で非表示にしている状態: ${names.join("、")}（凡例を押すと戻ります）`;

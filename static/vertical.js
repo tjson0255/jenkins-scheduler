@@ -152,7 +152,7 @@ function renderVertical() {
   vWire(box);
   const days = state.v.days;
   const vt = visibleTargets();
-  const showRuns = days <= RUN_POINT_MAX_DAYS;
+  const showRuns = runsShown();
   document.getElementById("summary-note").textContent = runNote(showRuns);
 
   const cols = []; // {cat, items:[t]|null(collapsed)}
@@ -213,7 +213,12 @@ function renderVertical() {
       </table>`
     : '<p class="muted" style="padding:16px">表示するレーンがありません。アイテム画面で登録してください。</p>';
 
-  if (vState.scrollToToday) {
+  if (vState.anchor) {
+    // 前後の日付を読み足したときは、見ていた行を同じ位置に出す
+    const row = box.querySelector(`tr[data-day="${vState.anchor.day}"]`);
+    if (row) box.scrollTop = row.offsetTop - vState.anchor.offset;
+    vState.anchor = null;
+  } else if (vState.scrollToToday) {
     vState.scrollToToday = false;
     const row = box.querySelector("tr.focus");
     const headH = box.querySelector("thead") ? box.querySelector("thead").offsetHeight : 0;
@@ -243,9 +248,41 @@ function vCollapsedCell(cat, items, day, runsByDay, showRuns) {
 }
 
 /* ------------------------------------------------------------------ 操作（イベントは委譲で1回だけ登録） */
+/** 上端・下端の近くまでスクロールしたら、前後の日付を読み足す（見ている位置はそのまま）。
+ *  重くならないよう、描く日数は V_MAX_DAYS までにして、反対側の端を落とす */
+const V_STEP_DAYS = 28;
+const V_MAX_DAYS = 182;
+async function vMaybeExtend(box) {
+  if (vState.extending || state.layout !== "vertical" || vState.drag) return;
+  const nearTop = box.scrollTop < 120;
+  const nearBottom = box.scrollTop + box.clientHeight > box.scrollHeight - 120;
+  if (!nearTop && !nearBottom) return;
+  vState.extending = true;
+  // いちばん上に見えている行を覚えておき、読み足した後も同じ位置に出す
+  const headH = box.querySelector("thead") ? box.querySelector("thead").offsetHeight : 0;
+  const anchor = [...box.querySelectorAll("tbody tr[data-day]")].find((r) => r.offsetTop + r.offsetHeight > box.scrollTop + headH);
+  vState.anchor = anchor ? { day: anchor.dataset.day, offset: anchor.offsetTop - box.scrollTop } : null;
+  if (nearTop) {
+    state.v.start = addDays(state.v.start, -V_STEP_DAYS);
+    state.v.days = Math.min(state.v.days + V_STEP_DAYS, V_MAX_DAYS);
+  } else {
+    state.v.days += V_STEP_DAYS;
+    if (state.v.days > V_MAX_DAYS) {
+      state.v.start = addDays(state.v.start, state.v.days - V_MAX_DAYS);
+      state.v.days = V_MAX_DAYS;
+    }
+  }
+  try {
+    await loadData(true);
+  } finally {
+    vState.extending = false;
+  }
+}
+
 function vWire(box) {
   if (vState.wired) return;
   vState.wired = true;
+  box.addEventListener("scroll", debounce(() => vMaybeExtend(box), 80), { passive: true });
 
   box.addEventListener("click", (e) => {
     if (vState.justDragged) return;

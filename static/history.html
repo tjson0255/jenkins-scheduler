@@ -15,10 +15,10 @@
           <div class="muted small" id="hist-range"></div>
         </div>
         <div class="row wrap">
-          <div class="btn-group" role="group" aria-label="表示">
-            <button class="btn" data-view="list">一覧</button>
-            <button class="btn" data-view="grid">日付の表</button>
-          </div>
+          <span class="date-jump">
+            <button class="btn" id="hist-jump" title="カレンダーで日付を選んで、その日に移動します">📅 日付</button>
+            <input type="date" id="hist-date" tabindex="-1" aria-label="移動する日付">
+          </span>
           <button class="btn" id="hist-prev" title="前の期間">◀</button>
           <button class="btn" id="hist-next" title="次の期間">▶</button>
           <button class="btn" id="hist-today">今日</button>

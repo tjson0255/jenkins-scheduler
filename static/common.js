@@ -404,8 +404,8 @@ function readonlyNote(text) {
 /* ---- ヘッダー（ナビとヘルス表示） ---- */
 function renderHeader(active) {
   const nav = [
-    ["/day", "1日の予定"],
     ["/", "タイムライン"],
+    ["/day", "1日の予定"],
     ["/history", "実行結果"],
     ["/targets", "アイテム"],
     ["/audit", "ログ"],
