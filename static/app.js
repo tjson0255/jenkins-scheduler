@@ -798,7 +798,7 @@ function renderBasicTab(body, s) {
   const form = scheduleForm(s);
   const info = el("dl", { class: "kv" },
     el("dt", {}, "次回"), el("dd", {}, s.next_run_at ? fmtDateTime(s.next_run_at, true) : "—"),
-    el("dt", {}, "パラメータ上書き"), el("dd", {}, `${s.override_count} 件${s.params_pinned ? "（デフォルト値変更に追従しない）" : ""}`),
+    el("dt", {}, "パラメータ上書き"), el("dd", {}, `${s.override_count} 件${s.params_pinned ? "（指定していない項目もデフォルト値を固定中）" : ""}`),
     el("dt", {}, "作成 / 更新"), el("dd", {}, `${fmtDateTime(s.created_at, true)} / ${fmtDateTime(s.updated_at, true)}`));
   const save = el("button", {
     class: "btn primary",
@@ -922,7 +922,24 @@ async function renderParamsTab(body, s) {
     },
   }, "保存（Jenkins の現在の定義を確認済みにする）");
   const keepOrphans = el("input", { type: "checkbox", checked: true });
+  // 以前の版で「デフォルト値変更に追従しない」をオンにしたスケジューラだけ、固定中であることと、やめるボタンを出す
+  const pinNote = s.params_pinned ? el("div", { class: "pin-note" },
+    el("span", {}, "このスケジューラは、指定していない項目も、控えたデフォルト値に固定しています（Jenkins のデフォルト値が変わっても追従しません）。固定したい項目は、チェックを入れて値を書く方法をおすすめします。"),
+    can.admin() ? el("button", {
+      class: "btn small",
+      onclick: async () => {
+        try {
+          await api("PATCH", `/api/schedules/${s.id}`, { params_pinned: false, revision: s.revision });
+          toast("固定をやめました。指定していない項目は、Jenkins のその時点のデフォルト値を送ります");
+          await loadData();
+          openPanel(s.id, "params");
+        } catch (e) {
+          toast(e.message, "error");
+        }
+      },
+    }, "固定をやめる") : null) : null;
   body.replaceChildren(
+    pinNote,
     p.fresh ? null : el("p", { class: "muted small" },
       `Jenkins から最後に取得した定義を表示しています${p.fetched_at ? `（${fmtDateTime(p.fetched_at, true)}、5分ごとに自動取得）` : ""}。`),
     p.job_error ? el("div", { class: "error-text" }, p.job_error) : null,

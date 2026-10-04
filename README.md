@@ -99,7 +99,7 @@ cp seed.toml.example seed.toml
 
 `{{schedule.title}}`（スケジューラの件名。以前の書き方 `{{schedule.label}}` も可） `{{schedule.start_date}}` `{{schedule.end_date}}` `{{run.scheduled_at}}` `{{run.date}}` `{{target.job_path}}`
 
-例：`VERSION = {{schedule.title}}-{{run.date}}` → `v2.3.0-2026-10-05`。日時は Asia/Tokyo（`{{run.scheduled_at}}` は `2026-10-05 03:00` の形式）。上書きした項目だけを保存し、それ以外は Jenkins のデフォルト値を使います。「JenkinsJobパラメータのデフォルト値変更に追従しない」をオンにすると、有効化した時点（以降はパラメータを保存した時点）のデフォルト値で実行し続けます。
+例：`VERSION = {{schedule.title}}-{{run.date}}` → `v2.3.0-2026-10-05`。日時は Asia/Tokyo（`{{run.scheduled_at}}` は `2026-10-05 03:00` の形式）。上書きした項目だけを保存し、それ以外は Jenkins のその時点のデフォルト値を使います（値を固定したい項目は上書きしておく）。以前の版の「デフォルト値変更に追従しない」は画面から外しました（オンにしてあったスケジューラはそのまま動き、パラメータ画面の「固定をやめる」でオフにできます）。
 
 ### パラメータ定義の変更（Jenkins 側）
 
