@@ -140,7 +140,8 @@ class Settings(BaseModel):
 
     # --- 既定値 ---
     default_overlap_policy: str = "skip"
-    default_missed_policy: str = "run_late"
+    # 予定時刻を過ぎた回（ツールの停止・一時停止など）: skip=遅れてキックしない（既定）、run_late=猶予の分数以内なら遅れて1回キックする
+    default_missed_policy: str = "skip"
     default_grace_minutes: int = 10
 
     @field_validator("backup_dir", "app_tls_cert", "app_tls_key", "jenkins_ca_bundle", "seed_file", "ldap_ca_bundle", mode="before")

@@ -92,7 +92,7 @@ cp seed.toml.example seed.toml
 
 - `draft`：作成直後。run は表示されるが **実行しない**（タイムラインでは斜線・破線）
 - `active`：**有効化は明示操作で、承認を兼ねます**。有効化時に Jenkins からパラメータ定義を取り直し、エラーがあれば有効化できません
-- `paused`：一時停止（未実行の run を実行しない）。再開すると、停止中に過ぎた run は「ツール停止などで予定時刻を過ぎた回」の設定（missed_policy）に従います
+- `paused`：一時停止（未実行の run を実行しない）。再開すると、停止中に過ぎた run はキックしません（`DEFAULT_MISSED_POLICY`）
 - `ended`：終了日を過ぎると自動で遷移。`cancelled`：キャンセル（未実行の run もキャンセル。画面からの操作は廃止し、止めるときは一時停止、要らなくなったら削除を使う。API は残している）
 
 ### パラメータの変数
@@ -184,7 +184,7 @@ scheduled ──(時刻到来)──▶ 遅延判定 ──▶ キック直前�
 | `RUN_HORIZON_DAYS` | `14` | cron の先行生成日数 |
 | `SCHEMA_POLL_MINUTES` | `5` | スキーマ・cron 残存のポーリング間隔 |
 | `DEFAULT_OVERLAP_POLICY` | `skip` | 前回ビルド実行中/キュー中のときの既定 |
-| `DEFAULT_MISSED_POLICY` / `DEFAULT_GRACE_MINUTES` | `run_late` / `10` | 遅延時の既定 |
+| `DEFAULT_MISSED_POLICY` / `DEFAULT_GRACE_MINUTES` | `skip` / `10` | ツールの停止・一時停止などで予定時刻を過ぎた回の扱い（全スケジューラ共通）。`skip` は遅れてキックしない（見逃し）、`run_late` は猶予の分数以内なら遅れて1回キックする |
 | `SEED_FILE` | なし | 起動時に読み込む seed.toml（初期データ。書き方は `seed.toml.example`） |
 | `BACKUP_ENABLED` / `BACKUP_TIME` / `BACKUP_KEEP` / `BACKUP_DIR` | `true` / `01:30` / `14` / `<データ>\backups` | 自動バックアップ（5.8） |
 
@@ -317,7 +317,7 @@ Stop-Service jenkins-scheduler
 Start-Service jenkins-scheduler
 ```
 
-復元すると、バックアップ時点以降に過ぎた予定の run は「ツール停止などで予定時刻を過ぎた回」の設定（`missed_policy`）に従います。
+復元すると、バックアップ時点以降に過ぎた予定の run はキックしません（`DEFAULT_MISSED_POLICY`）。
 
 ### 5.9 管理者アカウント（ログインの切り替え）
 
@@ -468,7 +468,7 @@ groups:
 | 項目 | 既定 | 変更箇所 |
 |---|---|---|
 | 前回ビルド実行中の動作 | `skip` | `DEFAULT_OVERLAP_POLICY`、レーンごとに変更可 |
-| 遅延時の動作 | `run_late` / 10分 | `DEFAULT_MISSED_POLICY` / `DEFAULT_GRACE_MINUTES`、スケジューラごとに変更可 |
+| 予定時刻を過ぎた回 | `skip`（遅れてキックしない） | `DEFAULT_MISSED_POLICY` / `DEFAULT_GRACE_MINUTES`（全スケジューラ共通） |
 | 先行生成日数 | 14日 | `RUN_HORIZON_DAYS` |
 
 ---

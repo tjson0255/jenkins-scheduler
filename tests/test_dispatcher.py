@@ -86,23 +86,26 @@ def test_not_due_and_inactive_are_not_kicked(db, session_factory, dispatcher, mo
     assert [c["job"] for c in mock_client.trigger_calls] == ["buildset/core-pipeline"]
 
 
-def test_missed_policy_skip(db, session_factory, dispatcher, mock_client):
-    rid = setup_run(db, missed_policy="skip")
+def test_late_runs_are_not_kicked_by_default(db, session_factory, dispatcher, mock_client):
+    # スケジューラごとの設定に関係なく、既定では予定時刻を過ぎた回は遅れてキックしない
+    rid = setup_run(db, missed_policy="run_late")
     dispatcher.tick(now=T0 + timedelta(minutes=3))
     r = get_run(session_factory, rid)
-    assert r.status == R_MISSED and "skip" in r.reason
+    assert r.status == R_MISSED and "キックしませんでした" in r.reason
     assert mock_client.trigger_calls == []
 
 
-def test_missed_policy_run_late_within_and_beyond_grace(db, session_factory, dispatcher):
-    rid = setup_run(db, missed_policy="run_late", grace_minutes=10)
+def test_run_late_within_and_beyond_grace_when_enabled(db, session_factory, dispatcher, settings):
+    settings.default_missed_policy = "run_late"
+    settings.default_grace_minutes = 10
+    rid = setup_run(db)
     dispatcher.tick(now=T0 + timedelta(minutes=9))
     assert get_run(session_factory, rid).status == R_QUEUED
 
-    rid2 = setup_run(db, job="buildset/web-pipeline", missed_policy="run_late", grace_minutes=10)
+    rid2 = setup_run(db, job="buildset/web-pipeline")
     dispatcher.tick(now=T0 + timedelta(minutes=11))
     r2 = get_run(session_factory, rid2)
-    assert r2.status == R_MISSED and "猶予" in r2.reason
+    assert r2.status == R_MISSED and "10 分まで" in r2.reason
 
 
 def test_holding_on_invalid_choice(db, session_factory, dispatcher, mock_client):
@@ -169,13 +172,14 @@ def test_runs_missed_while_stopped_follow_policy(db, session_factory, dispatcher
     with session_factory() as s:
         s.add(AppState(key=LAST_TICK_KEY, value=(T0 - timedelta(hours=1)).isoformat()))
         s.commit()
-    late_skip = setup_run(db, missed_policy="run_late", grace_minutes=10, at=T0)
-    in_grace = setup_run(db, job="buildset/web-pipeline", missed_policy="run_late", grace_minutes=180, at=T0)
+    a = setup_run(db, at=T0)
+    b = setup_run(db, job="buildset/web-pipeline", at=T0)
     now = T0 + timedelta(hours=1)
     dispatcher.startup_check(now=now)
     dispatcher.tick(now=now)
-    assert get_run(session_factory, late_skip).status == R_MISSED
-    assert get_run(session_factory, in_grace).status == R_QUEUED
+    # 止まっていた間に予定時刻を過ぎた回は、既定ではキックしない
+    assert get_run(session_factory, a).status == R_MISSED
+    assert get_run(session_factory, b).status == R_MISSED
     with session_factory() as s:
         log = s.scalars(select(AuditLog).where(AuditLog.action == "startup_gap")).one()
         assert log.detail_json["runs"] == 2

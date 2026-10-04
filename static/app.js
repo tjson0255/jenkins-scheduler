@@ -765,7 +765,7 @@ function actionBar(s, t) {
     bar.append(act("有効化", `/api/schedules/${s.id}/activate`, { cls: "primary", confirm: "有効化すると、以降の run は予定時刻に自動でキックされます。よろしいですか？" }));
   }
   if (s.status === "active") bar.append(act("一時停止", `/api/schedules/${s.id}/pause`));
-  if (s.status === "paused") bar.append(act("再開", `/api/schedules/${s.id}/resume`, { cls: "primary", confirm: "再開します。一時停止中に予定時刻を過ぎた run は「ツール停止などで予定時刻を過ぎた回」の設定に従います。" }));
+  if (s.status === "paused") bar.append(act("再開", `/api/schedules/${s.id}/resume`, { cls: "primary", confirm: "再開します。一時停止中に予定時刻を過ぎた run はキックしません（見逃しになります）。" }));
   bar.append(
     el("button", { class: "btn", onclick: () => doDryRun(s) }, "ドライラン"),
     el("button", {

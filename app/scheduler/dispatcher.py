@@ -208,19 +208,24 @@ class Dispatcher:
 
     # ------------------------------------------------------------------ 1件の処理
     def is_late(self, run: Run, now: datetime) -> str | None:
-        """遅延していて実行しない場合は理由を返す。"""
-        s = run.schedule
-        if s is None:
+        """予定時刻を過ぎていてキックしない場合は理由を返す。
+
+        ツールが止まっていた・一時停止していた などで予定時刻にキックできなかった回は、既定では遅れてキックしない（見逃し）。
+        全スケジューラ共通の決まりで、.env の DEFAULT_MISSED_POLICY=run_late にすると DEFAULT_GRACE_MINUTES 分以内なら遅れてキックする。
+        （ふだんの tick の間隔ぶんの遅れは許す）
+        """
+        if run.schedule is None:
             return None
         late = now - run.scheduled_at
         tolerance = timedelta(seconds=self.settings.dispatch_interval_seconds * 2)
         if late <= tolerance:
             return None
         minutes = int(late.total_seconds() // 60)
-        if s.missed_policy == "skip":
-            return f"予定時刻から {minutes} 分遅延（missed_policy=skip）"
-        if late > timedelta(minutes=s.grace_minutes):
-            return f"予定時刻から {minutes} 分遅延（猶予 {s.grace_minutes} 分を超過）"
+        if self.settings.default_missed_policy != "run_late":
+            return f"予定時刻から {minutes} 分過ぎていたため、キックしませんでした（ツールの停止・一時停止など）"
+        grace = self.settings.default_grace_minutes
+        if late > timedelta(minutes=grace):
+            return f"予定時刻から {minutes} 分過ぎていたため、キックしませんでした（遅れてキックするのは {grace} 分まで）"
         return None
 
     def prepare(self, db: Session, run: Run, now: datetime) -> tuple[dict[str, str], SchemaState, list[dict]]:
