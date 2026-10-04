@@ -119,7 +119,11 @@ function renderList() {
 /* ---- 共通 ---- */
 function render() {
   const days = dayList();
-  document.getElementById("hist-range").textContent = `${fmtDate(ymd(days[0]))} 〜 ${fmtDate(ymd(days[days.length - 1]))}`;
+  // 期間の欄と長さの選択欄を、今の期間に合わせる（2週・4週・8週に当てはまらなければ「指定」）
+  document.getElementById("hist-from").value = ymd(days[0]);
+  document.getElementById("hist-to").value = ymd(days[days.length - 1]);
+  const preset = document.getElementById("hist-days");
+  preset.value = [...preset.options].some((o) => o.value === String(st.days)) ? String(st.days) : "";
   renderList();
 }
 
@@ -144,22 +148,17 @@ async function load() {
   }
 }
 
-// カレンダーで日付を選ぶと、その日を期間の終わりにする（一覧は新しい順なので、その日がいちばん上に来る）
-const jump = document.getElementById("hist-date");
-document.getElementById("hist-jump").onclick = () => {
-  jump.value = ymd(st.end);
-  try {
-    jump.showPicker();
-  } catch (_) {
-    jump.focus();
-    jump.click();
-  }
-};
-jump.onchange = () => {
-  if (!jump.value) return;
-  st.end = parseYmd(jump.value);
+// 期間をカレンダーで選ぶ（開始日〜終了日。最大1年）
+const MAX_DAYS = 366;
+function setPeriod(from, to) {
+  if (to < from) [from, to] = [to, from];
+  const days = Math.round((to - from) / 86400000) + 1;
+  st.end = to;
+  st.days = Math.min(days, MAX_DAYS);
   load();
-};
+}
+document.getElementById("hist-from").onchange = (e) => e.target.value && setPeriod(parseYmd(e.target.value), st.end);
+document.getElementById("hist-to").onchange = (e) => e.target.value && setPeriod(addDays(st.end, -st.days + 1), parseYmd(e.target.value));
 document.getElementById("hist-prev").onclick = () => {
   st.end = addDays(st.end, -st.days);
   load();
@@ -173,6 +172,7 @@ document.getElementById("hist-today").onclick = () => {
   load();
 };
 document.getElementById("hist-days").onchange = (e) => {
+  if (!e.target.value) return;
   st.days = Number(e.target.value);
   load();
 };

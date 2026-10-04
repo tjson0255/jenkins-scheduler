@@ -10,19 +10,18 @@
   <main>
     <section class="card">
       <div class="card-head">
-        <div>
-          <h2>実行結果</h2>
-          <div class="muted small" id="hist-range"></div>
-        </div>
+        <h2>実行結果</h2>
         <div class="row wrap">
-          <span class="date-jump">
-            <button class="btn" id="hist-jump" title="カレンダーで日付を選んで、その日に移動します">📅 日付</button>
-            <input type="date" id="hist-date" tabindex="-1" aria-label="移動する日付">
+          <span class="hist-period" title="カレンダーで期間の始まりと終わりを選びます">
+            <input type="date" id="hist-from" aria-label="期間の開始日">
+            〜
+            <input type="date" id="hist-to" aria-label="期間の終了日">
           </span>
           <button class="btn" id="hist-prev" title="前の期間">◀</button>
           <button class="btn" id="hist-next" title="次の期間">▶</button>
           <button class="btn" id="hist-today">今日</button>
-          <select id="hist-days" aria-label="表示する期間">
+          <select id="hist-days" aria-label="期間の長さ（終了日から数える）">
+            <option value="" hidden>指定</option>
             <option value="14">2週</option>
             <option value="28" selected>4週</option>
             <option value="56">8週</option>
