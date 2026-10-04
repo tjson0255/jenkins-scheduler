@@ -44,6 +44,7 @@ from app.scheduler import planner, runstate
 from app.schema import diff
 from app.schema.service import SchemaState, evaluate_schedule, fetch_schema
 from app.schema.validate import apply_run_overrides, validate_explicit
+from app.scheduler.history import stamp_run
 from app.timeutil import iso_z, local_today, utcnow
 
 log = logging.getLogger(__name__)
@@ -288,6 +289,8 @@ class Dispatcher:
 
         run.params_json = params
         run.schema_hash = state.hash
+        if run.schedule is not None:
+            stamp_run(run, run.schedule)  # 実行した時点の件名・メモを履歴に残す
         run.triggered_at = utcnow()
         db.commit()
         try:

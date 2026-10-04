@@ -181,6 +181,9 @@ class Run(Base):
     # その回だけの変更（置き換え）: 置き換え先の run が、元の run の id と、その回だけのパラメータを持つ
     replaces_run_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     override_params: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    # 実行した時点のスケジューラの件名・メモ（スケジューラを変更・削除しても、履歴で何を実行したか分かるように）
+    title_snapshot: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    note_snapshot: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     triggered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

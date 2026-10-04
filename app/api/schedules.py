@@ -31,7 +31,7 @@ from app.models import (
     Schedule,
     Target,
 )
-from app.scheduler import planner
+from app.scheduler import history, planner
 from app.scheduler.cronutil import CronError, preview, summarize, validate_cron
 from app.scheduler.dispatcher import Dispatcher
 from app.scheduler.poller import schedule_issues_cached
@@ -285,6 +285,7 @@ def update_schedule(
     if s.status == CANCELLED:
         raise HTTPException(409, "キャンセル済みのスケジューラは変更できません")
     bump_revision(db, Schedule, s.id, body.revision)
+    history.snapshot_past_runs(db, s)  # 変更する前の件名・メモを、過去の回に残す
     before = _snapshot(s)
     changes = body.model_dump(exclude_unset=True, exclude={"revision"})
     if s.is_memo:
@@ -327,7 +328,7 @@ def delete_schedule(
     user: User = Depends(get_user),
     dispatcher: Dispatcher = Depends(get_dispatcher),
 ):
-    """スケジューラを削除する（実行履歴も消える。ログには削除した内容を残す）。
+    """スケジューラを削除する。実行済みの回は履歴として残し（件名・メモも残す）、まだ実行していない回は消す。
 
     キック中・キュー中・実行中のビルドがある間は削除しない（Jenkins 側で動いているものを追えなくなるため）。
     dispatcher のキック処理と同時に進まないよう、dispatcher のロックの中で確認して削除する。
@@ -344,8 +345,10 @@ def delete_schedule(
             )
             if in_flight:
                 raise HTTPException(409, "キュー中・実行中のビルドがあるため削除できません。ビルドが終わってから削除してください")
-        runs = db.scalar(select(func.count()).select_from(Run).where(Run.schedule_id == s.id)) or 0
-        audit.record(db, actor, "schedule.delete", "schedule", s.id, {**_snapshot(s), "deleted_runs": runs})
+        # 実行済みの回は履歴として残し（件名・メモも残す）、まだ実行していない回だけ消す
+        kept = history.detach_past_runs(db, s)
+        pending = db.scalar(select(func.count()).select_from(Run).where(Run.schedule_id == s.id)) or 0
+        audit.record(db, actor, "schedule.delete", "schedule", s.id, {**_snapshot(s), "deleted_runs": pending, "kept_runs": kept})
         db.delete(s)
         db.commit()
 

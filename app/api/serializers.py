@@ -74,12 +74,18 @@ def schedule_out(
 
 def run_out(r: Run) -> dict[str, Any]:
     s = r.schedule
+    live_title = (s.label or (summarize(s.cron_expr) if s.mode == "cron" else "1回")) if s else None
     return {
         "id": r.id,
         "schedule_id": r.schedule_id,
-        # 一覧で何の run か分かるように、レーン名とスケジューラの見出しも返す
+        # 一覧で何の run か分かるように、レーン名とスケジューラの件名も返す。
+        # 実行した時点の件名・メモが残っていればそれを使う（スケジューラをあとで変更・削除しても分かるように）
         "target_name": r.target.display_name if r.target else None,
-        "schedule_title": (s.label or (summarize(s.cron_expr) if s.mode == "cron" else "1回")) if s else None,
+        "schedule_title": r.title_snapshot or live_title,
+        "schedule_note": r.note_snapshot if r.title_snapshot else (s.note if s else None),
+        # スケジューラを削除した後も残している実行済みの回
+        "schedule_deleted": r.schedule_id is None and r.title_snapshot is not None and r.retry_of_id is None
+        and not (r.reason or "").startswith("スケジューラ #"),
         "target_id": r.target_id,
         "scheduled_at": iso_z(r.scheduled_at),
         "status": r.status,

@@ -15,6 +15,10 @@
           <div class="muted small" id="hist-range"></div>
         </div>
         <div class="row wrap">
+          <div class="btn-group" role="group" aria-label="表示">
+            <button class="btn" data-view="list">一覧</button>
+            <button class="btn" data-view="grid">日付の表</button>
+          </div>
           <button class="btn" id="hist-prev" title="前の期間">◀</button>
           <button class="btn" id="hist-next" title="次の期間">▶</button>
           <button class="btn" id="hist-today">今日</button>
@@ -23,11 +27,15 @@
             <option value="28" selected>4週</option>
             <option value="56">8週</option>
           </select>
-          <select id="hist-cat" aria-label="カテゴリで絞り込む"></select>
         </div>
       </div>
+      <div class="row wrap hist-filters">
+        <select id="hist-lane" aria-label="レーンで絞り込む"></select>
+        <input type="search" id="hist-q" placeholder="件名で探す" aria-label="件名で探す">
+        <label class="check"><input type="checkbox" id="hist-done"> 実行済みだけ</label>
+      </div>
       <div class="hist-legend" id="hist-legend"></div>
-      <div id="hist-grid"></div>
+      <div id="hist-body"></div>
     </section>
   </main>
   <script src="/static/common.js"></script>

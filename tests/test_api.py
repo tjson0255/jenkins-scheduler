@@ -277,7 +277,7 @@ def test_agenda_start_time_window(app_client):
     assert c.get(f"/api/agenda?date={d1.isoformat()}&start=abc").status_code == 422
 
 
-def test_delete_jenkins_schedule_any_status_but_not_while_building(app_client):
+def test_delete_jenkins_schedule_any_status_keeps_past_runs(app_client):
     from app import db as dbmod
     from app.models import Run
     from app.timeutil import utcnow
@@ -296,12 +296,27 @@ def test_delete_jenkins_schedule_any_status_but_not_while_building(app_client):
         db.commit()
     assert c.delete(f"/api/schedules/{s['id']}").status_code == 409
 
-    # ビルドが終われば、有効なスケジュールでも削除でき、実行履歴も消える。ログには残る
+    # ビルドが終われば、有効なスケジューラでも削除できる。まだ実行していない回は消え、実行済みの回は件名付きで履歴に残る
     with dbmod.SessionLocal() as db:
         db.get(Run, runs[0]["id"]).status = "success"
         db.commit()
     assert c.delete(f"/api/schedules/{s['id']}").status_code == 204
     assert c.get(f"/api/schedules/{s['id']}").status_code == 404
     assert c.get(f"/api/runs?schedule_id={s['id']}").json() == []
+    remaining = c.get(f"/api/runs?target={t['id']}").json()
+    assert [(r["id"], r["status"], r["schedule_title"], r["schedule_deleted"]) for r in remaining] == [(runs[0]["id"], "success", "v1.0.0", True)]
     log = [a for a in c.get(f"/api/audit?type=schedule&target={s['id']}").json() if a["action"] == "schedule.delete"]
-    assert log and log[0]["detail"]["deleted_runs"] == len(runs)
+    assert log and log[0]["detail"]["deleted_runs"] == len(runs) - 1 and log[0]["detail"]["kept_runs"] == 1
+
+
+def test_run_keeps_title_and_note_after_schedule_edit(app_client):
+    """スケジューラの件名・メモをあとで変えても、実行した回には実行時点の件名・メモ・パラメータが残る。"""
+    c = app_client
+    t = create_target(c)
+    s = create_schedule(c, t["id"], label="v1.0.0", note="1回目のメモ")
+    r = c.post(f"/api/targets/{t['id']}/run-now", json={"schedule_id": s["id"]}).json()
+    assert r["schedule_title"] == "v1.0.0" and r["schedule_note"] == "1回目のメモ" and r["params"]
+
+    assert c.patch(f"/api/schedules/{s['id']}", json={"label": "v2.0.0", "note": "2回目のメモ"}).status_code == 200
+    again = next(x for x in c.get(f"/api/runs?target={t['id']}").json() if x["id"] == r["id"])
+    assert again["schedule_title"] == "v1.0.0" and again["schedule_note"] == "1回目のメモ"

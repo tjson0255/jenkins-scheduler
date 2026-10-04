@@ -16,6 +16,7 @@ from app.api.serializers import run_out, target_out
 from app.jenkins.base import JenkinsClientProtocol, JenkinsError
 from app.models import ACTIVE, ITEM_JENKINS, ITEM_MEMO, R_SCHEDULED, Category, Run, Schedule, Target
 from app.scheduler.dispatcher import Dispatcher
+from app.scheduler.history import stamp_run
 from app.scheduler.poller import has_pending_runs, schedule_issues_cached, sync_target
 from app.schema.service import evaluate_schedule, fetch_schema, snapshot_defs
 from app.timeutil import utcnow
@@ -235,6 +236,8 @@ def run_now(
     # 作った時点で確保済み（triggered_at）にして、dispatcher に拾われて二重キックにならないようにする
     run = Run(schedule_id=None, target_id=t.id, scheduled_at=now, status=R_SCHEDULED, params_json=params, triggered_at=now,
               reason=f"スケジューラ #{body.schedule_id} のパラメータで即時実行" if body.schedule_id else "即時実行")
+    if body.schedule_id is not None:
+        stamp_run(run, s)  # どのスケジューラの内容で実行したかを履歴に残す
     db.add(run)
     db.flush()
     audit.record(db, actor, "run.run_now", "run", run.id, {"target": t.job_path, "schedule_id": body.schedule_id, "params": params})
