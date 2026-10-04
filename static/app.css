@@ -591,3 +591,5 @@ td.v-cell.locked { cursor: not-allowed; }
 .period-row { flex-wrap: nowrap; gap: 10px; align-items: flex-end; }
 .period-row input[type="date"] { width: 9.5em; }
 .period-row .check { white-space: nowrap; padding-bottom: 6px; }
+.stamps { margin-top: 14px; text-align: right; }
+.field-hint { margin: -4px 0 6px; }

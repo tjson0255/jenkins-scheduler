@@ -765,7 +765,7 @@ function actionBar(s, t) {
     bar.append(act("有効化", `/api/schedules/${s.id}/activate`, { cls: "primary", confirm: "有効化すると、以降の run は予定時刻に自動でキックされます。よろしいですか？" }));
   }
   if (s.status === "active") bar.append(act("一時停止", `/api/schedules/${s.id}/pause`));
-  if (s.status === "paused") bar.append(act("再開", `/api/schedules/${s.id}/resume`, { cls: "primary", confirm: "再開します。一時停止中に予定時刻を過ぎた run は「予定時刻にキックできなかったとき」の設定に従います。" }));
+  if (s.status === "paused") bar.append(act("再開", `/api/schedules/${s.id}/resume`, { cls: "primary", confirm: "再開します。一時停止中に予定時刻を過ぎた run は「ツール停止などで予定時刻を過ぎた回」の設定に従います。" }));
   bar.append(
     el("button", { class: "btn", onclick: () => doDryRun(s) }, "ドライラン"),
     el("button", {
@@ -796,10 +796,10 @@ function actionBar(s, t) {
 function renderBasicTab(body, s) {
   const editable = ["draft", "active", "paused", "ended"].includes(s.status);
   const form = scheduleForm(s);
+  // 上にはパラメータ上書きだけ。作成・更新の日時はいちばん下に小さく出す
   const info = el("dl", { class: "kv" },
-    el("dt", {}, "次回"), el("dd", {}, s.next_run_at ? fmtDateTime(s.next_run_at, true) : "—"),
-    el("dt", {}, "パラメータ上書き"), el("dd", {}, `${s.override_count} 件${s.params_pinned ? "（指定していない項目もデフォルト値を固定中）" : ""}`),
-    el("dt", {}, "作成 / 更新"), el("dd", {}, `${fmtDateTime(s.created_at, true)} / ${fmtDateTime(s.updated_at, true)}`));
+    el("dt", {}, "パラメータ上書き"), el("dd", {}, `${s.override_count} 件${s.params_pinned ? "（指定していない項目もデフォルト値を固定中）" : ""}`));
+  const stamps = el("p", { class: "muted small stamps" }, `作成 ${fmtDateTime(s.created_at, true)} ／ 更新 ${fmtDateTime(s.updated_at, true)}`);
   const save = el("button", {
     class: "btn primary",
     disabled: !editable,
@@ -819,10 +819,10 @@ function renderBasicTab(body, s) {
     },
   }, "保存");
   if (!can.admin()) {
-    body.replaceChildren(info, lockForm(form.root));
+    body.replaceChildren(info, lockForm(form.root), stamps);
     return;
   }
-  body.replaceChildren(info, form.root, el("div", { class: "actions end" }, save));
+  body.replaceChildren(info, form.root, el("div", { class: "actions end" }, save), stamps);
 }
 
 async function renderParamsTab(body, s) {

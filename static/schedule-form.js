@@ -64,8 +64,8 @@ function scheduleForm(s, opts) {
   f.custom = el("input", { type: "text", value: cp.custom || s.cron_expr || "", placeholder: "分 時 日 月 曜日（例: 30 2 * * 1-5）", class: "mono" });
   f.onceAt = el("input", { type: "datetime-local", value: toLocalInput(s.once_at) || `${s.start_date || ymd(new Date())}T03:00` });
   f.missed = el("select", {},
-    el("option", { value: "run_late", selected: (s.missed_policy || "run_late") === "run_late" }, "予定時刻を過ぎても、猶予の分数以内ならキックする"),
-    el("option", { value: "skip", selected: s.missed_policy === "skip" }, "予定時刻を過ぎたらキックしない（見逃し）"));
+    el("option", { value: "run_late", selected: (s.missed_policy || "run_late") === "run_late" }, "猶予の分数以内なら、遅れて1回だけキックする"),
+    el("option", { value: "skip", selected: s.missed_policy === "skip" }, "キックしない（見逃しにする）"));
   f.grace = el("input", { type: "number", min: 0, max: 1440, value: s.grace_minutes ?? 10, style: { width: "6em" } });
   f.exclusive = el("input", { type: "checkbox", checked: !!s.exclusive });
   f.note = el("textarea", { rows: 2 }, s.note || "");
@@ -148,7 +148,9 @@ function scheduleForm(s, opts) {
     field("モード", f.mode),
     cronSection,
     onceSection,
-    el("div", { class: "row wrap" }, field("予定時刻にキックできなかったとき", f.missed), field("猶予（分）", f.grace)),
+    el("div", { class: "row wrap" }, field("ツール停止などで予定時刻を過ぎた回", f.missed), field("猶予（分）", f.grace)),
+    el("p", { class: "muted small field-hint" },
+      "ツールが止まっていた（PC のスリープ・サービス停止など）・一時停止していた などで、予定時刻にキックできなかった回の扱いです。リトライではありません（失敗したビルドやキックを自動でやり直すことはしません）。"),
     field("メモ", f.note)
   );
   renderPreset();
