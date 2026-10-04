@@ -142,13 +142,13 @@ function scheduleForm(s, opts) {
     { class: "form" },
     f.target ? field("レーン", f.target) : null,
     field("件名", f.label),
-    el("div", { class: "row wrap" }, field("開始日", f.start), field("終了日", f.end), el("label", { class: "check" }, f.infinite, " 無期限")),
+    el("div", { class: "row period-row" }, field("開始日", f.start), field("終了日", f.end), el("label", { class: "check" }, f.infinite, " 無期限"),
+      el("label", { class: "check", title: "臨時のスケジューラ用。有効にしている間、開始日〜終了日に入る同じレーンの他のスケジューラの回はキックしません（スキップ）。一時停止・削除すれば元に戻ります。終了日が必要です" },
+        f.exclusive, " 他スケジューラ停止")),
     field("モード", f.mode),
     cronSection,
     onceSection,
     el("div", { class: "row wrap" }, field("予定時刻にキックできなかったとき", f.missed), field("猶予（分）", f.grace)),
-    el("label", { class: "check", title: "臨時のスケジューラ用。有効にしている間、開始日〜終了日に入る同じレーンの他のスケジューラの回はキックしません（スキップ）。一時停止・削除すれば元に戻ります。終了日が必要です" },
-      f.exclusive, " この期間は、同じレーンの他のスケジューラを止める（臨時用）"),
     field("メモ", f.note)
   );
   renderPreset();
