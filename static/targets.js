@@ -23,8 +23,8 @@ async function load() {
 
 async function patchTarget(t, body, quiet) {
   try {
-    await api("PATCH", `/api/targets/${t.id}`, { ...body, revision: t.revision });
-    if (!quiet) toast("更新しました");
+    const saved = await api("PATCH", `/api/targets/${t.id}`, { ...body, revision: t.revision });
+    t.revision = saved.revision; // 続けて変えても自分の変更とぶつからないように（画面で変化が見えるので通知は出さない）
     await load();
   } catch (e) {
     toast(e.message, "error");
@@ -496,7 +496,6 @@ function renderCategories() {
     name.addEventListener("change", async () => {
       try {
         await api("PATCH", `/api/categories/${c.id}`, { name: name.value.trim() });
-        toast("名前を変更しました");
         load();
       } catch (e) {
         toast(e.message, "error");

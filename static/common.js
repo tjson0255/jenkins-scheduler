@@ -181,8 +181,10 @@ function toast(msg, kind) {
   }
   box.textContent = msg;
   box.className = "show " + (kind || "");
+  box.title = "押すと閉じます";
+  box.onclick = () => (box.className = "");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (box.className = ""), kind === "error" ? 8000 : 3500);
+  toastTimer = setTimeout(() => (box.className = ""), kind === "error" ? 5000 : 2500);
 }
 
 function debounce(fn, ms) {
@@ -309,13 +311,6 @@ async function loadMe() {
 }
 
 /** 編集できない人向けに、フォームの入力欄をまとめて無効にする */
-/** レーンにスケジューラ・予定を追加できないときの説明（ドラッグやダブルクリックしても何も起きないと分かりにくいので出す） */
-function explainCannotAdd(t) {
-  if (!t) return;
-  if (t.kind !== "memo" && !can.admin()) toast("Jenkins レーンにスケジューラを追加するには、管理者ログインが必要です（画面右上の「管理者ログイン」から）", "error");
-  else toast("このレーンに予定を追加する権限がありません", "error");
-}
-
 function lockForm(root) {
   root.querySelectorAll("input, select, textarea, .color-btn").forEach((e) => (e.disabled = true));
   return root;

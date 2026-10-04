@@ -140,7 +140,8 @@ function vCell(t, dayIdx, day, info, runsByDay, showRuns) {
   });
   if (runs.length > V_MAX_RUNS_PER_CELL) chips.push(`<span class="v-more" data-item="${t.id}">+${runs.length - V_MAX_RUNS_PER_CELL}</span>`);
   const pad0 = info.lanes * LANE_W + 6;
-  return `<td class="v-cell${t.enabled ? "" : " disabled"}${can.editItem(t) ? "" : " locked"}" data-t="${t.id}" data-i="${dayIdx}">
+  const lockTip = can.editItem(t) ? "" : ` title="${t.kind === "memo" ? "このレーンに予定を追加する権限がありません" : "Jenkins レーンへのスケジューラの追加は管理者のみです"}"`;
+  return `<td class="v-cell${t.enabled ? "" : " disabled"}${can.editItem(t) ? "" : " locked"}" data-t="${t.id}" data-i="${dayIdx}"${lockTip}>
     ${stripes.join("")}
     <div class="v-content" style="padding-left:${pad0}px">${labels.join("")}${chips.length ? `<div class="v-runs">${chips.join("")}</div>` : ""}</div>
   </td>`;
@@ -276,8 +277,7 @@ function vWire(box) {
   box.addEventListener("dblclick", (e) => {
     const cell = e.target.closest("td.v-cell");
     if (!cell || e.target.closest("[data-sched],[data-run],[data-item]")) return;
-    const target = state.targets.find((t) => t.id === Number(cell.dataset.t));
-    if (!can.editItem(target)) return explainCannotAdd(target);
+    if (!can.editItem(state.targets.find((t) => t.id === Number(cell.dataset.t)))) return;
     const day = ymd(addDays(state.v.start, Number(cell.dataset.i)));
     openCreateDialog(Number(cell.dataset.t), day, day);
   });
@@ -308,16 +308,8 @@ function vWire(box) {
     if (e.button !== 0) return;
     const cell = e.target.closest("td.v-cell");
     if (!cell || e.target.closest("[data-sched],[data-run],[data-item]")) return;
-    const target = state.targets.find((t) => t.id === Number(cell.dataset.t));
-    if (!can.editItem(target)) {
-      // 追加できないレーンでも、縦にドラッグしたら理由を知らせる（クリックだけなら何も出さない）
-      const startRow = cell.dataset.i;
-      window.addEventListener("pointerup", (ev) => {
-        const end = document.elementFromPoint(ev.clientX, ev.clientY)?.closest("td.v-cell");
-        if (end && end.dataset.t === cell.dataset.t && end.dataset.i !== startRow) explainCannotAdd(target);
-      }, { once: true });
-      return;
-    }
+    // 追加できないレーンは何もしない（カーソルが「禁止」になり、マウスを乗せると理由が出る）
+    if (!can.editItem(state.targets.find((t) => t.id === Number(cell.dataset.t)))) return;
     e.preventDefault();
     vState.drag = { t: cell.dataset.t, a: Number(cell.dataset.i), b: Number(cell.dataset.i) };
     state.dragging = true;

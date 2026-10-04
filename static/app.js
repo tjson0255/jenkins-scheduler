@@ -568,9 +568,10 @@ async function onItemMove(item, callback) {
   }
   if (!Object.keys(payload).length) return callback(null);
   try {
-    await api("PATCH", `/api/schedules/${s.id}`, { ...payload, revision: s.revision });
+    const saved = await api("PATCH", `/api/schedules/${s.id}`, { ...payload, revision: s.revision });
+    // 続けて動かしても自分の変更とぶつからないよう、新しい更新番号をすぐ反映する（画面で変化が見えるので通知は出さない）
+    s.revision = saved.revision;
     callback(item);
-    toast("期間を変更しました（未実行の run を再生成しました）");
     await loadData();
     if (state.panelScheduleId === s.id) openPanel(s.id, state.panelTab);
   } catch (e) {
