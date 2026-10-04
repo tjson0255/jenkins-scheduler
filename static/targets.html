@@ -22,7 +22,10 @@
 
     <section class="card" id="sec-items">
       <div class="card-head">
-        <h2>レーン</h2>
+        <div>
+          <h2>レーン</h2>
+          <p class="muted small card-note">タイムラインの1行です。Jenkins のジョブ1つ、またはメモや計画を書くテキストに対応します。</p>
+        </div>
         <div class="row" id="item-tools"></div>
       </div>
       <div id="target-list"></div>
@@ -30,7 +33,10 @@
 
     <section class="card" id="sec-schedulers">
       <div class="card-head">
-        <h2>スケジューラ</h2>
+        <div>
+          <h2>スケジューラ</h2>
+          <p class="muted small card-note">レーンを、いつ・どの内容で動かすかの設定です。テキストのレーンには予定を書きます。</p>
+        </div>
         <div class="row wrap">
           <span class="hint" id="sync-info"></span>
           <button class="btn" id="btn-sync" title="全レーンのパラメータ定義と、Jenkins 側 cron の残存を Jenkins から取り直します。通常は5分おきに自動で行います">Jenkins から再取得</button>

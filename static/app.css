@@ -596,3 +596,4 @@ td.v-cell.locked { cursor: not-allowed; }
 .sched-filters { gap: 8px; margin: 0 0 8px; }
 .sched-filters input[type="search"] { min-width: 180px; }
 .schedule-table td.sched-note { white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; color: #3a4150; }
+.card-note { margin: 2px 0 0; }
