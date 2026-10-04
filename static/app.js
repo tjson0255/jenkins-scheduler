@@ -1209,7 +1209,6 @@ async function openItemPanel(targetId) {
                 s.holding_count ? el("span", { class: "hold-tag" }, `保留${s.holding_count}`) : null,
                 el("b", {}, scheduleTitle(s)),
                 memo ? (isPast(s) ? el("span", { class: "chip st-ended" }, "過去") : null) : statusChip(s.status),
-                s.exclusive ? el("span", { class: "exclusive-tag", title: "この期間は、同じレーンの他のスケジューラを止める" }, "他を止める") : null,
                 ...suppressionTags(s, schedules)),
               el("div", { class: "muted small" },
                 `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`, scheduleRule(s) ? " ／ " : "", scheduleRule(s)),

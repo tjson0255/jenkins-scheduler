@@ -124,8 +124,11 @@ function vCell(t, dayIdx, day, info, runsByDay, showRuns) {
     const isEnd = dayIdx === sp.ei;
     const cls = `v-stripe st-${s.status}${s.mode === "memo" ? " memo" : ""}${isStart ? " is-start" : ""}${isEnd ? " is-end" : ""}${scheduleAlertLevel(s) ? " has-" + scheduleAlertLevel(s) : ""}`;
     stripes.push(`<div class="${cls}" data-sched="${s.id}" style="left:${sp.lane * LANE_W + 2}px;--c:${color}" title="${esc(scheduleTitle(s))}"></div>`);
-    // ラベルは開始日に出す。途中から見ても分かるよう、表示範囲の先頭行と選んだ日（既定は今日）の行にも「↑」付きで出す
-    if (isStart || dayIdx === sp.from || day === vState.focus) {
+    // ラベルは開始日に出す。途中から見ても分かるよう、表示範囲の先頭行と選んだ日（既定は今日）の行にも「↑」付きで出す。
+    // 選んだ日の行は、その日に動くもの（有効で、臨時のスケジューラに止められていないもの）だけにする
+    const onFocus = day === vState.focus;
+    const runsThatDay = s.mode === "memo" || (s.status === "active" && !stoppingScheduleOn(s, info.lane || [], day));
+    if (onFocus ? runsThatDay : isStart || dayIdx === sp.from) {
       const lvl = scheduleAlertLevel(s);
       const badge = lvl ? `<span class="badge-dot ${lvl}">!</span>` : "";
       const st = s.status !== "active" && s.mode !== "memo" ? `<span class="st-tag">${SCHEDULE_STATUS_LABEL[s.status]}</span>` : "";
@@ -162,7 +165,10 @@ function renderVertical() {
     cols.push({ cat: c, items: children, collapsed: vState.collapsed.has(c.id) });
   }
   const spansByItem = new Map();
-  for (const t of vt) spansByItem.set(t.id, vScheduleSpans(state.schedules.filter((s) => s.target_id === t.id), days));
+  for (const t of vt) {
+    const lane = state.schedules.filter((s) => s.target_id === t.id);
+    spansByItem.set(t.id, { ...vScheduleSpans(lane, days), lane });
+  }
   const runsByDay = new Map();
   if (showRuns) {
     for (const r of state.runs) {

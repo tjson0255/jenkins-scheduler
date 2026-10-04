@@ -79,6 +79,12 @@ function setShowEndedSchedules(on) {
     localStorage.setItem("showEnded", on ? "1" : "0");
   } catch (_) {}
 }
+/** その日（YYYY-MM-DD）に、s を止めている同じレーンの臨時のスケジューラ（無ければ null） */
+function stoppingScheduleOn(s, laneSchedules, day) {
+  if (s.exclusive || s.mode === "memo") return null;
+  return laneSchedules.find((x) => x.id !== s.id && x.exclusive && x.status === "active" && x.start_date <= day && (!x.end_date || day <= x.end_date)) || null;
+}
+
 /** 同じレーンの臨時のスケジューラ（他を止める）に、これから・今止められている期間の札。laneSchedules は同じレーンのスケジューラ */
 function suppressionTags(s, laneSchedules) {
   if (s.exclusive || s.mode === "memo" || isEndedSchedule(s)) return [];

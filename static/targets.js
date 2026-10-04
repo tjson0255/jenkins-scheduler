@@ -231,7 +231,6 @@ function renderScheduleList() {
       rows.push(el("tr", { class: lvl ? "alert-" + lvl : "" },
         el("td", {}, el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }), t.display_name),
         el("td", {}, scheduleLink(s, "basic", { title: "詳細を開く" }, scheduleTitleOf(s)),
-          s.exclusive ? el("span", { class: "exclusive-tag", title: "この期間は、同じレーンの他のスケジューラを止める" }, "他を止める") : null,
           ...suppressionTags(s, schedulesByTarget.get(t.id) || [])),
         el("td", {}, scheduleRule(s)),
         el("td", {}, `${plainDate(s.start_date)} 〜 ${s.end_date ? plainDate(s.end_date) : "無期限"}`),
