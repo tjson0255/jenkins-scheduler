@@ -58,6 +58,7 @@ class ScheduleIn(BaseModel):
     missed_policy: MissedPolicy | None = None
     grace_minutes: int | None = Field(default=None, ge=0, le=1440)
     params_pinned: bool = False
+    exclusive: bool = False  # この期間は、同じレーンの他のスケジューラを止める
     note: str | None = Field(default=None, max_length=4000)
     activate: bool = False
 
@@ -72,6 +73,7 @@ class SchedulePatch(BaseModel):
     missed_policy: MissedPolicy | None = None
     grace_minutes: int | None = Field(default=None, ge=0, le=1440)
     params_pinned: bool | None = None
+    exclusive: bool | None = None
     note: str | None = Field(default=None, max_length=4000)
     revision: int | None = None  # 読み込んだ時点の更新番号（同時編集の検出）
 
@@ -113,6 +115,9 @@ def _validate(s: Schedule) -> None:
         raise HTTPException(400, "終了日は開始日以降にしてください")
     if s.is_memo:
         return
+    if s.exclusive and not s.end_date:
+        # 無期限だと、そのレーンの他のスケジューラがずっと止まってしまうので、終了日を必須にする
+        raise HTTPException(400, "「同じレーンの他のスケジューラを止める」を使うときは、終了日を入れてください")
     if s.mode == "cron":
         try:
             s.cron_expr = validate_cron(s.cron_expr)
@@ -164,6 +169,7 @@ def _snapshot(s: Schedule) -> dict:
         "cron_expr": s.cron_expr,
         "once_at": iso_z(s.once_at),
         "status": s.status,
+        "exclusive": s.exclusive,
     }
 
 
@@ -254,6 +260,7 @@ def create_schedule(
         once_at=_parse_dt(body.once_at) if body.mode == "once" else None,
         status=DRAFT,
         params_pinned=body.params_pinned,
+        exclusive=body.exclusive,
         missed_policy=body.missed_policy or st.default_missed_policy,
         grace_minutes=body.grace_minutes if body.grace_minutes is not None else st.default_grace_minutes,
         note=body.note,
@@ -295,7 +302,7 @@ def update_schedule(
     for k, v in changes.items():
         if k == "once_at":
             v = _parse_dt(v)
-        if k in ("start_date", "mode") and v is None:
+        if k in ("start_date", "mode", "exclusive", "params_pinned") and v is None:
             continue
         if getattr(s, k) != v:
             setattr(s, k, v)

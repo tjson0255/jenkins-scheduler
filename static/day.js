@@ -91,9 +91,9 @@ function runRow(r) {
     // スケジューラの run はその実行履歴の行へ、即時実行など（スケジューラなし）はレーンの予定一覧へ
     itemCell(r.target_id, r.target_name, r.schedule_id ? `schedule=${r.schedule_id}&run=${r.id}` : `item=${r.target_id}`),
     scheduleCell(r.schedule_id, r.schedule_title || (r.retry_of_id ? "再実行" : "即時実行")),
-    el("td", { title: runStatusHint(r.status) }, el("span", { class: `legend-dot rs-${r.status}` }), " ", RUN_STATUS_LABEL[r.status] || r.status),
+    el("td", { title: runStatusHint(runShownStatus(r)) }, el("span", { class: `legend-dot rs-${runShownStatus(r)}` }), " ", RUN_STATUS_LABEL[runShownStatus(r)] || r.status),
     el("td", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener" }, `#${r.build_number}`) : r.build_number ? `#${r.build_number}` : ""),
-    el("td", { class: "small muted" }, r.reason || ""));
+    el("td", { class: "small muted" }, runShownReason(r)));
 }
 
 function plannedRow(p) {
@@ -103,9 +103,12 @@ function plannedRow(p) {
     categoryCell(p.target_id),
     itemCell(p.target_id, p.target_name, p.id ? `schedule=${p.schedule_id}&run=${p.id}` : `schedule=${p.schedule_id}&tab=basic`),
     scheduleCell(p.schedule_id, p.schedule_title),
-    el("td", {}, el("span", { class: "legend-dot rs-scheduled" }), " ", PLANNED_LABEL[p.schedule_status] || p.schedule_status),
+    // 同じレーンの臨時のスケジューラに止められる回は「スキップ」で出す
+    p.suppressed_by && !off
+      ? el("td", { title: runStatusHint("skipped") }, el("span", { class: "legend-dot rs-skipped" }), " ", RUN_STATUS_LABEL.skipped)
+      : el("td", {}, el("span", { class: "legend-dot rs-scheduled" }), " ", PLANNED_LABEL[p.schedule_status] || p.schedule_status),
     el("td", {}, ""),
-    el("td", { class: "small muted" }, ""));
+    el("td", { class: "small muted" }, p.suppressed_by && !off ? runShownReason({ ...p, status: "scheduled" }) : ""));
 }
 
 function renderRuns(data, isCurrent) {

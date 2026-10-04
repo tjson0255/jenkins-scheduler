@@ -68,6 +68,7 @@ function scheduleForm(s, opts) {
     el("option", { value: "skip", selected: s.missed_policy === "skip" }, "予定時刻を過ぎたらキックしない（見逃し）"));
   f.grace = el("input", { type: "number", min: 0, max: 1440, value: s.grace_minutes ?? 10, style: { width: "6em" } });
   f.pinned = el("input", { type: "checkbox", checked: !!s.params_pinned });
+  f.exclusive = el("input", { type: "checkbox", checked: !!s.exclusive });
   f.note = el("textarea", { rows: 2 }, s.note || "");
 
   const cronOut = el("div", { class: "cron-preview" });
@@ -148,6 +149,8 @@ function scheduleForm(s, opts) {
     onceSection,
     el("div", { class: "row wrap" }, field("予定時刻にキックできなかったとき", f.missed), field("猶予（分）", f.grace)),
     el("label", { class: "check" }, f.pinned, " JenkinsJobパラメータのデフォルト値変更に追従しない"),
+    el("label", { class: "check", title: "臨時のスケジューラ用。有効にしている間、開始日〜終了日に入る同じレーンの他のスケジューラの回はキックしません（スキップ）。一時停止・削除すれば元に戻ります。終了日が必要です" },
+      f.exclusive, " この期間は、同じレーンの他のスケジューラを止める（臨時用）"),
     field("メモ", f.note)
   );
   renderPreset();
@@ -167,6 +170,7 @@ function scheduleForm(s, opts) {
         missed_policy: f.missed.value,
         grace_minutes: Number(f.grace.value || 0),
         params_pinned: f.pinned.checked,
+        exclusive: f.exclusive.checked,
         note: f.note.value.trim() || null,
       };
       if (f.target) v.target_id = Number(f.target.value);

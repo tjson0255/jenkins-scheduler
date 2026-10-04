@@ -136,7 +136,7 @@ function vCell(t, dayIdx, day, info, runsByDay, showRuns) {
   const runs = showRuns ? runsByDay.get(`${t.id}|${day}`) || [] : [];
   const chips = runs.slice(0, V_MAX_RUNS_PER_CELL).map((r) => {
     const d = new Date(r.scheduled_at);
-    return `<span class="v-run rs-${r.status}" data-run="${r.id}" title="${runTooltip(r).replace(/<br>/g, "&#10;")}">${pad(d.getHours())}:${pad(d.getMinutes())}</span>`;
+    return `<span class="v-run rs-${runShownStatus(r)}" data-run="${r.id}" title="${runTooltip(r).replace(/<br>/g, "&#10;")}">${pad(d.getHours())}:${pad(d.getMinutes())}</span>`;
   });
   if (runs.length > V_MAX_RUNS_PER_CELL) chips.push(`<span class="v-more" data-item="${t.id}">+${runs.length - V_MAX_RUNS_PER_CELL}</span>`);
   const pad0 = info.lanes * LANE_W + 6;

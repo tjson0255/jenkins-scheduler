@@ -4,6 +4,8 @@ from typing import Any
 
 from app.models import Category, Run, Schedule, Target
 from app.scheduler.cronutil import summarize
+from app.scheduler.exclusive import overriding_schedule
+from app.scheduler.history import schedule_title
 from app.schema import diff
 from app.timeutil import iso_z
 
@@ -58,6 +60,7 @@ def schedule_out(
         "once_at": iso_z(s.once_at),
         "status": s.status,
         "params_pinned": s.params_pinned,
+        "exclusive": s.exclusive,
         "missed_policy": s.missed_policy,
         "grace_minutes": s.grace_minutes,
         "note": s.note,
@@ -74,6 +77,11 @@ def schedule_out(
 
 def run_out(r: Run) -> dict[str, Any]:
     s = r.schedule
+    # まだキックしていない回が、同じレーンの臨時のスケジューラに止められるか（止める側の件名）
+    suppressed_by = None
+    if s is not None and r.status in ("scheduled", "holding") and r.target is not None:
+        by = overriding_schedule(r.target.schedules, s, r.scheduled_at)
+        suppressed_by = schedule_title(by) if by else None
     live_title = (s.label or (summarize(s.cron_expr) if s.mode == "cron" else "1回")) if s else None
     return {
         "id": r.id,
@@ -97,6 +105,7 @@ def run_out(r: Run) -> dict[str, Any]:
         "build_url": r.build_url,
         "retry_of_id": r.retry_of_id,
         "replaces_run_id": r.replaces_run_id,
+        "suppressed_by": suppressed_by,
         "override_params": r.override_params,
         "created_at": iso_z(r.created_at),
         "triggered_at": iso_z(r.triggered_at),

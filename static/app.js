@@ -391,7 +391,7 @@ function render() {
         subgroupOrder: 1,
         start: new Date(r.scheduled_at),
         type: "point",
-        className: `run rs-${r.status}`,
+        className: `run rs-${runShownStatus(r)}`,
         editable: false,
         title: runTooltip(r),
       });
@@ -477,7 +477,8 @@ function scheduleTooltip(s) {
 }
 
 function runTooltip(r) {
-  const lines = [`${fmtDateTime(r.scheduled_at, true)} ${RUN_STATUS_LABEL[r.status]}`, runStatusHint(r.status), r.build_number ? `#${r.build_number}` : "", r.reason || ""];
+  const st = runShownStatus(r);
+  const lines = [`${fmtDateTime(r.scheduled_at, true)} ${RUN_STATUS_LABEL[st]}`, runStatusHint(st), r.build_number ? `#${r.build_number}` : "", runShownReason(r)];
   return esc(lines.filter(Boolean).join("\n")).replace(/\n/g, "<br>");
 }
 
@@ -1064,9 +1065,9 @@ function runRow(r, refresh) {
   }
   return el("tr", { "data-run": r.id, class: r.replaces_run_id ? "replaced-run" : "" },
     el("td", {}, fmtDateTime(r.scheduled_at, true), r.replaces_run_id ? el("div", { class: "replace-tag" }, "この回だけ変更") : null),
-    el("td", {}, runChip(r.status)),
+    el("td", {}, runChip(runShownStatus(r))),
     el("td", { class: "small" },
-      r.reason ? el("div", {}, r.reason) : null,
+      runShownReason(r) ? el("div", {}, runShownReason(r)) : null,
       r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener" }, `#${r.build_number}`) : null),
     el("td", {}, ops));
 }
@@ -1075,8 +1076,8 @@ function showRunModal(r) {
   openModal(`run #${r.id}`, el("div", {},
     el("dl", { class: "kv" },
       el("dt", {}, "予定日時"), el("dd", {}, fmtDateTime(r.scheduled_at, true)),
-      el("dt", {}, "状態"), el("dd", {}, runChip(r.status)),
-      el("dt", {}, "詳細"), el("dd", { class: "pre" }, r.reason || "—"),
+      el("dt", {}, "状態"), el("dd", {}, runChip(runShownStatus(r))),
+      el("dt", {}, "詳細"), el("dd", { class: "pre" }, runShownReason(r) || "—"),
       el("dt", {}, "キック"), el("dd", {}, r.triggered_at ? fmtDateTime(r.triggered_at, true) : "—"),
       el("dt", {}, "終了"), el("dd", {}, r.finished_at ? fmtDateTime(r.finished_at, true) : "—"),
       el("dt", {}, "ビルド"), el("dd", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener" }, `#${r.build_number}`) : "—"),
@@ -1190,7 +1191,8 @@ async function openItemPanel(targetId) {
                 scheduleAlertLevel(s) ? el("span", { class: `badge-dot ${scheduleAlertLevel(s)}`, title: scheduleAlertMessages(s).join("\n") }, "!") : null,
                 s.holding_count ? el("span", { class: "hold-tag" }, `保留${s.holding_count}`) : null,
                 el("b", {}, scheduleTitle(s)),
-                memo ? (isPast(s) ? el("span", { class: "chip st-ended" }, "過去") : null) : statusChip(s.status)),
+                memo ? (isPast(s) ? el("span", { class: "chip st-ended" }, "過去") : null) : statusChip(s.status),
+                s.exclusive ? el("span", { class: "exclusive-tag", title: "この期間は、同じレーンの他のスケジューラを止める" }, "他を止める") : null),
               el("div", { class: "muted small" },
                 `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`, scheduleRule(s) ? " ／ " : "", scheduleRule(s)),
               s.next_run_at ? el("div", { class: "small" }, "次回: ", fmtDateTime(s.next_run_at, true)) : null)))
@@ -1211,7 +1213,7 @@ async function openItemPanel(targetId) {
                   el("b", {}, r.schedule_title || (r.retry_of_id ? "再実行" : "即時実行")),
                   r.schedule_deleted ? el("span", { class: "replace-tag inline", title: "スケジューラは削除済み（履歴として残しています）" }, "削除済み") : null,
                   r.replaces_run_id ? el("span", { class: "replace-tag inline" }, "この回だけ変更") : null),
-                el("td", {}, runChip(r.status)),
+                el("td", {}, runChip(runShownStatus(r))),
                 el("td", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, `#${r.build_number}`) : null)))))
         : el("p", { class: "muted" }, empty);
     upcomingBox.replaceChildren(runTable(upcoming, "予定されている run はありません。"));

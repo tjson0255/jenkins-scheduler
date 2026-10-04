@@ -12,6 +12,7 @@ from app.api.deps import get_db
 from app.api.serializers import run_out
 from app.models import ACTIVE, CANCELLED, DRAFT, MODE_CRON, MODE_MEMO, MODE_ONCE, PAUSED, Run, Schedule
 from app.scheduler.cronutil import CronError, iter_occurrences, summarize
+from app.scheduler.exclusive import overriding_schedule
 from app.scheduler.planner import schedule_window
 from app.timeutil import iso_z, local_tz, to_utc_naive, utcnow
 
@@ -73,7 +74,9 @@ def get_agenda(
         for t in times:
             if (s.id, t) in have:
                 continue
+            by = overriding_schedule(s.target.schedules, s, t)
             planned.append({
+                "suppressed_by": _title(by) if by else None,
                 "schedule_id": s.id,
                 "schedule_status": s.status,
                 "schedule_title": _title(s),

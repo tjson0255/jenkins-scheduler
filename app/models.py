@@ -112,6 +112,8 @@ class Schedule(Base):
     once_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(10), default=DRAFT)
     params_pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+    # この期間は、同じレーンの他のスケジューラを止める（臨時のスケジューラ用。有効なときだけ効く）
+    exclusive: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     missed_policy: Mapped[str] = mapped_column(String(10), default="run_late")
     grace_minutes: Mapped[int] = mapped_column(Integer, default=10)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)

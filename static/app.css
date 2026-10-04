@@ -584,3 +584,4 @@ td.v-cell.locked { cursor: not-allowed; }
 .hist-list .swatch.inline { display: inline-block; margin-right: 6px; vertical-align: -1px; }
 .sched-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .lane-run-title b { font-weight: 600; }
+.exclusive-tag { display: inline-block; margin-left: 6px; font-size: 10.5px; font-weight: 700; color: #fff; background: #8a5a00; border-radius: 3px; padding: 0 5px; vertical-align: 1px; }

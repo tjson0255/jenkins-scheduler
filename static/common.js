@@ -49,6 +49,17 @@ const RUN_STATUS_HINT = {
   failure: "Jenkins のビルドが失敗した",
   aborted: "Jenkins のビルドが途中で止められた",
 };
+/** 画面に出す状態。同じレーンの臨時のスケジューラに止められる回は、まだ先でも「スキップ」で出す */
+function runShownStatus(r) {
+  return r.suppressed_by && ["scheduled", "holding"].includes(r.status) ? "skipped" : r.status;
+}
+/** 画面に出す詳細（止められる回はその理由） */
+function runShownReason(r) {
+  return r.suppressed_by && ["scheduled", "holding"].includes(r.status)
+    ? `「${r.suppressed_by}」を優先するため、キックしません（臨時のスケジューラの期間）`
+    : r.reason || "";
+}
+
 /** 状態の説明（ツール側か Jenkins 側かを先頭に付ける） */
 function runStatusHint(status) {
   const side = RUN_SIDE[status] === "jenkins" ? "Jenkins 側" : "ツール側";

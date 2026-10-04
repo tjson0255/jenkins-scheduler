@@ -44,6 +44,7 @@ from app.scheduler import planner, runstate
 from app.schema import diff
 from app.schema.service import SchemaState, evaluate_schedule, fetch_schema
 from app.schema.validate import apply_run_overrides, validate_explicit
+from app.scheduler.exclusive import overriding_schedule, suppressed_reason
 from app.scheduler.history import stamp_run
 from app.timeutil import iso_z, local_today, utcnow
 
@@ -243,6 +244,11 @@ class Dispatcher:
             return run
         if not run.target.enabled:
             runstate.transition(db, run, R_SKIPPED, "レーンが無効です")
+            return run
+        # 同じレーンの臨時のスケジューラが「他のスケジューラを止める」期間中なら、キックしない
+        by = overriding_schedule(run.target.schedules, run.schedule, run.scheduled_at)
+        if by is not None:
+            runstate.transition(db, run, R_SKIPPED, suppressed_reason(by))
             return run
         late_reason = self.is_late(run, now)
         if late_reason:

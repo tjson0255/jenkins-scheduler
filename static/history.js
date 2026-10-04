@@ -70,12 +70,12 @@ function openRunDetail(r) {
     dl([
       ["レーン", t ? `${t.display_name}（${t.job_path}）` : r.target_name || ""],
       ["件名", el("span", {}, el("b", {}, titleOf(r)), r.schedule_deleted ? el("span", { class: "replace-tag inline", title: "スケジューラは削除済みです。実行した時点の件名・パラメータ・メモを残しています" }, "スケジューラ削除済み") : null)],
-      ["状態", statusCell(r.status)],
+      ["状態", statusCell(runShownStatus(r))],
       ["予定日時", fmtDateTime(r.scheduled_at, true)],
       r.triggered_at ? ["キック", fmtDateTime(r.triggered_at, true)] : null,
       r.finished_at ? ["終了", fmtDateTime(r.finished_at, true)] : null,
       r.build_url ? ["ビルド", el("a", { href: r.build_url, target: "_blank", rel: "noopener" }, `#${r.build_number}`)] : null,
-      r.reason ? ["詳細", r.reason] : null,
+      runShownReason(r) ? ["詳細", runShownReason(r)] : null,
     ]),
     el("h3", {}, "メモ"),
     r.schedule_note ? el("div", { class: "day-memo-note" }, r.schedule_note) : el("p", { class: "muted small" }, "メモはありません。"),
@@ -111,9 +111,9 @@ function renderList() {
       el("td", { class: "hist-title" }, titleOf(r),
         r.schedule_deleted ? el("span", { class: "replace-tag inline", title: "スケジューラは削除済み（履歴として残しています）" }, "削除済み") : null,
         r.replaces_run_id ? el("span", { class: "replace-tag inline" }, "この回だけ変更") : null),
-      el("td", {}, statusCell(r.status)),
+      el("td", {}, statusCell(runShownStatus(r))),
       el("td", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, `#${r.build_number}`) : ""),
-      el("td", { class: "small muted hist-reason" }, r.reason || "")));
+      el("td", { class: "small muted hist-reason" }, runShownReason(r))));
   }
   box.replaceChildren(el("div", { class: "table-wrap" }, el("table", { class: "table hist-list" },
     el("thead", {}, el("tr", {}, ["時刻", "レーン", "件名", "状態", "ビルド", "詳細"].map((h) => el("th", {}, h)))),
