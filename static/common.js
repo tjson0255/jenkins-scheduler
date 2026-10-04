@@ -79,6 +79,24 @@ function setShowEndedSchedules(on) {
     localStorage.setItem("showEnded", on ? "1" : "0");
   } catch (_) {}
 }
+/** 同じレーンの臨時のスケジューラ（他を止める）に、これから・今止められている期間の札。laneSchedules は同じレーンのスケジューラ */
+function suppressionTags(s, laneSchedules) {
+  if (s.exclusive || s.mode === "memo" || isEndedSchedule(s)) return [];
+  const today = ymd(new Date());
+  const md = (d) => { const x = parseYmd(d); return `${x.getMonth() + 1}/${x.getDate()}`; };
+  return laneSchedules
+    .filter((x) => x.id !== s.id && x.exclusive && x.status === "active" && x.end_date && x.end_date >= today
+      && x.start_date <= (s.end_date || "9999-12-31") && x.end_date >= s.start_date)
+    .map((x) => {
+      const now = x.start_date <= today;
+      const period = x.start_date === x.end_date ? md(x.start_date) : `${md(x.start_date)}〜${md(x.end_date)}`;
+      return el("span", {
+        class: `suppressed-tag${now ? " now" : ""}`,
+        title: `「${x.label || "臨時のスケジューラ"}」が「同じレーンの他のスケジューラを止める」設定のため、${period} の回はキックしません`,
+      }, `${now ? "停止中" : "停止予定"} ${period}「${x.label || "臨時"}」優先`);
+    });
+}
+
 /** 終了したスケジューラか（終了・キャンセル済み。予定は終了日を過ぎたもの） */
 function isEndedSchedule(s) {
   if (s.mode === "memo") return !!s.end_date && s.end_date < ymd(new Date());

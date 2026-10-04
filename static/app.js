@@ -1168,7 +1168,7 @@ async function openItemPanel(targetId) {
     try {
       [schedules, upcoming, recent, holding] = await Promise.all([
         api("GET", `/api/schedules?target_id=${t.id}`),
-        memo ? [] : api("GET", `/api/runs?target=${t.id}&status=scheduled&from=${today}&order=asc&limit=10`),
+        memo ? [] : api("GET", `/api/runs?target=${t.id}&status=scheduled&from=${today}&order=asc&limit=40`),
         memo ? [] : api("GET", `/api/runs?target=${t.id}&status=queued,running,success,unstable,failure,aborted,skipped,missed,cancelled&order=desc&limit=10`),
         // 保留は予定時刻を過ぎて止まったものなので、日付で絞らずすべて出す
         memo ? [] : api("GET", `/api/runs?target=${t.id}&status=holding&order=desc&limit=200`),
@@ -1209,7 +1209,8 @@ async function openItemPanel(targetId) {
                 s.holding_count ? el("span", { class: "hold-tag" }, `保留${s.holding_count}`) : null,
                 el("b", {}, scheduleTitle(s)),
                 memo ? (isPast(s) ? el("span", { class: "chip st-ended" }, "過去") : null) : statusChip(s.status),
-                s.exclusive ? el("span", { class: "exclusive-tag", title: "この期間は、同じレーンの他のスケジューラを止める" }, "他を止める") : null),
+                s.exclusive ? el("span", { class: "exclusive-tag", title: "この期間は、同じレーンの他のスケジューラを止める" }, "他を止める") : null,
+                ...suppressionTags(s, schedules)),
               el("div", { class: "muted small" },
                 `${fmtDate(s.start_date)} 〜 ${s.end_date ? fmtDate(s.end_date) : "無期限"}`, scheduleRule(s) ? " ／ " : "", scheduleRule(s)),
               s.next_run_at ? el("div", { class: "small" }, "次回: ", fmtDateTime(s.next_run_at, true)) : null)))
@@ -1233,7 +1234,7 @@ async function openItemPanel(targetId) {
                 el("td", {}, runChip(runShownStatus(r))),
                 el("td", {}, r.build_url ? el("a", { href: r.build_url, target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, `#${r.build_number}`) : null)))))
         : el("p", { class: "muted" }, empty);
-    upcomingBox.replaceChildren(runTable(upcoming, "予定されている run はありません。"));
+    upcomingBox.replaceChildren(runTable(upcoming.filter((r) => !r.suppressed_by).slice(0, 10), "予定されている run はありません。"));
     recentBox.replaceChildren(runTable(recent, "まだ実行していません。"));
   }
 
