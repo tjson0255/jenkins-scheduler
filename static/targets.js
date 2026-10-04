@@ -197,37 +197,94 @@ function orderedTargets() {
   return out;
 }
 
+// スケジューラの絞り込み（レーン・文字・状態・種類・警告ありだけ）
+const schedFilter = { q: "", status: "", kind: "", warnOnly: false };
+
+/** 絞り込みの欄。文字を打っている間に作り直すと入力が途切れるので、最初に1回だけ作り、レーンの選択肢だけ更新する */
+function renderScheduleTools(ordered) {
+  const tools = document.getElementById("schedule-tools");
+  const filters = document.getElementById("schedule-filters");
+  if (!filters.dataset.ready) {
+    filters.dataset.ready = "1";
+    const lane = el("select", { id: "sched-lane", "aria-label": "レーンで絞り込む" });
+    lane.addEventListener("change", () => {
+      scheduleFilter = lane.value;
+      renderScheduleList();
+    });
+    const q = el("input", { type: "search", placeholder: "件名・メモで探す", "aria-label": "件名・メモで探す" });
+    q.addEventListener("input", debounce(() => {
+      schedFilter.q = q.value;
+      renderScheduleList();
+    }, 200));
+    const status = el("select", { "aria-label": "状態で絞り込む" },
+      [["", "すべての状態"], ["active", "有効"], ["draft", "ドラフト"], ["paused", "一時停止"], ["ended", "終了"], ["memo", "予定（テキスト）"]]
+        .map(([v, label]) => el("option", { value: v }, label)));
+    status.addEventListener("change", () => {
+      schedFilter.status = status.value;
+      renderScheduleList();
+    });
+    const kind = el("select", { "aria-label": "種類で絞り込む" },
+      [["", "すべての種類"], ["jenkins", "Jenkins ジョブ"], ["memo", "テキスト"], ["exclusive", "他スケジューラ停止"]]
+        .map(([v, label]) => el("option", { value: v }, label)));
+    kind.addEventListener("change", () => {
+      schedFilter.kind = kind.value;
+      renderScheduleList();
+    });
+    const warn = el("input", { type: "checkbox" });
+    warn.addEventListener("change", () => {
+      schedFilter.warnOnly = warn.checked;
+      renderScheduleList();
+    });
+    const ended = el("input", { type: "checkbox", checked: showEndedSchedules() });
+    ended.addEventListener("change", () => {
+      setShowEndedSchedules(ended.checked);
+      renderScheduleList();
+    });
+    filters.replaceChildren(lane, q, status, kind,
+      el("label", { class: "check small" }, warn, " 警告ありだけ"),
+      el("label", { class: "check small" }, ended, " 終了したものも表示"));
+  }
+  const lane = document.getElementById("sched-lane");
+  lane.replaceChildren(el("option", { value: "" }, "すべてのレーン"),
+    ordered.map((t) => el("option", { value: `t:${t.id}`, selected: scheduleFilter === `t:${t.id}` }, t.display_name)));
+  const canAdd = ordered.some((t) => can.editItem(t));
+  tools.replaceChildren(canAdd ? el("button", { class: "btn primary", onclick: () => openAddSchedule(ordered) }, "＋ 追加") : "");
+}
+
+function scheduleHasWarning(s, t) {
+  if (s.mode === "memo") return false;
+  return !!(scheduleAlertLevel(s) || t.schema_error || t.timer_trigger_detected || !t.enabled);
+}
+
+function matchesSchedFilter(s, t) {
+  const f = schedFilter;
+  if (!showEndedSchedules() && isEndedSchedule(s) && f.status !== "ended") return false;
+  if (f.status === "memo" ? s.mode !== "memo" : f.status && (s.mode === "memo" || s.status !== f.status)) return false;
+  if (f.kind === "jenkins" && s.mode === "memo") return false;
+  if (f.kind === "memo" && s.mode !== "memo") return false;
+  if (f.kind === "exclusive" && !s.exclusive) return false;
+  if (f.warnOnly && !scheduleHasWarning(s, t)) return false;
+  const q = f.q.trim().toLowerCase();
+  if (q && !`${scheduleTitleOf(s)}\n${s.note || ""}`.toLowerCase().includes(q)) return false;
+  return true;
+}
+
 function renderScheduleList() {
   const box = document.getElementById("schedule-list");
   const ordered = orderedTargets();
   if (scheduleFilter && !ordered.some(matchesScheduleFilter)) scheduleFilter = "";
-
-  const filter = el("select", { "aria-label": "レーンで絞り込む" },
-    el("option", { value: "" }, "すべてのレーン"),
-    ordered.map((t) => el("option", { value: `t:${t.id}`, selected: scheduleFilter === `t:${t.id}` }, t.display_name)));
-  filter.addEventListener("change", () => {
-    scheduleFilter = filter.value;
-    renderScheduleList();
-  });
-  const canAdd = ordered.some((t) => can.editItem(t));
-  const addBtn = canAdd ? el("button", { class: "btn primary", onclick: () => openAddSchedule(ordered) }, "＋ 追加") : null;
-  const ended = el("input", { type: "checkbox", checked: showEndedSchedules() });
-  ended.onchange = () => {
-    setShowEndedSchedules(ended.checked);
-    renderScheduleList();
-  };
-  const tools = document.getElementById("schedule-tools");
-  tools.replaceChildren(filter, el("label", { class: "check small" }, ended, " 終了したものも表示"), addBtn || "");
+  renderScheduleTools(ordered);
 
   const rows = [];
   for (const t of ordered) {
     if (!matchesScheduleFilter(t)) continue;
     const list = (schedulesByTarget.get(t.id) || [])
-      .filter((s) => showEndedSchedules() || !isEndedSchedule(s))
+      .filter((s) => matchesSchedFilter(s, t))
       .sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id - b.id);
     list.forEach((s) => {
       const memo = s.mode === "memo";
       const lvl = scheduleAlertLevel(s) || (memo ? null : t.schema_error ? "error" : t.timer_trigger_detected ? "warning" : null);
+      const note = (s.note || "").trim();
       rows.push(el("tr", { class: lvl ? "alert-" + lvl : "" },
         el("td", {}, el("span", { class: "swatch inline", style: `background:${t.color || "#8a94a6"}` }), t.display_name),
         el("td", {}, scheduleLink(s, "basic", { title: "詳細を開く" }, scheduleTitleOf(s)),
@@ -236,6 +293,8 @@ function renderScheduleList() {
         el("td", {}, `${plainDate(s.start_date)} 〜 ${s.end_date ? plainDate(s.end_date) : "無期限"}`),
         el("td", {}, memo ? "" : statusChip(s.status)),
         el("td", { class: "small" }, memo ? "" : scheduleWarnings(s, t)),
+        // メモは1行目だけ出し、マウスを乗せると全文
+        el("td", { class: "small sched-note", title: note }, note.split("\n")[0]),
         el("td", {}, !memo && can.admin() && ["draft", "active", "paused"].includes(s.status)
           ? el("button", { class: "btn small", title: "このスケジューラのパラメータで今すぐキックする", onclick: () => runNowSchedule(t, s) }, "今すぐ実行")
           : "")));
@@ -243,9 +302,9 @@ function renderScheduleList() {
   }
   box.replaceChildren(rows.length
     ? el("div", { class: "table-wrap" }, el("table", { class: "table schedule-table" },
-        el("thead", {}, el("tr", {}, ["レーン", "件名", "実行規則", "期間", "状態", "警告", ""].map((h) => el("th", {}, h)))),
+        el("thead", {}, el("tr", {}, ["レーン", "件名", "実行規則", "期間", "状態", "警告", "メモ", ""].map((h) => el("th", {}, h)))),
         el("tbody", {}, rows)))
-    : el("p", { class: "muted" }, "スケジューラはありません。"));
+    : el("p", { class: "muted" }, "条件に合うスケジューラはありません。"));
 }
 
 /** そのスケジューラの警告をまとめて出す。

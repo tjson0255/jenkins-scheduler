@@ -23,6 +23,16 @@ def test_demo_populates_and_forces_mock(settings, mock_client):
         runs = c.get("/api/runs?status=success,failure").json()
         assert runs, "過去の実行履歴がある"
         assert c.get("/api/runs/holding-count").json()["holding"] == 1
+        # いろいろな機能の例が入っている
+        statuses = {s["status"] for s in schedules}
+        assert {"active", "paused", "draft", "ended"} <= statuses
+        assert any(s["exclusive"] and s["status"] == "active" for s in schedules)  # 他スケジューラ停止
+        all_runs = c.get("/api/runs?limit=10000").json()
+        assert any(r["suppressed_by"] for r in all_runs)  # 止められる回
+        assert any(r["replaces_run_id"] for r in all_runs)  # この回だけ変更
+        assert any(r["schedule_deleted"] for r in all_runs)  # 削除済みのスケジューラの履歴
+        rc_titles = {s["label"] for s in schedules if s["mode"] == "once" and s["status"] == "active"}
+        assert {"v2.4.0 RC1", "v2.4.0 RC2"} <= rc_titles  # 同じレーンで日によって違うスケジューラ
 
         # 初期化すると、書き込んだ内容は消えて元に戻る
         memo_item = next(t for t in targets if t["kind"] == "memo")

@@ -593,3 +593,6 @@ td.v-cell.locked { cursor: not-allowed; }
 .period-row .check { white-space: nowrap; padding-bottom: 6px; }
 .stamps { margin-top: 14px; text-align: right; }
 .field-hint { margin: -4px 0 6px; }
+.sched-filters { gap: 8px; margin: 0 0 8px; }
+.sched-filters input[type="search"] { min-width: 180px; }
+.schedule-table td.sched-note { white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; color: #3a4150; }
